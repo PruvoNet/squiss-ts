@@ -181,7 +181,7 @@ describe('TimeoutExtender', () => {
     const spy = sinon.spy(squiss, 'changeMessageVisibility');
     inst = new TimeoutExtender(squiss, {visibilityTimeoutSecs: 10});
     inst.addMessage(fooMsg);
-    inst._linkedList.head.receivedOn = 20000;
+    inst._linkedList.head!.receivedOn = 20000;
     clock.tick(6000);
     spy.should.be.calledWith(fooMsg, 10);
   });

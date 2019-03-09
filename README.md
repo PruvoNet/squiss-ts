@@ -1,4 +1,4 @@
-# Squiss-TS [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
+# Squiss-TS [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)[![Coverage Status](https://coveralls.io/repos/github/PruvoNet/squiss-ts/badge.svg?branch=master)](https://coveralls.io/github/PruvoNet/squiss-ts?branch=master)
 High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up
 
 ## Quick example
