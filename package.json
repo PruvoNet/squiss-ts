@@ -1,25 +1,26 @@
 {
-  "name": "squiss",
-  "version": "2.2.1",
+  "name": "squiss-ts",
+  "version": "1.0.0",
   "description": "High-volume SQS poller",
   "main": "src/index.js",
   "engines": {
     "node": ">=4.2"
   },
   "scripts": {
-    "clean": "rm -rf node_modules build coverage",
-    "test": "npm run lint && npm run test-cov && npm run check-cov",
-    "mocha": "mocha",
-    "test-cov": "istanbul cover _mocha",
-    "check-cov": "istanbul check-coverage --statements 100 --branches 100 --functions 100 --lines 100",
-    "lint": "eslint ./src ./test"
+    "clean": "rm -rf node_modules build coverage dist",
+    "build": "npm run lint && npm run buildDist",
+    "buildDist": "rm -rf dist/* && ./node_modules/.bin/tsc",
+    "test": "npm run lint && npm run mocha",
+    "mocha": "mocha test/ --reporter spec --compilers ts:ts-node/register --recursive",
+    "cover": "istanbul cover node_modules/mocha/bin/_mocha test/ -- -R spec --compilers ts:ts-node/register --recursive",
+    "lint": "tslint -c tslint.json 'src/**/*.ts' 'test/**/*.ts'"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TomFrost/Squiss.git"
+    "url": "git+https://github.com/PruvoNet/squiss-ts.git"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "keywords": [
     "aws",
@@ -30,24 +31,33 @@
     "poller",
     "queue"
   ],
-  "author": "Tom Shawver <tom@frosteddesign.com>",
+  "author": "Regev Brody <regevbr@gmail.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/TomFrost/Squiss/issues"
+    "url": "https://github.com/PruvoNet/squiss-ts/issues"
   },
-  "homepage": "https://github.com/TomFrost/Squiss#readme",
+  "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
-    "aws-sdk": "^2.10.0"
+    "aws-sdk": "^2.418.0",
+    "linked-list": "^1.0.4",
+    "typeguard": "0.0.13"
   },
   "devDependencies": {
+    "@types/chai": "^4.1.3",
+    "@types/chai-as-promised": "^7.1.0",
+    "@types/mocha": "^5.2.1",
+    "@types/node": "^10.3.2",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
+    "coveralls": "^3.0.1",
     "delay": "^1.3.1",
     "dirty-chai": "^1.2.2",
-    "eslint": "^3.15.0",
     "istanbul": "^0.4.3",
     "mocha": "^3.2.0",
     "sinon": "^1.17.3",
-    "sinon-chai": "^2.8.0"
+    "sinon-chai": "^2.8.0",
+    "ts-node": "^6.1.0",
+    "tslint": "^5.13.1",
+    "typescript": "^3.0.0"
   }
 }

@@ -1,26 +1,67 @@
-/*
- * Copyright (c) 2017 Tom Shawver
- */
+'use strict';
 
-'use strict'
-
-const AWS = require('aws-sdk')
-const EventEmitter = require('events').EventEmitter
-const Message = require('./Message')
-const url = require('url')
-const TimeoutExtender = require('./TimeoutExtender')
+import * as AWS from 'aws-sdk';
+import * as url from 'url';
+import {EventEmitter} from 'events';
+import {Message} from './Message';
+import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
+import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
+import {isObject} from 'typeguard';
+import {SQS} from 'aws-sdk';
 
 /**
  * The maximum number of messages that can be sent in an SQS sendMessageBatch request.
  * @type {number}
  */
-const AWS_MAX_SEND_BATCH = 10
+const AWS_MAX_SEND_BATCH = 10;
+
+export interface IObject {
+  [k: string]: any;
+}
+
+export type IMessageToSend = IObject | string;
+
+export {IMessageAttributes} from './attributeUtils';
+
+export type BodyFormat = 'json' | 'plain' | undefined;
+
+export interface ISquissOptions {
+  receiveBatchSize?: number;
+  receiveWaitTimeSecs?: number;
+  deleteBatchSize?: number;
+  deleteWaitMs?: number;
+  maxInFlight?: number;
+  unwrapSns?: boolean;
+  bodyFormat?: BodyFormat;
+  correctQueueUrl?: boolean;
+  pollRetryMs?: number;
+  activePollIntervalMs?: number;
+  idlePollIntervalMs?: number;
+  delaySecs?: number;
+  maxMessageBytes?: number;
+  messageRetentionSecs?: number;
+  autoExtendTimeout?: boolean;
+  SQS?: typeof SQS;
+  awsConfig?: SQS.Types.ClientConfiguration;
+  queueUrl?: string;
+  queueName?: string;
+  visibilityTimeoutSecs?: number;
+  queuePolicy?: string;
+  accountNumber?: string | number;
+  noExtensionsAfterSecs?: number;
+  advancedCallMs?: number;
+}
+
+interface IDeleteQueueItem {
+  Id: string;
+  ReceiptHandle: string;
+}
 
 /**
  * Option defaults.
  * @type {Object}
  */
-const optDefaults = {
+const optDefaults: ISquissOptions = {
   receiveBatchSize: 10,
   receiveWaitTimeSecs: 20,
   deleteBatchSize: 10,
@@ -35,19 +76,31 @@ const optDefaults = {
   delaySecs: 0,
   maxMessageBytes: 262144,
   messageRetentionSecs: 345600,
-  autoExtendTimeout: false
-}
+  autoExtendTimeout: false,
+};
 
 /**
  * Squiss is a high-volume-capable Amazon SQS polling class. See README for usage details.
  */
-class Squiss extends EventEmitter {
+export class Squiss extends EventEmitter {
+
+  public sqs: SQS;
+  public _timeoutExtender: TimeoutExtender | undefined;
+  public _opts: ISquissOptions;
+  private _running: boolean;
+  private _paused: boolean;
+  private _inFlight: number;
+  private _queueVisibilityTimeout: number;
+  private _queueUrl: string;
+  private _delQueue: IDeleteQueueItem[];
+  private _delTimer: number | undefined;
+  private _activeReq: AWS.Request<SQS.Types.ReceiveMessageResult, AWS.AWSError> | undefined;
 
   /**
    * Creates a new Squiss object.
    * @param {Object} opts A map of options to configure this instance
    * @param {Function} [opts.SQS] An instance of the official SQS Client, or an SQS constructor function to use
-   *    rather than the default one provided by AWS.SQS
+   *    rather than the default one provided by SQS
    * @param {Object} [opts.awsConfig] An object mapping to pass to the SQS constructor, configuring the
    *    aws-sdk library. This is commonly used to set the AWS region, or the user credentials. See
    *    http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
@@ -109,46 +162,49 @@ class Squiss extends EventEmitter {
    *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
    *    more information.
    */
-  constructor(opts) {
-    super()
-    opts = opts || {}
-    if (opts.SQS) {
-      if (typeof opts.SQS === 'function') this.sqs = new opts.SQS(opts.awsConfig)
-      else this.sqs = opts.SQS
+
+  constructor(opts?: ISquissOptions | undefined) {
+    super();
+    this._opts = Object.assign({}, optDefaults, opts || {});
+    if (this._opts.SQS) {
+      if (typeof this._opts.SQS === 'function') {
+        this.sqs = new this._opts.SQS(this._opts.awsConfig);
+      } else {
+        this.sqs = this._opts.SQS;
+      }
     } else {
-      this.sqs = new AWS.SQS(opts.awsConfig)
+      this.sqs = new SQS(this._opts.awsConfig);
     }
-    this._opts = {}
-    Object.assign(this._opts, optDefaults, opts)
-    this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize, 10)
-    this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize,
-      this._opts.maxInFlight > 0 ? this._opts.maxInFlight : 10, 10)
-    this._running = false
-    this._inFlight = 0
-    this._delQueue = []
-    this._delTimer = null
-    this._queueUrl = opts.queueUrl
-    this._queueVisibilityTimeout = null
-    if (!opts.queueUrl && !opts.queueName) {
-      throw new Error('Squiss requires either the "queueUrl", or the "queueName".')
+    this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, 10);
+    this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize!,
+      this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : 10, 10);
+    this._running = false;
+    this._inFlight = 0;
+    this._delQueue = [];
+    this._paused = true;
+    this._delTimer = undefined;
+    this._queueUrl = this._opts.queueUrl || '';
+    this._queueVisibilityTimeout = 0;
+    if (!this._opts.queueUrl && !this._opts.queueName) {
+      throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
     }
-    this._timeoutExtender = null
+    this._timeoutExtender = undefined;
   }
 
   /**
    * Getter for the number of messages currently in flight.
    * @returns {number}
    */
-  get inFlight() {
-    return this._inFlight
+  get inFlight(): number {
+    return this._inFlight;
   }
 
   /**
    * Getter to determine whether Squiss is currently polling or not.
    * @returns {boolean}
    */
-  get running() {
-    return this._running
+  get running(): boolean {
+    return this._running;
   }
 
   /**
@@ -157,18 +213,22 @@ class Squiss extends EventEmitter {
    * @param {number} timeoutInSeconds Visibility timeout in seconds.
    * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
    */
-  changeMessageVisibility(msg, timeoutInSeconds) {
-    let receiptHandle = msg
+  public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<any> {
+    let receiptHandle: string;
     if (msg instanceof Message) {
-      receiptHandle = msg.raw.ReceiptHandle
+      receiptHandle = msg.raw.ReceiptHandle!;
+    } else {
+      receiptHandle = msg;
     }
-    return this.getQueueUrl().then((queueUrl) =>
-      this.sqs.changeMessageVisibility({
-        QueueUrl: queueUrl,
-        ReceiptHandle: receiptHandle,
-        VisibilityTimeout: timeoutInSeconds
-      }).promise()
-    )
+    return this.getQueueUrl()
+      .then((queueUrl) => {
+          return this.sqs.changeMessageVisibility({
+            QueueUrl: queueUrl,
+            ReceiptHandle: receiptHandle,
+            VisibilityTimeout: timeoutInSeconds,
+          }).promise();
+        }
+      );
   }
 
   /**
@@ -177,29 +237,29 @@ class Squiss extends EventEmitter {
    * @returns {Promise.<string>} Resolves with the URL of the created queue, rejects with the official AWS SDK's
    *    error object.
    */
-  createQueue() {
+  public createQueue(): Promise<string> {
     if (!this._opts.queueName) {
-      return Promise.reject(new Error('Squiss was not instantiated with a queueName'))
+      return Promise.reject(new Error('Squiss was not instantiated with a queueName'));
     }
-    const params = {
+    const params: SQS.Types.CreateQueueRequest = {
       QueueName: this._opts.queueName,
       Attributes: {
-        ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs.toString(),
-        DelaySeconds: this._opts.delaySecs.toString(),
-        MaximumMessageSize: this._opts.maxMessageBytes.toString(),
-        MessageRetentionPeriod: this._opts.messageRetentionSecs.toString()
-      }
-    }
+        ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs!.toString(),
+        DelaySeconds: this._opts.delaySecs!.toString(),
+        MaximumMessageSize: this._opts.maxMessageBytes!.toString(),
+        MessageRetentionPeriod: this._opts.messageRetentionSecs!.toString(),
+      },
+    };
     if (this._opts.visibilityTimeoutSecs) {
-      params.Attributes.VisibilityTimeout = this._opts.visibilityTimeoutSecs.toString()
+      params.Attributes!.VisibilityTimeout = this._opts.visibilityTimeoutSecs.toString();
     }
     if (this._opts.queuePolicy) {
-      params.Attributes.Policy = this._opts.queuePolicy
+      params.Attributes!.Policy = this._opts.queuePolicy;
     }
-    return this.sqs.createQueue(params).promise().then(res => {
-      this._queueUrl = res.QueueUrl
-      return res.QueueUrl
-    })
+    return this.sqs.createQueue(params).promise().then((res) => {
+      this._queueUrl = res.QueueUrl!;
+      return res.QueueUrl!;
+    });
   }
 
   /**
@@ -207,24 +267,26 @@ class Squiss extends EventEmitter {
    * supplied to the constructor.
    * @param {Message} msg The message object to be deleted
    */
-  deleteMessage(msg) {
-    if (!msg.raw) throw new Error('Squiss.deleteMessage requires a Message object')
-    this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle })
-    this.emit('delQueued', msg)
-    this.handledMessage(msg)
-    if (this._delQueue.length >= this._opts.deleteBatchSize) {
+  public deleteMessage(msg: Message): void {
+    if (!msg.raw) {
+      throw new Error('Squiss.deleteMessage requires a Message object');
+    }
+    this._delQueue.push({Id: msg.raw.MessageId!, ReceiptHandle: msg.raw.ReceiptHandle!});
+    this.emit('delQueued', msg);
+    this.handledMessage(msg);
+    if (this._delQueue.length >= this._opts.deleteBatchSize!) {
       if (this._delTimer) {
-        clearTimeout(this._delTimer)
-        this._delTimer = null
+        clearTimeout(this._delTimer);
+        this._delTimer = undefined;
       }
-      const delBatch = this._delQueue.splice(0, this._opts.deleteBatchSize)
-      this._deleteMessages(delBatch)
+      const delBatch = this._delQueue.splice(0, this._opts.deleteBatchSize);
+      this._deleteMessages(delBatch);
     } else if (!this._delTimer) {
       this._delTimer = setTimeout(() => {
-        this._delTimer = null
-        const delBatch = this._delQueue.splice(0, this._delQueue.length)
-        this._deleteMessages(delBatch)
-      }, this._opts.deleteWaitMs)
+        this._delTimer = undefined;
+        const delBatch = this._delQueue.splice(0, this._delQueue.length);
+        this._deleteMessages(delBatch);
+      }, this._opts.deleteWaitMs);
     }
   }
 
@@ -232,10 +294,10 @@ class Squiss extends EventEmitter {
    * Deletes the configured queue.
    * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
    */
-  deleteQueue() {
+  public deleteQueue(): Promise<any> {
     return this.getQueueUrl().then((queueUrl) => {
-      return this.sqs.deleteQueue({ QueueUrl: queueUrl }).promise()
-    })
+      return this.sqs.deleteQueue({QueueUrl: queueUrl}).promise();
+    });
   }
 
   /**
@@ -244,22 +306,24 @@ class Squiss extends EventEmitter {
    * @returns {Promise.<string>} Resolves with the queue URL
    * @private
    */
-  getQueueUrl() {
-    if (this._queueUrl) return Promise.resolve(this._queueUrl)
-    const params = { QueueName: this._opts.queueName }
-    if (this._opts.accountNumber) {
-      params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString()
+  public getQueueUrl(): Promise<string> {
+    if (this._queueUrl) {
+      return Promise.resolve(this._queueUrl);
     }
-    return this.sqs.getQueueUrl(params).promise().then(data => {
-      this._queueUrl = data.QueueUrl
+    const params: SQS.Types.GetQueueUrlRequest = {QueueName: this._opts.queueName!};
+    if (this._opts.accountNumber) {
+      params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString();
+    }
+    return this.sqs.getQueueUrl(params).promise().then((data) => {
+      this._queueUrl = data.QueueUrl!;
       if (this._opts.correctQueueUrl) {
-        let newUrl = url.parse(this.sqs.config.endpoint)
-        const parsedQueueUrl = url.parse(this._queueUrl)
-        newUrl.pathname = parsedQueueUrl.pathname
-        this._queueUrl = url.format(newUrl)
+        const newUrl = url.parse(this.sqs.config.endpoint!);
+        const parsedQueueUrl = url.parse(this._queueUrl);
+        newUrl.pathname = parsedQueueUrl.pathname;
+        this._queueUrl = url.format(newUrl);
       }
-      return this._queueUrl
-    })
+      return this._queueUrl;
+    });
   }
 
   /**
@@ -267,21 +331,23 @@ class Squiss extends EventEmitter {
    * seconds to be deleted before it will become available to be received again.
    * @returns {Promise.<number>} The VisibilityTimeout setting of the target queue, in seconds
    */
-  getQueueVisibilityTimeout() {
-    if (this._queueVisibilityTimeout) return Promise.resolve(this._queueVisibilityTimeout)
-    return this.getQueueUrl().then(QueueUrl => {
+  public getQueueVisibilityTimeout(): Promise<number> {
+    if (this._queueVisibilityTimeout) {
+      return Promise.resolve(this._queueVisibilityTimeout);
+    }
+    return this.getQueueUrl().then((queueUrl) => {
       return this.sqs.getQueueAttributes({
-        AttributeNames: [ 'VisibilityTimeout' ],
-        QueueUrl
-      }).promise()
-    }).then(res => {
+        AttributeNames: ['VisibilityTimeout'],
+        QueueUrl: queueUrl,
+      }).promise();
+    }).then((res) => {
       if (!res.Attributes || !res.Attributes.VisibilityTimeout) {
-        throw new Error('AWS.SQS.GetQueueAttributes call did not return expected shape. Response: ' +
-          JSON.stringify(res))
+        throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
+          JSON.stringify(res));
       }
-      this._queueVisibilityTimeout = parseInt(res.Attributes.VisibilityTimeout, 10)
-      return this._queueVisibilityTimeout
-    })
+      this._queueVisibilityTimeout = parseInt(res.Attributes.VisibilityTimeout, 10);
+      return this._queueVisibilityTimeout;
+    });
   }
 
   /**
@@ -289,15 +355,15 @@ class Squiss extends EventEmitter {
    * messages without deleting one, which may be necessary in the event of an error.
    * @param {Message} msg The message to be handled
    */
-  handledMessage(msg) {
-    this._inFlight--
+  public handledMessage(msg: Message): void {
+    this._inFlight--;
     if (this._paused && this._slotsAvailable()) {
-      this._paused = false
-      this._startPoller()
+      this._paused = false;
+      this._startPoller();
     }
-    this.emit('handled', msg)
+    this.emit('handled', msg);
     if (!this._inFlight) {
-      this.emit('drained')
+      this.emit('drained');
     }
   }
 
@@ -310,12 +376,28 @@ class Squiss extends EventEmitter {
    * @returns {Promise} Resolves when the VisibilityTimeout has been changed. Rejects with the official AWS SDK's
    * error object.
    */
-  releaseMessage(msg) {
-    this.handledMessage(msg)
-    return this.changeMessageVisibility(msg, 0).then(res => {
-      this.emit('released', msg)
-      return res
-    })
+  public releaseMessage(msg: Message): Promise<any> {
+    this.handledMessage(msg);
+    return this.changeMessageVisibility(msg, 0).then((res) => {
+      this.emit('released', msg);
+      return res;
+    });
+  }
+
+  /**
+   * Deletes all the messages in a queue and init in flight.
+   * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
+   */
+  public purgeQueue(): Promise<any> {
+    return this.getQueueUrl().then((queueUrl) => {
+      return this.sqs.purgeQueue({QueueUrl: queueUrl}).promise()
+        .then((data) => {
+          this._inFlight = 0;
+          this._delQueue = [];
+          this._delTimer = undefined;
+          return data;
+        });
+    });
   }
 
   /**
@@ -328,16 +410,21 @@ class Squiss extends EventEmitter {
    * @returns {Promise.<{MessageId: string, MD5OfMessageAttributes: string, MD5OfMessageBody: string}>} Resolves with
    *    the official AWS SDK sendMessage response, rejects with the official error object.
    */
-  sendMessage(message, delay, attributes) {
+  public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    : Promise<SQS.Types.SendMessageResult> {
     return this.getQueueUrl().then((queueUrl) => {
-      const params = {
+      const params: SQS.Types.SendMessageRequest = {
         QueueUrl: queueUrl,
-        MessageBody: typeof message === 'object' ? JSON.stringify(message) : message
+        MessageBody: isObject(message) ? JSON.stringify(message) : message,
+      };
+      if (delay) {
+        params.DelaySeconds = delay;
       }
-      if (delay) params.DelaySeconds = delay
-      if (attributes) params.MessageAttributes = attributes
-      return this.sqs.sendMessage(params).promise()
-    })
+      if (attributes) {
+        params.MessageAttributes = createMessageAttributes(attributes);
+      }
+      return this.sqs.sendMessage(params).promise();
+    });
   }
 
   /**
@@ -367,33 +454,39 @@ class Squiss extends EventEmitter {
    *    MD5OfMessageBody: string}>, Failed: Array<{Id: string, SenderFault: boolean, Code: string,
    *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
    */
-  sendMessages(messages, delay, attributes) {
-    const batches = []
-    const msgs = Array.isArray(messages) ? messages : [messages]
+  public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    : Promise<SQS.Types.SendMessageBatchResult> {
+    const batches: IMessageToSend[][] = [];
+    const msgs: IMessageToSend[] = Array.isArray(messages) ? messages : [messages];
     for (let i = 0; i < msgs.length; i++) {
-      if (i % AWS_MAX_SEND_BATCH === 0) batches.push([])
-      batches[batches.length - 1].push(msgs[i])
+      if (i % AWS_MAX_SEND_BATCH === 0) {
+        batches.push([]);
+      }
+      batches[batches.length - 1].push(msgs[i]);
     }
     return Promise.all(batches.map((batch, idx) => {
-      return this._sendMessageBatch(batch, delay, attributes, idx * AWS_MAX_SEND_BATCH)
+      const formattedAttributes = createMessageAttributes(attributes);
+      return this._sendMessageBatch(batch, delay, formattedAttributes, idx * AWS_MAX_SEND_BATCH);
     })).then((results) => {
-      const merged = {Successful: [], Failed: []}
+      const merged: SQS.Types.SendMessageBatchResult = {Successful: [], Failed: []};
       results.forEach((res) => {
-        res.Successful.forEach(elem => merged.Successful.push(elem))
-        res.Failed.forEach(elem => merged.Failed.push(elem))
-      })
-      return merged
-    })
+        res.Successful.forEach((elem) => merged.Successful.push(elem));
+        res.Failed.forEach((elem) => merged.Failed.push(elem));
+      });
+      return merged;
+    });
   }
 
   /**
    * Starts the poller, if it's not already running.
    * @returns {Promise} Resolves when the poller has been started; resolves instantly if the poller is already running
    */
-  start() {
-    if (this._running) return Promise.resolve()
-    this._running = true
-    return this._startPoller()
+  public start(): Promise<void> {
+    if (this._running) {
+      return Promise.resolve();
+    }
+    this._running = true;
+    return this._startPoller();
   }
 
   /**
@@ -402,12 +495,12 @@ class Squiss extends EventEmitter {
    *    open until it terminates naturally. Note that if this is the case, the message event may still be fired after
    *    this function has been called.
    */
-  stop(soft) {
+  public stop(soft?: boolean): void {
     if (!soft && this._activeReq) {
-      this._activeReq.abort()
+      this._activeReq.abort();
     }
-    this._running = false
-    this._paused = false
+    this._running = false;
+    this._paused = false;
   }
 
   /**
@@ -416,24 +509,24 @@ class Squiss extends EventEmitter {
    * the `delError` event will be emitted with the failure object passed back by the AWS SDK.
    * @param {Array<{Id: string, ReceiptHandle: string}>} batch The batch of messages to be deleted, in the format
    *    required for sqs.deleteMessageBatch's Entries parameter.
-   * @private
+   * @private8
    */
-  _deleteMessages(batch) {
+  public _deleteMessages(batch: IDeleteQueueItem[]): void {
     this.getQueueUrl().then((queueUrl) => {
       return this.sqs.deleteMessageBatch({
         QueueUrl: queueUrl,
-        Entries: batch
-      }).promise()
+        Entries: batch,
+      }).promise();
     }).then((data) => {
       if (data.Failed && data.Failed.length) {
-        data.Failed.forEach(fail => this.emit('delError', fail))
+        data.Failed.forEach((fail) => this.emit('delError', fail));
       }
       if (data.Successful && data.Successful.length) {
-        data.Successful.forEach(success => this.emit('deleted', success.Id))
+        data.Successful.forEach((success) => this.emit('deleted', success.Id));
       }
     }).catch((err) => {
-      this.emit('error', err)
-    })
+      this.emit('error', err);
+    });
   }
 
   /**
@@ -442,17 +535,17 @@ class Squiss extends EventEmitter {
    * @param {Array<Object>} messages An array of SQS message objects, as returned from the aws sdk
    * @private
    */
-  _emitMessages(messages) {
+  public _emitMessages(messages: SQS.MessageList): void {
     messages.forEach((msg) => {
       const message = new Message({
         squiss: this,
         unwrapSns: this._opts.unwrapSns,
         bodyFormat: this._opts.bodyFormat,
-        msg
-      })
-      this._inFlight++
-      this.emit('message', message)
-    })
+        msg,
+      });
+      this._inFlight++;
+      this.emit('message', message);
+    });
   }
 
   /**
@@ -461,48 +554,49 @@ class Squiss extends EventEmitter {
    * object being an instance of Squiss' Message class.
    * @private
    */
-  _getBatch(queueUrl) {
-    const next = this._getBatch.bind(this, queueUrl)
-    const params = {
+  public _getBatch(queueUrl: string): void {
+    const next = this._getBatch.bind(this, queueUrl);
+    const params: SQS.Types.ReceiveMessageRequest = {
       QueueUrl: queueUrl,
       MaxNumberOfMessages: this._opts.receiveBatchSize,
-      WaitTimeSeconds: this._opts.receiveWaitTimeSecs
-    }
+      WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
+      MessageAttributeNames: ['All'],
+    };
     if (this._opts.visibilityTimeoutSecs !== undefined) {
-      params.VisibilityTimeout = this._opts.visibilityTimeoutSecs
+      params.VisibilityTimeout = this._opts.visibilityTimeoutSecs;
     }
-    this._activeReq = this.sqs.receiveMessage(params)
+    this._activeReq = this.sqs.receiveMessage(params);
     this._activeReq.promise().then((data) => {
-      let gotMessages = true
-      this._activeReq = null
+      let gotMessages = true;
+      this._activeReq = undefined;
       if (data && data.Messages) {
-        this.emit('gotMessages', data.Messages.length)
-        this._emitMessages(data.Messages)
+        this.emit('gotMessages', data.Messages.length);
+        this._emitMessages(data.Messages);
       } else {
-        this.emit('queueEmpty')
-        gotMessages = false
+        this.emit('queueEmpty');
+        gotMessages = false;
       }
       if (this._slotsAvailable()) {
         if (gotMessages && this._opts.activePollIntervalMs) {
-          setTimeout(next, this._opts.activePollIntervalMs)
+          setTimeout(next, this._opts.activePollIntervalMs);
         } else if (!gotMessages && this._opts.idlePollIntervalMs) {
-          setTimeout(next, this._opts.idlePollIntervalMs)
+          setTimeout(next, this._opts.idlePollIntervalMs);
         } else {
-          next()
+          next();
         }
       } else {
-        this._paused = true
-        this.emit('maxInFlight')
+        this._paused = true;
+        this.emit('maxInFlight');
       }
     }).catch((err) => {
-      this._activeReq = null
+      this._activeReq = undefined;
       if (err.code && err.code === 'RequestAbortedError') {
-        this.emit('aborted')
+        this.emit('aborted');
       } else {
-        setTimeout(next, this._opts.pollRetryMs)
-        this.emit('error', err)
+        setTimeout(next, this._opts.pollRetryMs);
+        this.emit('error', err);
       }
-    })
+    });
   }
 
   /**
@@ -511,17 +605,25 @@ class Squiss extends EventEmitter {
    * @returns {Promise} Resolves when the TimeoutExtender has been initialized
    * @private
    */
-  _initTimeoutExtender() {
-    if (!this._opts.autoExtendTimeout || this._timeoutExtender) return Promise.resolve()
+  public _initTimeoutExtender(): Promise<void> {
+    if (!this._opts.autoExtendTimeout || this._timeoutExtender) {
+      return Promise.resolve();
+    }
     return Promise.resolve().then(() => {
-      if (this._opts.visibilityTimeoutSecs) return this._opts.visibilityTimeoutSecs
-      return this.getQueueVisibilityTimeout()
-    }).then(visibilityTimeoutSecs => {
-      const opts = { visibilityTimeoutSecs }
-      if (this._opts.noExtensionsAfterSecs) opts.noExtensionsAfterSecs = this._opts.noExtensionsAfterSecs
-      if (this._opts.advancedCallMs) opts.advancedCallMs = this._opts.advancedCallMs
-      this._timeoutExtender = new TimeoutExtender(this, opts)
-    })
+      if (this._opts.visibilityTimeoutSecs) {
+        return this._opts.visibilityTimeoutSecs;
+      }
+      return this.getQueueVisibilityTimeout();
+    }).then((visibilityTimeoutSecs) => {
+      const opts: ITimeoutExtenderOptions = {visibilityTimeoutSecs};
+      if (this._opts.noExtensionsAfterSecs) {
+        opts.noExtensionsAfterSecs = this._opts.noExtensionsAfterSecs;
+      }
+      if (this._opts.advancedCallMs) {
+        opts.advancedCallMs = this._opts.advancedCallMs;
+      }
+      this._timeoutExtender = new TimeoutExtender(this, opts);
+    });
   }
 
   /**
@@ -538,24 +640,28 @@ class Squiss extends EventEmitter {
    *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
    * @private
    */
-  _sendMessageBatch(messages, delay, attributes, startIndex) {
-    const start = startIndex || 0
+  public _sendMessageBatch(messages: IMessageToSend[], delay: number | undefined,
+                           attributes: SQS.MessageBodyAttributeMap, startIndex: number):
+    Promise<SQS.Types.SendMessageBatchResult> {
+    const start = startIndex || 0;
     return this.getQueueUrl().then((queueUrl) => {
-      const params = {
+      const params: SQS.Types.SendMessageBatchRequest = {
         QueueUrl: queueUrl,
-        Entries: []
-      }
+        Entries: [],
+      };
       messages.forEach((msg, idx) => {
-        const entry = {
+        const entry: SQS.Types.SendMessageBatchRequestEntry = {
           Id: (start + idx).toString(),
-          MessageBody: typeof msg === 'object' ? JSON.stringify(msg) : msg
+          MessageBody: typeof msg === 'object' ? JSON.stringify(msg) : msg,
+        };
+        if (delay) {
+          entry.DelaySeconds = delay;
         }
-        if (delay) entry.DelaySeconds = delay
-        if (attributes) entry.MessageAttributes = attributes
-        params.Entries.push(entry)
-      })
-      return this.sqs.sendMessageBatch(params).promise()
-    })
+        entry.MessageAttributes = attributes;
+        params.Entries.push(entry);
+      });
+      return this.sqs.sendMessageBatch(params).promise();
+    });
   }
 
   /**
@@ -564,8 +670,8 @@ class Squiss extends EventEmitter {
    * @returns {boolean}
    * @private
    */
-  _slotsAvailable() {
-    return !this._opts.maxInFlight || this._inFlight <= this._opts.maxInFlight - this._opts.receiveBatchSize
+  public _slotsAvailable(): boolean {
+    return !this._opts.maxInFlight || this._inFlight <= this._opts.maxInFlight - this._opts.receiveBatchSize!;
   }
 
   /**
@@ -573,12 +679,12 @@ class Squiss extends EventEmitter {
    * @returns {Promise} Resolves when the poller has started
    * @private
    */
-  _startPoller() {
+  public _startPoller(): Promise<void> {
     return this._initTimeoutExtender()
       .then(() => this.getQueueUrl())
-      .then(queueUrl => this._getBatch(queueUrl))
-      .catch(e => this.emit('error', e))
+      .then((queueUrl) => this._getBatch(queueUrl))
+      .catch((e) => {
+        this.emit('error', e);
+      });
   }
 }
-
-module.exports = Squiss

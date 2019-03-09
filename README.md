@@ -1,6 +1,10 @@
-# Squiss [![Build Status](https://travis-ci.org/TomFrost/Squiss.svg?branch=master)](https://travis-ci.org/TomFrost/Squiss)
+# Squiss-TS [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
 High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up
 
+## Credits
+This project is a typescript port (with better performance) of the wonderful and unmaintnaed project [TomFrost/Squiss](https://www.github.com/TomFrost/Squiss)
+
+## Quick example
 ```javascript
 const poller = new Squiss({
   queueName: 'my-sqs-queue',
@@ -14,6 +18,11 @@ poller.on('message', (msg) => {
   console.log('%s says: %s', msg.body.name, msg.body.message);
   msg.del();
 });
+```
+
+## Install
+```bash
+npm install squiss-ts
 ```
 
 ## How it works
@@ -75,6 +84,9 @@ Informs Squiss that you got a message that you're not planning on deleting, so t
 
 ### squiss.releaseMessage(Message)
 Releases the given Message object back to the queue by setting its `VisibilityTimeout` to `0` and marking the message as handled internally. You can also call `message.release()` on the message itself to invoke this.
+
+### squiss.purgeQueue()
+Deletes all the messages in a queue and init in flight 
 
 ### squiss.sendMessage(message, delay, attributes)
 Sends an individual message to the configured queue, and returns a promise that resolves with AWS's official message metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5OfMessageBody`. Arguments:
@@ -192,9 +204,6 @@ The raw, unprocessed SQS response object as delivered from the aws-sdk.
 
 ## Versions
 Squiss supports Node 4 LTS and higher. For 0.12 support, consider compiling with Babel or using Squiss version 0.x.
-
-## License
-Squiss is Copyright (c) 2017 Tom Shawver, released under the ultra-permissive ISC license. See LICENSE.txt for details.
 
 ## Credits
 Squiss was originally created at [TechnologyAdvice](http://www.technologyadvice.com) in Nashville, TN.

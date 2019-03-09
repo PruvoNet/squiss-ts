@@ -1,25 +1,42 @@
-/*
- * Copyright (c) 2017 Tom Shawver
- */
+'use strict';
 
-'use strict'
+import {Squiss} from './index';
+import {Message} from './Message';
+import * as LinkedList from 'linked-list';
+import {Item} from 'linked-list';
 
 /**
  * The maximum age, in milliseconds, that a message can reach before AWS will no longer accept VisibilityTimeout
  * extensions.
  * @type {number}
  */
-const MAX_MESSAGE_AGE_MS = 43200000
+const MAX_MESSAGE_AGE_MS = 43200000;
+
+class Node extends Item {
+  constructor(public message: Message, public receivedOn: number, public timerOn: number) {
+    super();
+  }
+}
+
+export interface ITimeoutExtenderOptions {
+  visibilityTimeoutSecs?: number;
+  noExtensionsAfterSecs?: number;
+  advancedCallMs?: number;
+}
+
+interface MessageIndex {
+  [k: string]: Node;
+}
 
 /**
  * Option defaults.
  * @type {Object}
  */
-const optDefaults = {
+const optDefaults: ITimeoutExtenderOptions = {
   visibilityTimeoutSecs: 30,
   noExtensionsAfterSecs: MAX_MESSAGE_AGE_MS / 1000,
-  advancedCallMs: 5000
-}
+  advancedCallMs: 5000,
+};
 
 /**
  * The TimeoutExtender is a module that attaches itself to a Squiss instance via event
@@ -36,7 +53,16 @@ const optDefaults = {
  * sorted queue. Every operation in this class has a time complexity of O(1) and a space
  * complexity of O(n).
  */
-class TimeoutExtender {
+export class TimeoutExtender {
+
+  public readonly _index: MessageIndex;
+  public _linkedList: LinkedList<Node>;
+  public _opts: ITimeoutExtenderOptions;
+  private _squiss: Squiss;
+  private _timer: NodeJS.Timeout | undefined;
+  private readonly _visTimeout: number;
+  private readonly _stopAfter: number;
+  private readonly _apiLeadMs: number;
 
   /**
    * Creates a new TimeoutExtender.
@@ -54,40 +80,39 @@ class TimeoutExtender {
    * anyway; setting too low may cause the message to expire before the API call can
    * complete. The max is `opts.visibilityTimeoutSecs * 1000`.
    */
-  constructor(squiss, opts) {
-    this._opts = Object.assign({}, optDefaults, opts)
-    this._head = null
-    this._tail = null
-    this._index = {}
-    this._timer = null
-    this._squiss = squiss
-    this._squiss.on('handled', msg => this.deleteMessage(msg))
-    this._squiss.on('message', msg => this.addMessage(msg))
-    this._visTimeout = this._opts.visibilityTimeoutSecs * 1000
-    this._stopAfter = Math.min(this._opts.noExtensionsAfterSecs * 1000, MAX_MESSAGE_AGE_MS)
-    this._apiLeadMs = Math.min(this._opts.advancedCallMs, this._visTimeout)
+  constructor(squiss: Squiss, opts?: ITimeoutExtenderOptions) {
+    this._opts = Object.assign({}, optDefaults, opts || {});
+    this._index = {};
+    this._timer = undefined;
+    this._squiss = squiss;
+    this._linkedList = new LinkedList<Node>();
+    this._squiss.on('handled', (msg: Message) => {
+      return this.deleteMessage(msg);
+    });
+    this._squiss.on('message', (msg: Message) => {
+      return this.addMessage(msg);
+    });
+    this._visTimeout = this._opts.visibilityTimeoutSecs! * 1000;
+    this._stopAfter = Math.min(this._opts.noExtensionsAfterSecs! * 1000, MAX_MESSAGE_AGE_MS);
+    this._apiLeadMs = Math.min(this._opts.advancedCallMs!, this._visTimeout);
   }
 
   /**
    * Adds a new message to the tracker.
    * @param {Message} message A Squiss Message object
    */
-  addMessage(message) {
-    const now = Date.now()
-    this._addNode({
-      message,
-      receivedOn: now,
-      timerOn: now + this._visTimeout - this._apiLeadMs
-    })
+  public addMessage(message: Message) {
+    const now = Date.now();
+    this._addNode(new Node(message, now, now + this._visTimeout - this._apiLeadMs));
   }
 
   /**
    * Deletes a message from the tracker, if the message is currently being tracked.
    * @param {Message} message A Squiss Message object
    */
-  deleteMessage(message) {
-    const node = this._index[message.raw.MessageId]
-    if (node) this._deleteNode(node)
+  public deleteMessage(message: Message) {
+    const node = this._index[message.raw.MessageId!];
+    if (node) { this._deleteNode(node); }
   }
 
   /**
@@ -96,16 +121,11 @@ class TimeoutExtender {
    * object to be added
    * @private
    */
-  _addNode(node) {
-    this._index[node.message.raw.MessageId] = node
-    if (!this._head) {
-      this._head = node
-      this._tail = node
-      this._headChanged()
-    } else {
-      this._tail.next = node
-      node.prev = this._tail
-      this._tail = node
+  public _addNode(node: Node) {
+    this._index[node.message.raw.MessageId!] = node;
+    this._linkedList.append(node);
+    if (!node.prev) {
+      this._headChanged();
     }
   }
 
@@ -115,19 +135,13 @@ class TimeoutExtender {
    * object to be removed
    * @private
    */
-  _deleteNode(node) {
-    const msgId = node.message.raw.MessageId
-    delete this._index[msgId]
-    if (this._head === node) {
-      this._head = node.next
-      if (this._head) delete this._head.prev
-      this._headChanged()
-    } else if (this._tail === node) {
-      this._tail = this._tail.prev
-      delete this._tail.next
-    } else {
-      node.prev.next = node.next
-      node.next.prev = node.prev
+  public _deleteNode(node: Node) {
+    const msgId = node.message.raw.MessageId!;
+    delete this._index[msgId];
+    const isFirst = !node.prev;
+    node.detach();
+    if (isFirst) {
+      this._headChanged();
     }
   }
 
@@ -138,8 +152,8 @@ class TimeoutExtender {
    * @returns {number} The age of the message in milliseconds
    * @private
    */
-  _getNodeAge(node) {
-    return Date.now() - node.receivedOn + this._apiLeadMs
+  public _getNodeAge(node: Node) {
+    return Date.now() - node.receivedOn + this._apiLeadMs;
   }
 
   /**
@@ -150,15 +164,19 @@ class TimeoutExtender {
    * otherwise.
    * @private
    */
-  _headChanged() {
-    if (this._timer) clearTimeout(this._timer)
-    if (!this._head) return false
-    const node = this._head
+  public _headChanged() {
+    if (this._timer) {
+      clearTimeout(this._timer);
+    }
+    if (!this._linkedList.head) {
+      return false;
+    }
+    const node = this._linkedList.head;
     this._timer = setTimeout(() => {
-      if (this._getNodeAge(node) >= this._stopAfter) return this._deleteNode(node)
-      return this._renewNode(node)
-    }, node.timerOn - Date.now())
-    return true
+      if (this._getNodeAge(node) >= this._stopAfter) { return this._deleteNode(node); }
+      return this._renewNode(node);
+    }, node.timerOn - Date.now());
+    return true;
   }
 
   /**
@@ -168,24 +186,21 @@ class TimeoutExtender {
    * object to be renewed
    * @private
    */
-  _renewNode(node) {
-    const extendByMs = Math.min(this._visTimeout, MAX_MESSAGE_AGE_MS - this._getNodeAge(node))
-    const extendBySecs = Math.floor(extendByMs / 1000)
+  public _renewNode(node: Node) {
+    const extendByMs = Math.min(this._visTimeout, MAX_MESSAGE_AGE_MS - this._getNodeAge(node));
+    const extendBySecs = Math.floor(extendByMs / 1000);
     this._squiss.changeMessageVisibility(node.message, extendBySecs)
       .then(() => this._squiss.emit('timeoutExtended', node.message))
-      .catch(err => {
+      .catch((err: Error) => {
         if (err.message.match(/Message does not exist or is not available/)) {
-          this._deleteNode(node)
-          this._squiss.emit('autoExtendFail', { message: node.message, error: err })
+          this._deleteNode(node);
+          this._squiss.emit('autoExtendFail', {message: node.message, error: err});
         } else {
-          this._squiss.emit('error', err)
+          this._squiss.emit('error', err);
         }
-      })
-    this._deleteNode(node)
-    node.timerOn = Date.now() + extendBySecs * 1000
-    this._addNode(node)
+      });
+    this._deleteNode(node);
+    node.timerOn = Date.now() + extendBySecs * 1000;
+    this._addNode(node);
   }
 }
-
-module.exports = TimeoutExtender
-
