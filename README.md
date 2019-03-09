@@ -1,9 +1,6 @@
 # Squiss-TS [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
 High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up
 
-## Credits
-This project is a typescript port (with better performance) of the wonderful and unmaintnaed project [TomFrost/Squiss](https://www.github.com/TomFrost/Squiss)
-
 ## Quick example
 ```javascript
 const poller = new Squiss({
@@ -206,5 +203,6 @@ The raw, unprocessed SQS response object as delivered from the aws-sdk.
 Squiss supports Node 4 LTS and higher. For 0.12 support, consider compiling with Babel or using Squiss version 0.x.
 
 ## Credits
+This project is a typescript port (with better performance) of the wonderful and unmaintnaed project [TomFrost/Squiss](https://www.github.com/TomFrost/Squiss)
 Squiss was originally created at [TechnologyAdvice](http://www.technologyadvice.com) in Nashville, TN.
 
