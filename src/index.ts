@@ -22,6 +22,7 @@ export interface IObject {
 export type IMessageToSend = IObject | string;
 
 export {IMessageAttributes} from './attributeUtils';
+export {Message} from './Message';
 
 export type BodyFormat = 'json' | 'plain' | undefined;
 
@@ -555,10 +556,18 @@ export class Squiss extends EventEmitter {
    * @private
    */
   public _getBatch(queueUrl: string): void {
+    if (this._activeReq) {
+      return;
+    }
     const next = this._getBatch.bind(this, queueUrl);
+    const maxMessagesToGet = !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
+      Math.min(this._opts.maxInFlight! - this._inFlight, this._opts.receiveBatchSize!);
+    if (maxMessagesToGet <= 0) {
+      return;
+    }
     const params: SQS.Types.ReceiveMessageRequest = {
       QueueUrl: queueUrl,
-      MaxNumberOfMessages: this._opts.receiveBatchSize,
+      MaxNumberOfMessages: maxMessagesToGet,
       WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
       MessageAttributeNames: ['All'],
     };
@@ -671,7 +680,7 @@ export class Squiss extends EventEmitter {
    * @private
    */
   public _slotsAvailable(): boolean {
-    return !this._opts.maxInFlight || this._inFlight <= this._opts.maxInFlight - this._opts.receiveBatchSize!;
+    return !this._opts.maxInFlight || this._inFlight < this._opts.maxInFlight;
   }
 
   /**
