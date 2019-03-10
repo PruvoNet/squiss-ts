@@ -335,7 +335,7 @@ describe('index', () => {
         result.should.eq(true);
       });
     });
-    it('should not double resolve if queue drained after timeout', function () {
+    it('should not double resolve if queue drained after timeout', function() {
       this.timeout(5000);
       const spy = sinon.spy();
       inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
