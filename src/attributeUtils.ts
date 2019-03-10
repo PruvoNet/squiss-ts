@@ -1,7 +1,7 @@
 'use strict';
 
 import {SQS} from 'aws-sdk';
-import {isNumber, isString} from 'typeguard';
+import {isNumber, isString} from 'ts-type-guards';
 
 const EMPTY_OBJ = {};
 const STRING_TYPE = 'String';

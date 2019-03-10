@@ -42,7 +42,7 @@
   "dependencies": {
     "aws-sdk": "^2.418.0",
     "linked-list": "^1.0.4",
-    "typeguard": "0.0.13"
+    "ts-type-guards": "^0.6.1"
   },
   "devDependencies": {
     "@types/chai": "^4.1.3",

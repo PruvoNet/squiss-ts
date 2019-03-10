@@ -6,7 +6,7 @@ import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
-import {isObject} from 'typeguard';
+import {isString} from 'ts-type-guards';
 import {SQS} from 'aws-sdk';
 
 /**
@@ -426,7 +426,7 @@ export class Squiss extends EventEmitter {
     return this.getQueueUrl().then((queueUrl) => {
       const params: SQS.Types.SendMessageRequest = {
         QueueUrl: queueUrl,
-        MessageBody: isObject(message) ? JSON.stringify(message) : message,
+        MessageBody: isString(message) ? message : JSON.stringify(message),
       };
       if (delay) {
         params.DelaySeconds = delay;
