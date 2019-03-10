@@ -33,6 +33,7 @@ export type BodyFormat = 'json' | 'plain' | undefined;
 
 export interface ISquissOptions {
   receiveBatchSize?: number;
+  receiveAttributes?: string[];
   minReceiveBatchSize?: number;
   receiveWaitTimeSecs?: number;
   deleteBatchSize?: number;
@@ -70,6 +71,7 @@ interface IDeleteQueueItem {
  */
 const optDefaults: ISquissOptions = {
   receiveBatchSize: 10,
+  receiveAttributes: ['All'],
   minReceiveBatchSize: 1,
   receiveWaitTimeSecs: 20,
   deleteBatchSize: 10,
@@ -171,6 +173,9 @@ export class Squiss extends EventEmitter {
    * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
    *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
    *    more information.
+   * @param {Object} [opts.receiveAttributes] An array of strings with attribute names (e.g. `ApproximateReceiveCount`)
+   *    to request along with the `receiveMessage` call. The attributes will be accessible via
+   *    `message.attributes.<attribute>`.
    */
 
   constructor(opts?: ISquissOptions | undefined) {
@@ -523,13 +528,39 @@ export class Squiss extends EventEmitter {
    * @param {boolean} [soft=false] If a soft stop is performed, any active SQS request for new messages will be left
    *    open until it terminates naturally. Note that if this is the case, the message event may still be fired after
    *    this function has been called.
+   * @param {timeout} [timeout=undefined] Timeout in milliseconds to wait for the queue to drain before resolving.
+   * @returns {Promise} Will be resolved when the queue is drained (true value) or timeout passed (false value).
    */
-  public stop(soft?: boolean): void {
+  public stop(soft?: boolean, timeout?: number): Promise<boolean> {
     if (!soft && this._activeReq) {
       this._activeReq.abort();
     }
     this._running = false;
     this._paused = false;
+    if (!this._inFlight) {
+      return Promise.resolve(true);
+    }
+    const scope = this;
+    return new Promise((resolve) => {
+      let resolved = false;
+      let timer: NodeJS.Timeout | undefined;
+      scope.on('drained', () => {
+        if (!resolved) {
+          resolved = true;
+          if (timer) {
+            clearTimeout(timer);
+            timer = undefined;
+          }
+          resolve(true);
+        }
+      });
+      if (timeout) {
+        timer = setTimeout(() => {
+          resolved = true;
+          resolve(false);
+        }, timeout);
+      }
+    });
   }
 
   /**
@@ -583,7 +614,7 @@ export class Squiss extends EventEmitter {
    * @private
    */
   public _getBatch(queueUrl: string): void {
-    if (this._activeReq) {
+    if (this._activeReq || !this._running) {
       return;
     }
     const next = this._getBatch.bind(this, queueUrl);
@@ -597,8 +628,8 @@ export class Squiss extends EventEmitter {
       QueueUrl: queueUrl,
       MaxNumberOfMessages: maxMessagesToGet,
       WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
-      MessageAttributeNames: ['All'],
     };
+    params.MessageAttributeNames = this._opts.receiveAttributes;
     if (this._opts.visibilityTimeoutSecs !== undefined) {
       params.VisibilityTimeout = this._opts.visibilityTimeoutSecs;
     }

@@ -287,6 +287,72 @@ describe('index', () => {
         return wait();
       }).then(() => {
         spy.should.be.calledOnce();
+        inst!.running.should.eq(false);
+      });
+    });
+
+    it('should resolve when timeout exceeded and queue not drained', () => {
+      const spy = sinon.spy();
+      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst!.sqs = new SQSStub(1, 1000) as any as SQS;
+      inst!.on('aborted', spy);
+      inst!.start();
+      return wait().then(() => {
+        spy.should.not.be.called();
+        return inst!.stop(false, 1000);
+      }).then((result: boolean) => {
+        result.should.eq(false);
+      });
+    });
+    it('should resolve when queue already drained', () => {
+      const spy = sinon.spy();
+      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst!.sqs = new SQSStub(0, 1000) as any as SQS;
+      inst!.on('aborted', spy);
+      inst!.start();
+      return wait().then(() => {
+        spy.should.not.be.called();
+        return inst!.stop(false, 1000);
+      }).then((result: boolean) => {
+        result.should.eq(true);
+      });
+    });
+    it('should resolve when queue drained before timeout', () => {
+      const spy = sinon.spy();
+      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst!.sqs = new SQSStub(1, 1000) as any as SQS;
+      inst!.on('aborted', spy);
+      inst!.on('message', (msg: Message) => {
+        setTimeout(() => {
+          msg.del();
+        }, 1000);
+      });
+      inst!.start();
+      return wait().then(() => {
+        spy.should.not.be.called();
+        return inst!.stop(false, 10000);
+      }).then((result: boolean) => {
+        result.should.eq(true);
+      });
+    });
+    it('should not double resolve if queue drained after timeout', function () {
+      this.timeout(5000);
+      const spy = sinon.spy();
+      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst!.sqs = new SQSStub(1, 1000) as any as SQS;
+      inst!.on('aborted', spy);
+      inst!.on('message', (msg: Message) => {
+        setTimeout(() => {
+          msg.del();
+        }, 1000);
+      });
+      inst!.start();
+      return wait().then(() => {
+        spy.should.not.be.called();
+        return inst!.stop(false, 50);
+      }).then((result: boolean) => {
+        result.should.eq(false);
+        return wait(2000);
       });
     });
     it('observes the maxInFlight cap', () => {
@@ -391,6 +457,34 @@ describe('index', () => {
       return wait().then(() => {
         qeSpy.should.be.calledOnce();
         abortSpy.should.not.be.called();
+      });
+    });
+    it('receiveAttributes defaults to all', () => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst.sqs, 'receiveMessage');
+      inst.start();
+      return wait().then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MaxNumberOfMessages: 10,
+          WaitTimeSeconds: 20,
+          MessageAttributeNames: ['All'],
+        });
+      });
+    });
+    it('observes receiveAttributes', () => {
+      inst = new Squiss({queueUrl: 'foo', receiveAttributes: ['a']});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst.sqs, 'receiveMessage');
+      inst.start();
+      return wait().then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MaxNumberOfMessages: 10,
+          WaitTimeSeconds: 20,
+          MessageAttributeNames: ['a'],
+        });
       });
     });
   });
@@ -855,7 +949,7 @@ describe('index', () => {
       inst = new Squiss({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-      return inst!.sendMessages('bar').then((res) => {
+      return inst!.sendMessages('bar').then((res: SQS.Types.SendMessageBatchResult) => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueUrl: 'foo',
@@ -962,7 +1056,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
-      return inst!.sendMessages(msgs).then((res) => {
+      return inst!.sendMessages(msgs).then((res: SQS.Types.SendMessageBatchResult) => {
         spy.should.be.calledTwice();
         (inst!.sqs as any as SQSStub).msgs.length.should.equal(15);
         res.should.have.property('Successful').with.length(15);
@@ -974,7 +1068,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       const msgs = 'a.FAIL.c.d.e.f.g.h.i.j.k.l.m.n.FAIL'.split('.');
-      return inst!.sendMessages(msgs).then((res) => {
+      return inst!.sendMessages(msgs).then((res: SQS.Types.SendMessageBatchResult) => {
         spy.should.be.calledTwice();
         (inst!.sqs as any as SQSStub).msgs.length.should.equal(13);
         res.should.have.property('Successful').with.length(13);
