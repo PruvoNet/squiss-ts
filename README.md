@@ -119,8 +119,9 @@ The "Id" supplied in the response will be the index of the message in the origin
 ### squiss.start()
 Starts polling SQS for new messages. Each new message is handed off in the `message` event.
 
-### squiss.stop(soft=`false`)
+### squiss.stop(soft=`false`,timeout=`undefined`)
 Hold on to your hats, this one stops the polling, aborting any in-progress request for new messages. If called with soft=`true` while there's an active request for new messages, the active request will not be aborted and the message event may still be fired up to `opts.receiveWaitTimeSecs` afterward.
+A Promise will be returned and resolved with `true` when the queue is completely drained (all messages were handled), or `false` if a `timeout` value was sent and it passed before the queue was drained.
 
 ## Properties
 
