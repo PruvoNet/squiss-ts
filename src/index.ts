@@ -21,6 +21,11 @@ export interface IObject {
 
 export type IMessageToSend = IObject | string;
 
+interface IBatchMessage {
+  message: IMessageToSend;
+  attributes?: SQS.MessageBodyAttributeMap;
+}
+
 export {IMessageAttributes} from './attributeUtils';
 export {Message} from './Message';
 
@@ -28,6 +33,7 @@ export type BodyFormat = 'json' | 'plain' | undefined;
 
 export interface ISquissOptions {
   receiveBatchSize?: number;
+  minReceiveBatchSize?: number;
   receiveWaitTimeSecs?: number;
   deleteBatchSize?: number;
   deleteWaitMs?: number;
@@ -64,6 +70,7 @@ interface IDeleteQueueItem {
  */
 const optDefaults: ISquissOptions = {
   receiveBatchSize: 10,
+  minReceiveBatchSize: 1,
   receiveWaitTimeSecs: 20,
   deleteBatchSize: 10,
   deleteWaitMs: 2000,
@@ -125,6 +132,8 @@ export class Squiss extends EventEmitter {
    *    as long as there are messages to pull.
    * @param {number} [opts.receiveBatchSize=10] The number of messages to receive at one time. Maximum 10 or
    *    maxInFlight, whichever is lower.
+   * @param {number} [opts.minReceiveBatchSize=1] The minimum number of available message slots that will initiate a
+   *    call to get the next batch. Maximum 10 or maxInFlight, whichever is lower.
    * @param {number} [opts.receiveWaitTimeSecs=20] The number of seconds for which to hold open the SQS call to
    *    receive messages, when no message is currently available. It is recommended to set this high, as Squiss will
    *    re-open the receiveMessage HTTP request as soon as the last one ends. Maximum 20.
@@ -179,6 +188,7 @@ export class Squiss extends EventEmitter {
     this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, 10);
     this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize!,
       this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : 10, 10);
+    this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
     this._running = false;
     this._inFlight = 0;
     this._delQueue = [];
@@ -455,19 +465,37 @@ export class Squiss extends EventEmitter {
    *    MD5OfMessageBody: string}>, Failed: Array<{Id: string, SenderFault: boolean, Code: string,
    *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
    */
-  public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+  public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
+                      attributes?: IMessageAttributes | IMessageAttributes[])
     : Promise<SQS.Types.SendMessageBatchResult> {
-    const batches: IMessageToSend[][] = [];
+    const batches: IBatchMessage[][] = [];
     const msgs: IMessageToSend[] = Array.isArray(messages) ? messages : [messages];
+    let formattedAttributes: SQS.MessageBodyAttributeMap | undefined;
+    let formattedAttributesArray: SQS.MessageBodyAttributeMap[] | undefined;
+    if (attributes) {
+      if (!Array.isArray(attributes)) {
+        formattedAttributes = createMessageAttributes(attributes);
+      } else {
+        formattedAttributesArray = attributes.map(createMessageAttributes);
+      }
+    }
     for (let i = 0; i < msgs.length; i++) {
       if (i % AWS_MAX_SEND_BATCH === 0) {
         batches.push([]);
       }
-      batches[batches.length - 1].push(msgs[i]);
+      const msgBatchObj: IBatchMessage = {
+        message: msgs[i],
+      };
+      if (formattedAttributes) {
+        msgBatchObj.attributes = formattedAttributes;
+      } else if (formattedAttributesArray && formattedAttributesArray[i]) {
+        msgBatchObj.attributes = formattedAttributesArray[i];
+
+      }
+      batches[batches.length - 1].push(msgBatchObj);
     }
     return Promise.all(batches.map((batch, idx) => {
-      const formattedAttributes = createMessageAttributes(attributes);
-      return this._sendMessageBatch(batch, delay, formattedAttributes, idx * AWS_MAX_SEND_BATCH);
+      return this._sendMessageBatch(batch, delay, idx * AWS_MAX_SEND_BATCH);
     })).then((results) => {
       const merged: SQS.Types.SendMessageBatchResult = {Successful: [], Failed: []};
       results.forEach((res) => {
@@ -550,9 +578,8 @@ export class Squiss extends EventEmitter {
   }
 
   /**
-   * Gets a new batch of messages from Amazon SQS. Note that this function does no checking of the current inFlight
-   * count, or the current running status. A `message` event will be emitted for each new message, with the provided
-   * object being an instance of Squiss' Message class.
+   * Gets a new batch of messages from Amazon SQS. A `message` event will be emitted for each new message, with
+   * the provided object being an instance of Squiss' Message class.
    * @private
    */
   public _getBatch(queueUrl: string): void {
@@ -562,7 +589,8 @@ export class Squiss extends EventEmitter {
     const next = this._getBatch.bind(this, queueUrl);
     const maxMessagesToGet = !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
       Math.min(this._opts.maxInFlight! - this._inFlight, this._opts.receiveBatchSize!);
-    if (maxMessagesToGet <= 0) {
+    if (maxMessagesToGet < this._opts.minReceiveBatchSize!) {
+      this._paused = true;
       return;
     }
     const params: SQS.Types.ReceiveMessageRequest = {
@@ -649,8 +677,7 @@ export class Squiss extends EventEmitter {
    *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
    * @private
    */
-  public _sendMessageBatch(messages: IMessageToSend[], delay: number | undefined,
-                           attributes: SQS.MessageBodyAttributeMap, startIndex: number):
+  public _sendMessageBatch(messages: IBatchMessage[], delay: number | undefined, startIndex: number):
     Promise<SQS.Types.SendMessageBatchResult> {
     const start = startIndex || 0;
     return this.getQueueUrl().then((queueUrl) => {
@@ -658,15 +685,17 @@ export class Squiss extends EventEmitter {
         QueueUrl: queueUrl,
         Entries: [],
       };
-      messages.forEach((msg, idx) => {
+      messages.forEach((msgObj, idx) => {
         const entry: SQS.Types.SendMessageBatchRequestEntry = {
           Id: (start + idx).toString(),
-          MessageBody: typeof msg === 'object' ? JSON.stringify(msg) : msg,
+          MessageBody: typeof msgObj.message === 'object' ? JSON.stringify(msgObj.message) : msgObj.message,
         };
         if (delay) {
           entry.DelaySeconds = delay;
         }
-        entry.MessageAttributes = attributes;
+        if (msgObj.attributes) {
+          entry.MessageAttributes = msgObj.attributes;
+        }
         params.Entries.push(entry);
       });
       return this.sqs.sendMessageBatch(params).promise();

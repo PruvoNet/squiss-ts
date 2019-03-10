@@ -29,7 +29,9 @@
     "polling",
     "poll",
     "poller",
-    "queue"
+    "queue",
+    "typescript",
+    "sns"
   ],
   "author": "Regev Brody <regevbr@gmail.com>",
   "license": "ISC",

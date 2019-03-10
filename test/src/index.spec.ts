@@ -185,6 +185,61 @@ describe('index', () => {
         ]);
       });
     });
+    it('receives batches of messages as much as it can wiht min batch size', () => {
+      const batches: any = [];
+      const spy = sinon.spy();
+      inst = new Squiss({
+        queueUrl: 'foo',
+        maxInFlight: 15,
+        receiveBatchSize: 10,
+        minReceiveBatchSize: 2,
+      } as ISquissOptions);
+      inst!.sqs = new SQSStub(16, 0) as any as SQS;
+      inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+      inst!.once('queueEmpty', spy);
+      inst!.on('message', (m: Message) => {
+        batches[batches.length - 1].num++;
+        if (batches.length === 2 && batches[batches.length - 1].num >= 4) {
+          m.del();
+        }
+      });
+      inst!.start();
+      return wait().then(() => {
+        spy.should.not.be.called();
+        batches.should.deep.equal([
+          {total: 10, num: 10},
+          {total: 5, num: 5},
+          {total: 1, num: 1},
+        ]);
+      });
+    });
+    it('receives batches of messages as much as it can but with min batch size', () => {
+      const batches: any = [];
+      const spy = sinon.spy();
+      inst = new Squiss({
+        queueUrl: 'foo',
+        maxInFlight: 15,
+        receiveBatchSize: 10,
+        minReceiveBatchSize: 2,
+      } as ISquissOptions);
+      inst!.sqs = new SQSStub(16, 0) as any as SQS;
+      inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+      inst!.once('queueEmpty', spy);
+      inst!.on('message', (m: Message) => {
+        batches[batches.length - 1].num++;
+        if (batches.length === 2 && batches[batches.length - 1].num === 5) {
+          m.del();
+        }
+      });
+      inst!.start();
+      return wait().then(() => {
+        spy.should.not.be.called();
+        batches.should.deep.equal([
+          {total: 10, num: 10},
+          {total: 5, num: 5},
+        ]);
+      });
+    });
     it('receives batches of messages as much as it can and gets empty', () => {
       const batches: any = [];
       const spy = sinon.spy();
@@ -805,7 +860,7 @@ describe('index', () => {
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           Entries: [
-            {Id: '0', MessageBody: 'bar', MessageAttributes: {}},
+            {Id: '0', MessageBody: 'bar'},
           ],
         });
         res.should.have.property('Successful').with.length(1);
@@ -821,7 +876,22 @@ describe('index', () => {
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           Entries: [
-            {Id: '0', MessageBody: '{"bar":"baz"}', MessageAttributes: {}},
+            {Id: '0', MessageBody: '{"bar":"baz"}'},
+          ],
+        });
+      });
+    });
+    it('sends a multiple JSON message with no extra arguments', () => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+      return inst!.sendMessages([{bar: 'baz'}, {bar1: 'baz1'}]).then(() => {
+        spy.should.be.calledOnce();
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          Entries: [
+            {Id: '0', MessageBody: '{"bar":"baz"}'},
+            {Id: '1', MessageBody: '{"bar1":"baz1"}'},
           ],
         });
       });
@@ -839,6 +909,50 @@ describe('index', () => {
             MessageBody: 'bar',
             DelaySeconds: 10,
             MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
+          }],
+        });
+      });
+    });
+    it('sends multiple messages with delay and single attributes object', () => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+      return inst!.sendMessages(['bar', 'baz'], 10, {baz: 'fizz'}).then(() => {
+        spy.should.be.calledOnce();
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          Entries: [{
+            Id: '0',
+            MessageBody: 'bar',
+            DelaySeconds: 10,
+            MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
+          }, {
+            Id: '1',
+            MessageBody: 'baz',
+            DelaySeconds: 10,
+            MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
+          }],
+        });
+      });
+    });
+    it('sends multiple messages with delay and multiple attributes objects', () => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+      return inst!.sendMessages(['bar', 'baz'], 10, [{baz: 'fizz'}, {baz1: 'fizz1'}]).then(() => {
+        spy.should.be.calledOnce();
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          Entries: [{
+            Id: '0',
+            MessageBody: 'bar',
+            DelaySeconds: 10,
+            MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
+          }, {
+            Id: '1',
+            MessageBody: 'baz',
+            DelaySeconds: 10,
+            MessageAttributes: {baz1: {StringValue: 'fizz1', DataType: 'String'}},
           }],
         });
       });

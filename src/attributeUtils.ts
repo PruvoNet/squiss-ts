@@ -38,11 +38,10 @@ const parseAttributeValue = (unparsedAttribute: SQS.MessageAttributeValue): IMes
   }
 };
 
-export const createMessageAttributes = (messageAttributes: IMessageAttributes | undefined)
+export const createMessageAttributes = (messageAttributes: IMessageAttributes)
   : SQS.MessageBodyAttributeMap => {
-  const _messageAttributes = messageAttributes || EMPTY_OBJ as IMessageAttributes;
-  return Object.keys(_messageAttributes).reduce((parsedAttributes: SQS.MessageBodyAttributeMap, name: string) => {
-    parsedAttributes[name] = createAttributeValue(_messageAttributes[name]);
+  return Object.keys(messageAttributes).reduce((parsedAttributes: SQS.MessageBodyAttributeMap, name: string) => {
+    parsedAttributes[name] = createAttributeValue(messageAttributes[name]);
     return parsedAttributes;
   }, {});
 };

@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
 [![Coverage Status](https://coveralls.io/repos/github/PruvoNet/squiss-ts/badge.svg?branch=master)](https://coveralls.io/github/PruvoNet/squiss-ts?branch=master)
 # Squiss-TS 
-High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up
+High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up (with full typescript support)
 
 ## Quick example
 ```typescript
@@ -26,12 +26,13 @@ npm install squiss-ts
 ```
 
 ## How it works
-Squiss aims to process as many messages simultaneously as possible. Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will attempt to keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion. If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time. By default, anyway. You can configure it to poll however you want. Squiss don't care.
+Squiss processes as many messages simultaneously as possible. Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion. If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time. Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time (set up by you) has passed (see `autoExtendTimeout`).  
+Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
 
 ## Functions
 
 ### new Squiss(opts)
-Don't be scared of `new` -- you need to create a new Squiss instance for every queue you want to poll. Squiss is an EventEmitter, so don't forget to call `squiss.on('message', (msg) => msg.del())` at the very least.
+Don't be scared of `new` -- you need to create a new Squiss instance for every queue you want to poll. Squiss is an EventEmitter, so don't forget to call `squiss.on('message', (msg: Message) => msg.del())` at the very least to keep the messages flowing.
 
 #### opts {...}
 Use the following options to point Squiss at the right queue:
@@ -44,16 +45,17 @@ Use the following options to point Squiss at the right queue:
 Squiss's defaults are great out of the box for most use cases, but you can use the below to fine-tune your Squiss experience:
 - **opts.SQS** _Default AWS.SQS_ An instance of the official SQS Client, or an SQS constructor function to use rather than the default one provided by AWS.SQS
 - **opts.activePollIntervalMs** _Default 0._ The number of milliseconds to wait between requesting batches of messages when the queue is not empty, and the maxInFlight cap has not been hit. For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency according to maxInFlight.
-- **opts.advancedCallMs** _Default 5000._ If `opts.autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the VisibilityTimeout of the message before the message is set to expire.
 - **opts.autoExtendTimeout** _Default false._ If true, Squiss will automatically extend each message's VisibilityTimeout in the SQS queue until it's handled (by keeping, deleting, or releasing it). It will place the API call to extend the timeout `opts.advancedCallMs` milliseconds in advance of the expiration, and will extend it by the number of seconds specified in `opts.visibilityTimeoutSecs`. If that's not specified, the VisibilityTimeout setting on the queue itself will be used.
+- **opts.noExtensionsAfterSecs** _Default 43200._ If `opts.autoExtendTimeout` is used, Squiss will stop auto-renewing a message's VisibilityTimeout when it reaches this age. Default is 12 hours, SQS's VisbilityTimeout maximum.
+- **opts.advancedCallMs** _Default 5000._ If `opts.autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the VisibilityTimeout of the message, before the message is set to expire.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
 - **opts.idlePollIntervalMs** _Default 0._ The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.
 - **opts.maxInFlight** _Default 100._ The number of messages to keep "in-flight", or processing simultaneously. When this cap is reached, no more messages will be polled until currently in-flight messages are marked as deleted or handled. Setting this option to 0 will uncap your inFlight messages, pulling and delivering messages as long as there are messages to pull.
-- **opts.noExtensionsAfterSecs** _Default 43200._ If `opts.autoExtendTimeout` is used, Squiss will stop auto-renewing a message's VisibilityTimeout when it reaches this age. Default is 12 hours, SQS's VisbilityTimeout maximum.
 - **opts.pollRetryMs** _Default 2000._ The number of milliseconds to wait before retrying when Squiss's call to retrieve messages from SQS fails.
 - **opts.receiveBatchSize** _Default 10._ The number of messages to receive at one time. Maximum 10 or maxInFlight, whichever is lower.
+- **opts.minReceiveBatchSize** _Default 1._ he minimum number of available message slots that will initiate a call to get the next batch. Maximum 10 or maxInFlight, whichever is lower.
 - **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. If this needs to be set low, consider setting activePollIntervalMs to space out calls to SQS. Maximum 20.
 - **opts.unwrapSns** _Default false._ Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
 - **opts.visibilityTimeoutSecs** _Defaults to queue setting on read, or 30 seconds for createQueue._ The amount of time, in seconds, that received messages will be unavailable to other pollers without being deleted.
@@ -92,7 +94,7 @@ Deletes all the messages in a queue and init in flight
 Sends an individual message to the configured queue, and returns a promise that resolves with AWS's official message metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5OfMessageBody`. Arguments:
 - **message**. The message to push to the queue. If it's a string, great! If it's an Object, Squiss will call JSON.stringify on it.
 - **delay** _optional_. The amount of time, in seconds, to wait before making the message available in the queue. If not specified, the queue's configured value will be used.
-- **attributes** _optional_. An optional attributes mapping to associate with the message. For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
+- **attributes** _optional_. An optional attributes mapping to associate with the message (will be converted to SQS format automatically). For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
 
 ### squiss.sendMessages(messages, delay, attributes)
 Sends an array of any number of messages to the configured SQS queue, breaking them down into appropriate batch requests executed in parallel (or as much as the default HTTP agent allows). It returns a promise that resolves with a response closely aligned to the official AWS SDK's sendMessageBatch, except the results from all batch requests are merged. Expect a result similar to:
@@ -111,7 +113,7 @@ Sends an array of any number of messages to the configured SQS queue, breaking t
 The "Id" supplied in the response will be the index of the message in the original messages array, in string form. Arguments:
 - **messages**. The array of messages to push to the queue. The messages should be either strings, or Objects that Squiss can pass to JSON.stringify.
 - **delay** _optional_. The amount of time, in seconds, to wait before making the messages available in the queue. If not specified, the queue's configured value will be used.
-- **attributes** _optional_. An optional attributes mapping to associate with each message. For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
+- **attributes** _optional_. An optional array or single object of attributes mapping to associate with each message (will be converted to SQS format automatically). For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
 
 ### squiss.start()
 Starts polling SQS for new messages. Each new message is handed off in the `message` event.
@@ -177,6 +179,9 @@ Emitted every time Squiss pulls a new message from the queue. The Squiss Message
 
 #### {Object|string} message.body
 The body of the SQS message, unwrapped from the SNS metadata wrapper (if `unwrapSns` was specified in the constructor), and JSON-parsed (if `bodyFormat: 'json'` was specified in the constructor). Otherwise the body will just be a string.
+
+#### {Object} message.attributes
+The parsed attributes map of the SQS message. To get the raw attributes, use `message.raw.MessageAttributes`
 
 #### {string} message.subject
 The subject of the SNS message, if set. Exists only if unwrapSns was specified.
