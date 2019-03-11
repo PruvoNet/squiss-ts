@@ -11,3 +11,17 @@ script:
   - npm run build
   - npm run cover
 after_script: "cat coverage/lcov.info | node_modules/coveralls/bin/coveralls.js"
+
+jobs:
+  include:
+    - stage: npm release
+      if: tag IS present
+      node_js: "6"
+      script: npm run build
+      deploy:
+        provider: npm
+        email: "$NPM_EMAIL"
+        api_key: "$NPM_TOKEN"
+        skip_cleanup: true
+        on:
+          tags: true
