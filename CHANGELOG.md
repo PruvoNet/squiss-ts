@@ -1,6 +1,10 @@
 # Squiss-TS Change Log
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v1.2.1]
+### Added
+- Bug fix: upgraded mocha version to avoid security risks
+
 ## [v1.2.0]
 ### Added
 - Feature: Support message deletion resolving with Promise

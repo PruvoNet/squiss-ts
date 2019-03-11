@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
 [![Coverage Status](https://coveralls.io/repos/github/PruvoNet/squiss-ts/badge.svg?branch=master)](https://coveralls.io/github/PruvoNet/squiss-ts?branch=master)
+[![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
+
 # Squiss-TS 
 High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up (with full typescript support)
 
