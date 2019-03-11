@@ -212,7 +212,7 @@ Changes the visibility timeout of the message.
 The raw, unprocessed SQS response object as delivered from the aws-sdk.
 
 ## Versions
-Squiss supports Node 4 LTS and higher. For 0.12 support, consider compiling with Babel or using Squiss version 0.x.
+Squiss supports Node 6 LTS and higher.
 
 ## Credits
 This project is a typescript port (with better performance) of the wonderful and unmaintnaed project [TomFrost/Squiss](https://www.github.com/TomFrost/Squiss)  
