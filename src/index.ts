@@ -63,6 +63,12 @@ export interface ISquissOptions {
 interface IDeleteQueueItem {
   Id: string;
   ReceiptHandle: string;
+  resolve: () => void;
+  reject: (reason?: any) => void;
+}
+
+interface IDeleteQueueItemById {
+  [k: string]: IDeleteQueueItem;
 }
 
 /**
@@ -283,11 +289,13 @@ export class Squiss extends EventEmitter {
    * supplied to the constructor.
    * @param {Message} msg The message object to be deleted
    */
-  public deleteMessage(msg: Message): void {
+  public deleteMessage(msg: Message): Promise<void> {
     if (!msg.raw) {
-      throw new Error('Squiss.deleteMessage requires a Message object');
+      return Promise.reject(new Error('Squiss.deleteMessage requires a Message object'));
     }
-    this._delQueue.push({Id: msg.raw.MessageId!, ReceiptHandle: msg.raw.ReceiptHandle!});
+    const promise = new Promise<void>((resolve, reject) => {
+      this._delQueue.push({Id: msg.raw.MessageId!, ReceiptHandle: msg.raw.ReceiptHandle!, resolve, reject});
+    });
     this.emit('delQueued', msg);
     this.handledMessage(msg);
     if (this._delQueue.length >= this._opts.deleteBatchSize!) {
@@ -304,6 +312,7 @@ export class Squiss extends EventEmitter {
         this._deleteMessages(delBatch);
       }, this._opts.deleteWaitMs);
     }
+    return promise;
   }
 
   /**
@@ -571,21 +580,32 @@ export class Squiss extends EventEmitter {
    *    required for sqs.deleteMessageBatch's Entries parameter.
    * @private8
    */
-  public _deleteMessages(batch: IDeleteQueueItem[]): void {
-    this.getQueueUrl().then((queueUrl) => {
+  public _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
+    const itemById: IDeleteQueueItemById = batch.reduce((prevByValue, item) => {
+      prevByValue[item.Id] = item;
+      return prevByValue;
+    }, {} as IDeleteQueueItemById);
+    return this.getQueueUrl().then((queueUrl) => {
       return this.sqs.deleteMessageBatch({
         QueueUrl: queueUrl,
         Entries: batch,
       }).promise();
     }).then((data) => {
       if (data.Failed && data.Failed.length) {
-        data.Failed.forEach((fail) => this.emit('delError', fail));
+        data.Failed.forEach((fail) => {
+          this.emit('delError', fail);
+          itemById[fail.Id].reject(fail);
+        });
       }
       if (data.Successful && data.Successful.length) {
-        data.Successful.forEach((success) => this.emit('deleted', success.Id));
+        data.Successful.forEach((success) => {
+          this.emit('deleted', success.Id);
+          itemById[success.Id].resolve();
+        });
       }
     }).catch((err) => {
       this.emit('error', err);
+      return Promise.reject(err);
     });
   }
 

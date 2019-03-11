@@ -1,6 +1,10 @@
 # Squiss-TS Change Log
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v1.2.0]
+### Added
+- Feature: Support message deletion resolving with Promise
+
 ## [v1.1.0]
 ### Added
 - Bug fix: After stop, don't pull any more messages

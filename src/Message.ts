@@ -84,11 +84,12 @@ export class Message {
   /**
    * Queues this message for deletion.
    */
-  public del(): void {
+  public del(): Promise<void> {
     if (!this._handled) {
-      this._squiss.deleteMessage(this);
       this._handled = true;
+      return this._squiss.deleteMessage(this);
     }
+    return Promise.resolve();
   }
 
   /**

@@ -496,12 +496,14 @@ describe('index', () => {
       const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
       inst!.on('message', (msg: Message) => msgs.push(msg));
       inst!.start();
+      let promise: Promise<void>;
       return wait().then(() => {
         msgs.should.have.length(5);
-        inst!.deleteMessage(msgs.pop()!);
+        promise = inst!.deleteMessage(msgs.pop()!);
         return wait(10);
       }).then(() => {
         spy.should.be.calledOnce();
+        return promise!.should.be.fulfilled('should be fullfiled');
       });
     });
     it('deletes messages using Message API', () => {
@@ -560,8 +562,8 @@ describe('index', () => {
     });
     it('requires a Message object be sent to deleteMessage', () => {
       inst = new Squiss({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
-      const test = () => inst!.deleteMessage('foo' as any);
-      test.should.throw(/Message/);
+      const promise = inst!.deleteMessage('foo' as any);
+      return promise.should.be.rejectedWith(/Message/);
     });
   });
   describe('Failures', () => {
