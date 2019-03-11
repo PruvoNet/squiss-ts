@@ -1,6 +1,10 @@
+[![Npm Version](https://img.shields.io/npm/v/squiss-ts.svg?color=%2339db0d&style=popout)](https://www.npmjs.com/package/squiss-ts)
 [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
 [![Coverage Status](https://coveralls.io/repos/github/PruvoNet/squiss-ts/badge.svg?branch=master)](https://coveralls.io/github/PruvoNet/squiss-ts?branch=master)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/58abd1713b064f4c9af7dc88d7178ebe)](https://www.codacy.com/app/regevbr/squiss-ts?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PruvoNet/squiss-ts&amp;utm_campaign=Badge_Grade)
 [![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
+[![dependencies Status](https://david-dm.org/PruvoNet/squiss-ts/status.svg)](https://david-dm.org/PruvoNet/squiss-ts)
+[![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev)
 
 # Squiss-TS 
 High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up (with full typescript support)

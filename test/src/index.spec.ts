@@ -3,8 +3,7 @@
 import * as AWS from 'aws-sdk';
 import {Squiss} from '../../dist/';
 import {SQSStub} from '../stubs/SQSStub';
-// @ts-ignore
-import * as delay from 'delay';
+import delay from 'delay';
 import {IMessageOpts, Message} from '../../dist/Message';
 // @ts-ignore
 import * as sinon from 'sinon';
@@ -629,7 +628,7 @@ describe('index', () => {
       const errSpy = sinon.spy();
       inst = new Squiss({queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 5} as ISquissOptions);
       inst!.sqs = new SQSStub(2) as any as SQS;
-      (sinon.stub(inst!.sqs, 'receiveMessage', () => {
+      (sinon.stub(inst!.sqs, 'receiveMessage').callsFake(() => {
         ((inst!.sqs as any as SQSStub).receiveMessage as any).restore();
         return {
           promise: () => Promise.reject(new Error('test')),
