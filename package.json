@@ -1,10 +1,10 @@
 {
   "name": "squiss-ts",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "High-volume SQS poller",
   "main": "src/index.js",
   "engines": {
-    "node": ">=4.2"
+    "node": ">=6"
   },
   "scripts": {
     "clean": "rm -rf node_modules build coverage dist",
@@ -41,7 +41,7 @@
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
     "aws-sdk": "^2.418.0",
-    "linked-list": "^1.0.4",
+    "linked-list": "^2.0.0",
     "ts-type-guards": "^0.6.1"
   },
   "devDependencies": {
