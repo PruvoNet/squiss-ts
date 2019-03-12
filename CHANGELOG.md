@@ -32,4 +32,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Deleting a message now returns a promise that will be fulfilled upon success.
 - Batch messaging now supports attribute map per message
 
-[v1.2.2]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.2...v1.2.1
+[v1.2.2]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.1...v1.2.2
