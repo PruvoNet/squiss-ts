@@ -1,6 +1,10 @@
 # Squiss-TS Change Log
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v1.2.3]
+### Fixed
+- Upgraded npm packages
+
 ## [v1.2.2]
 ### Fixed
 - Upgraded linked-list version to avoid redundant typing files
@@ -33,3 +37,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Batch messaging now supports attribute map per message
 
 [v1.2.2]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.1...v1.2.2
+[v1.2.3]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.2...v1.2.3
