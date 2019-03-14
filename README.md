@@ -74,7 +74,7 @@ Are you using Squiss to create your queue, as well? Squiss will use `opts.receiv
 - **opts.queuePolicy** If specified, will be set as the access policy of the queue when `createQueue` is called. See [the AWS Policy documentation](http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html) for more information.
 
 ### squiss.createQueue()
-Creates the configured queue! This returns a promise that resolves with the new queue's URL when it's complete. Note that this can only be called if you set `opts.queueName` when instantiating Squiss.
+Creates the configured queue! This returns a promise that resolves with the new queue's URL when it's complete. Note that this can only be called if you set `opts.queueName` when instantiating Squiss. 
 
 ### squiss.deleteMessage(Message)
 Deletes a message, given the full Message object sent to the `message` event. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
@@ -101,7 +101,7 @@ Deletes all the messages in a queue and init in flight
 Sends an individual message to the configured queue, and returns a promise that resolves with AWS's official message metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5OfMessageBody`. Arguments:
 - **message**. The message to push to the queue. If it's a string, great! If it's an Object, Squiss will call JSON.stringify on it.
 - **delay** _optional_. The amount of time, in seconds, to wait before making the message available in the queue. If not specified, the queue's configured value will be used.
-- **attributes** _optional_. An optional attributes mapping to associate with the message (will be converted to SQS format automatically). For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
+- **attributes** _optional_. An optional attributes mapping to associate with the message (will be converted to SQS format automatically). Passing `FIFO_MessageDeduplicationId` and/or `FIFO_MessageGroupId` will be removed and converted to the `MessageDeduplicationId` and `MessageGroupId` message attributes accordingly (needed for FIFO queues). For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
 
 ### squiss.sendMessages(messages, delay, attributes)
 Sends an array of any number of messages to the configured SQS queue, breaking them down into appropriate batch requests executed in parallel (or as much as the default HTTP agent allows). It returns a promise that resolves with a response closely aligned to the official AWS SDK's sendMessageBatch, except the results from all batch requests are merged. Expect a result similar to:

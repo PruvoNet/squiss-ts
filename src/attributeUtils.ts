@@ -11,6 +11,8 @@ const BINARY_TYPE = 'Binary';
 export type IMessageAttribute = number | string | SQS.Binary | undefined;
 
 export interface IMessageAttributes {
+  FIFO_MessageDeduplicationId?: string;
+  FIFO_MessageGroupId?: string;
   [k: string]: IMessageAttribute;
 }
 
