@@ -112,7 +112,9 @@ export class TimeoutExtender {
    */
   public deleteMessage(message: Message) {
     const node = this._index[message.raw.MessageId!];
-    if (node) { this._deleteNode(node); }
+    if (node) {
+      this._deleteNode(node);
+    }
   }
 
   /**
@@ -173,7 +175,12 @@ export class TimeoutExtender {
     }
     const node = this._linkedList.head;
     this._timer = setTimeout(() => {
-      if (this._getNodeAge(node) >= this._stopAfter) { return this._deleteNode(node); }
+      if (this._getNodeAge(node) >= this._stopAfter) {
+        this._deleteNode(node);
+        node.message.keep();
+        this._squiss.emit('timeoutReached', node.message);
+        return;
+      }
       return this._renewNode(node);
     }, node.timerOn - Date.now());
     return true;

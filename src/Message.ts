@@ -81,6 +81,10 @@ export class Message {
     this.attributes = parseMessageAttributes(opts.msg.MessageAttributes);
   }
 
+  public isHandled() {
+    return this._handled;
+  }
+
   /**
    * Queues this message for deletion.
    */

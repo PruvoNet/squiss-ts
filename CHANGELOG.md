@@ -1,6 +1,13 @@
 # Squiss-TS Change Log
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v1.3.0]
+### Added
+- Expose method to check if message was handled
+- If message extended time is finished, release the message slot, mark it as handled and emit `timeoutReached` event
+### Fixed
+- Fix mocha test options
+
 ## [v1.2.4]
 ### Fixed
 - Fix package.json to point to typing files
@@ -43,3 +50,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [v1.2.2]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.1...v1.2.2
 [v1.2.3]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.2...v1.2.3
 [v1.2.4]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.3...v1.2.4
+[v1.3.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.4...v1.3.0

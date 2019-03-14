@@ -1,6 +1,6 @@
 {
   "name": "squiss-ts",
-  "version": "1.2.4",
+  "version": "1.3.0",
   "description": "High-volume SQS poller",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,8 +12,8 @@
     "build": "npm run lint && npm run buildDist",
     "buildDist": "rm -rf dist/* && ./node_modules/.bin/tsc",
     "test": "npm run lint && npm run mocha",
-    "mocha": "mocha test/**/*.ts --reporter spec --require ts-node/register --exit",
-    "cover": "istanbul cover node_modules/mocha/bin/_mocha test/**/*.ts -- -R spec --require ts-node/register --exit",
+    "mocha": "mocha test/**/*.ts --reporter spec --opts test/mocha.opts",
+    "cover": "istanbul cover node_modules/mocha/bin/_mocha test/**/*.ts -- -R spec --opts test/mocha.opts",
     "lint": "tslint -c tslint.json 'src/**/*.ts' 'test/**/*.ts'"
   },
   "repository": {
