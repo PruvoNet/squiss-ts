@@ -102,7 +102,7 @@ describe('TimeoutExtender', () => {
   it('emits "timeoutExtended" on renewal', (done) => {
     clock = sinon.useFakeTimers(100000);
     const squiss = getSquissStub();
-    squiss.on('timeoutExtended', (msg) => {
+    squiss.on('timeoutExtended', (msg: Message) => {
       msg.should.equal(fooMsg);
       done();
     });
@@ -126,9 +126,13 @@ describe('TimeoutExtender', () => {
     clock.tick(10000);
     spy.should.be.calledThrice();
   });
-  it('renews only until the configured age limit', () => {
+  it('renews only until the configured age limit', (done) => {
     clock = sinon.useFakeTimers(100000);
     const squiss = getSquissStub();
+    squiss.on('timeoutReached', (msg: Message) => {
+      msg.should.equal(fooMsg);
+      done();
+    });
     const spy = sinon.spy(squiss, 'changeMessageVisibility');
     inst = new TimeoutExtender(squiss, {visibilityTimeoutSecs: 10, noExtensionsAfterSecs: 15});
     inst.addMessage(fooMsg);
@@ -136,6 +140,7 @@ describe('TimeoutExtender', () => {
     spy.should.be.calledOnce();
     clock.tick(20000);
     spy.should.be.calledOnce();
+    fooMsg.isHandled().should.eql(true);
   });
   it('emits error on the parent Squiss object in case of issue', (done) => {
     clock = sinon.useFakeTimers(100000);
@@ -158,7 +163,7 @@ describe('TimeoutExtender', () => {
   it('emits autoExtendFail when an extended message has already been deleted', (done) => {
     clock = sinon.useFakeTimers(100000);
     const squiss = getSquissStub();
-    squiss.on('autoExtendFail', (obj) => {
+    squiss.on('autoExtendFail', (obj: any) => {
       try {
         obj.should.deep.equal({
           message: fooMsg,
