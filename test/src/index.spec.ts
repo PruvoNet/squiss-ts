@@ -920,11 +920,56 @@ describe('index', () => {
       inst!.sqs = new SQSStub() as any as SQS;
       const buffer = Buffer.from('s');
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
-      return inst!.sendMessage('bar', 10, {baz: 'fizz', num: 1, bin: buffer, empty: undefined}).then(() => {
+      return inst!.sendMessage('bar', 10, {
+        baz: 'fizz',
+        num: 1,
+        bin: buffer,
+        empty: undefined,
+      }).then(() => {
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           MessageBody: 'bar',
           DelaySeconds: 10,
+          MessageAttributes: {
+            baz: {
+              DataType: 'String',
+              StringValue: 'fizz',
+            },
+            empty: {
+              DataType: 'String',
+              StringValue: '',
+            },
+            num: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+            bin: {
+              DataType: 'Binary',
+              BinaryValue: buffer,
+            },
+          },
+        });
+      });
+    });
+    it('sends a message with a delay and attributes and fifo attributes', () => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      return inst!.sendMessage('bar', 10, {
+        FIFO_MessageGroupId: 'groupId',
+        FIFO_MessageDeduplicationId: 'dedupId',
+        baz: 'fizz',
+        num: 1,
+        bin: buffer,
+        empty: undefined,
+      }).then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: 'bar',
+          DelaySeconds: 10,
+          MessageDeduplicationId: 'dedupId',
+          MessageGroupId: 'groupId',
           MessageAttributes: {
             baz: {
               DataType: 'String',

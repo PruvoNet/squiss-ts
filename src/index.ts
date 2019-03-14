@@ -9,6 +9,8 @@ import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
 import {SQS} from 'aws-sdk';
 
+export {SQS} from 'aws-sdk';
+
 /**
  * The maximum number of messages that can be sent in an SQS sendMessageBatch request.
  * @type {number}
@@ -450,6 +452,14 @@ export class Squiss extends EventEmitter {
         params.DelaySeconds = delay;
       }
       if (attributes) {
+        if (attributes.FIFO_MessageGroupId) {
+          params.MessageGroupId = attributes.FIFO_MessageGroupId;
+          delete attributes.FIFO_MessageGroupId;
+        }
+        if (attributes.FIFO_MessageDeduplicationId) {
+          params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
+          delete attributes.FIFO_MessageDeduplicationId;
+        }
         params.MessageAttributes = createMessageAttributes(attributes);
       }
       return this.sqs.sendMessage(params).promise();

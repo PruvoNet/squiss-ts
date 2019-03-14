@@ -34,7 +34,7 @@ export class Message extends EventEmitter {
    * @returns {Object|string} The parsed message, or the original message string if the format type is unknown.
    * @private
    */
-  public static _formatMessage(msg: string | undefined, format: BodyFormat) {
+  private static formatMessage(msg: string | undefined, format: BodyFormat) {
     switch (format) {
       case 'json':
         return JSON.parse(msg || EMPTY_BODY);
@@ -77,7 +77,7 @@ export class Message extends EventEmitter {
         this.topicName = unwrapped.TopicArn.substr(unwrapped.TopicArn.lastIndexOf(':') + 1);
       }
     }
-    this.body = Message._formatMessage(this.body, opts.bodyFormat);
+    this.body = Message.formatMessage(this.body, opts.bodyFormat);
     this._squiss = opts.squiss;
     this._handled = false;
     this.attributes = parseMessageAttributes(opts.msg.MessageAttributes);

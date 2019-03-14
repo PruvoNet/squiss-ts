@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Expose method to check if message was handled
 - If message extended time is finished, release the message slot, mark it as handled and emit `timeoutReached` event
 - Message is now also event emitter, and all event related to a message will also be emitted on it
+- Expose SQS typings for direct usage of the underlying SQS instance without adding it as a dependency to your project
+- Allow to pass `MessageGroupId` and `MessageDeduplicationId` FIFO related parameters when sending a message
 ### Fixed
 - Fix mocha test options
 
