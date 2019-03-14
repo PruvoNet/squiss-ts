@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Expose method to check if message was handled
 - If message extended time is finished, release the message slot, mark it as handled and emit `timeoutReached` event
+- Message is now also event emitter, and all event related to a message will also be emitted on it
 ### Fixed
 - Fix mocha test options
 

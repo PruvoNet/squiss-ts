@@ -178,6 +178,7 @@ export class TimeoutExtender {
       if (this._getNodeAge(node) >= this._stopAfter) {
         this._deleteNode(node);
         node.message.keep();
+        node.message.emit('timeoutReached');
         this._squiss.emit('timeoutReached', node.message);
         return;
       }
@@ -197,12 +198,17 @@ export class TimeoutExtender {
     const extendByMs = Math.min(this._visTimeout, MAX_MESSAGE_AGE_MS - this._getNodeAge(node));
     const extendBySecs = Math.floor(extendByMs / 1000);
     this._squiss.changeMessageVisibility(node.message, extendBySecs)
-      .then(() => this._squiss.emit('timeoutExtended', node.message))
+      .then(() => {
+        node.message.emit('timeoutExtended');
+        this._squiss.emit('timeoutExtended', node.message);
+      })
       .catch((err: Error) => {
         if (err.message.match(/Message does not exist or is not available/)) {
           this._deleteNode(node);
+          node.message.emit('autoExtendFail', err);
           this._squiss.emit('autoExtendFail', {message: node.message, error: err});
         } else {
+          node.message.emit('autoExtendError', err);
           this._squiss.emit('error', err);
         }
       });

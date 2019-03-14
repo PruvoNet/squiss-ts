@@ -10,6 +10,7 @@ import * as sinon from 'sinon';
 import * as chai from 'chai';
 import {ISquissOptions} from '../../src';
 import {SQS} from 'aws-sdk';
+import {EventEmitter} from "events";
 
 const should = chai.should();
 let inst: Squiss | null = null;
@@ -334,7 +335,7 @@ describe('index', () => {
         result.should.eq(true);
       });
     });
-    it('should not double resolve if queue drained after timeout', function() {
+    it('should not double resolve if queue drained after timeout', function () {
       this.timeout(5000);
       const spy = sinon.spy();
       inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
@@ -392,7 +393,7 @@ describe('index', () => {
       return wait().then(() => {
         inst!.inFlight.should.equal(5);
         inst!.deleteMessage(msgs.pop()!);
-        inst!.handledMessage({} as any);
+        inst!.handledMessage(new EventEmitter() as any);
         return wait(1);
       }).then(() => {
         inst!.inFlight.should.equal(3);
@@ -410,7 +411,7 @@ describe('index', () => {
         msgSpy.should.have.callCount(10);
         maxSpy.should.be.calledOnce();
         for (let i = 0; i < 10; i++) {
-          inst!.handledMessage({} as any);
+          inst!.handledMessage(new EventEmitter() as any);
         }
         return wait();
       }).then(() => {
@@ -593,13 +594,13 @@ describe('index', () => {
           abort: () => Promise.reject(new Error('test')),
         };
       };
-      inst!.on('error', spy);
-      inst!.deleteMessage({
-        raw: {
-          MessageId: 'foo',
-          ReceiptHandle: 'bar',
-        },
-      } as Message);
+      inst!.on('error', spy)
+      const msg = new EventEmitter() as any;
+      msg.raw = {
+        MessageId: 'foo',
+        ReceiptHandle: 'bar',
+      };
+      inst!.deleteMessage(msg as Message);
       return wait().then(() => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith(sinon.match.instanceOf(Error));
@@ -874,10 +875,11 @@ describe('index', () => {
       inst!.sqs = new SQSStub(1) as any as SQS;
       const handledSpy = sinon.spy(inst, 'handledMessage');
       const visibilitySpy = sinon.spy(inst, 'changeMessageVisibility');
-      return inst!.releaseMessage('foo' as any).then(() => {
+      const msg = new EventEmitter() as any;
+      return inst!.releaseMessage(msg).then(() => {
         handledSpy.should.be.calledOnce();
         visibilitySpy.should.be.calledOnce();
-        visibilitySpy.should.be.calledWith('foo', 0);
+        visibilitySpy.should.be.calledWith(msg, 0);
       });
     });
   });

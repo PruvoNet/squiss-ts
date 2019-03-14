@@ -61,6 +61,7 @@ export interface ISquissOptions {
 }
 
 interface IDeleteQueueItem {
+  msg: Message;
   Id: string;
   ReceiptHandle: string;
   resolve: () => void;
@@ -294,8 +295,9 @@ export class Squiss extends EventEmitter {
       return Promise.reject(new Error('Squiss.deleteMessage requires a Message object'));
     }
     const promise = new Promise<void>((resolve, reject) => {
-      this._delQueue.push({Id: msg.raw.MessageId!, ReceiptHandle: msg.raw.ReceiptHandle!, resolve, reject});
+      this._delQueue.push({msg, Id: msg.raw.MessageId!, ReceiptHandle: msg.raw.ReceiptHandle!, resolve, reject});
     });
+    msg.emit('delQueued');
     this.emit('delQueued', msg);
     this.handledMessage(msg);
     if (this._delQueue.length >= this._opts.deleteBatchSize!) {
@@ -386,6 +388,7 @@ export class Squiss extends EventEmitter {
       this._paused = false;
       this._startPoller();
     }
+    msg.emit('handled');
     this.emit('handled', msg);
     if (!this._inFlight) {
       this.emit('drained');
@@ -404,6 +407,7 @@ export class Squiss extends EventEmitter {
   public releaseMessage(msg: Message): Promise<any> {
     this.handledMessage(msg);
     return this.changeMessageVisibility(msg, 0).then((res) => {
+      msg.emit('released');
       this.emit('released', msg);
       return res;
     });
@@ -594,12 +598,14 @@ export class Squiss extends EventEmitter {
       if (data.Failed && data.Failed.length) {
         data.Failed.forEach((fail) => {
           this.emit('delError', fail);
+          itemById[fail.Id].msg.emit('delError', fail);
           itemById[fail.Id].reject(fail);
         });
       }
       if (data.Successful && data.Successful.length) {
         data.Successful.forEach((success) => {
           this.emit('deleted', success.Id);
+          itemById[success.Id].msg.emit('deleted');
           itemById[success.Id].resolve();
         });
       }
