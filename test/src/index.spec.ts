@@ -10,7 +10,7 @@ import * as sinon from 'sinon';
 import * as chai from 'chai';
 import {ISquissOptions} from '../../src';
 import {SQS} from 'aws-sdk';
-import {EventEmitter} from "events";
+import {EventEmitter} from 'events';
 
 const should = chai.should();
 let inst: Squiss | null = null;
@@ -335,7 +335,7 @@ describe('index', () => {
         result.should.eq(true);
       });
     });
-    it('should not double resolve if queue drained after timeout', function () {
+    it('should not double resolve if queue drained after timeout', function() {
       this.timeout(5000);
       const spy = sinon.spy();
       inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
@@ -594,7 +594,7 @@ describe('index', () => {
           abort: () => Promise.reject(new Error('test')),
         };
       };
-      inst!.on('error', spy)
+      inst!.on('error', spy);
       const msg = new EventEmitter() as any;
       msg.raw = {
         MessageId: 'foo',
