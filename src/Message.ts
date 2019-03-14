@@ -3,6 +3,7 @@
 import {SQS} from 'aws-sdk';
 import {BodyFormat, Squiss} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
+import {EventEmitter} from 'events';
 
 const EMPTY_BODY = '{}';
 
@@ -24,7 +25,7 @@ interface SNSBody {
   TopicArn: string;
 }
 
-export class Message {
+export class Message extends EventEmitter {
 
   /**
    * Parses a message according to the given format.
@@ -64,6 +65,7 @@ export class Message {
    *    delete the message and update inFlight count tracking.
    */
   constructor(opts: IMessageOpts) {
+    super();
     this.raw = opts.msg;
     this.body = opts.msg.Body;
     if (opts.unwrapSns) {
