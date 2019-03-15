@@ -78,10 +78,13 @@ describe('Message', () => {
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
       bodyFormat: 'json',
     });
-    msg.should.have.property('body');
-    msg.body!.should.be.an('object');
-    msg.body!.should.have.property('Message').equal('foo');
-    msg.body!.should.have.property('bar').equal('baz');
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.be.an('object');
+        msg.body!.should.have.property('Message').equal('foo');
+        msg.body!.should.have.property('bar').equal('baz');
+      });
   });
   it('parses empy string as json', () => {
     const msg = new Message({
@@ -89,8 +92,11 @@ describe('Message', () => {
       msg: getSQSMsg(''),
       bodyFormat: 'json',
     });
-    msg.should.have.property('body');
-    msg.body!.should.be.an('object');
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.be.an('object');
+      });
   });
   it('calls Squiss.deleteMessage on delete', (done) => {
     const msg = new Message({

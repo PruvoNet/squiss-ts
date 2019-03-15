@@ -42,12 +42,14 @@
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
     "aws-sdk": "^2.422.0",
+    "iltorb": "^2.4.2",
     "linked-list": "^2.0.0",
     "ts-type-guards": "^0.6.1"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",
     "@types/chai-as-promised": "^7.1.0",
+    "@types/iltorb": "^2.3.0",
     "@types/mocha": "^5.2.6",
     "@types/node": "^11.11.3",
     "chai": "^4.2.0",

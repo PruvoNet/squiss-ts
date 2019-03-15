@@ -3,8 +3,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Development
 ### Added
-- Add ability to control SQS attributes returned and expose them in Message object (#4)
+- Add ability to control SQS attributes returned and expose them in Message object [#4](https://github.com/PruvoNet/squiss-ts/issues/4)
+- Option to auto gzip messages to reduce message sizes [#5](https://github.com/PruvoNet/squiss-ts/issues/5)
 - Updated npm packages versions
+### Fixed
+- Batch message sending to handle FIFO message attributes properly
+- Message properties parser to handle boolean values properly
 
 ## [v1.3.0]
 ### Added

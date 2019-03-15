@@ -55,6 +55,7 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.noExtensionsAfterSecs** _Default 43200._ If `opts.autoExtendTimeout` is used, Squiss will stop auto-renewing a message's VisibilityTimeout when it reaches this age. Default is 12 hours, SQS's VisbilityTimeout maximum.
 - **opts.advancedCallMs** _Default 5000._ If `opts.autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the VisibilityTimeout of the message, before the message is set to expire.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
+- **opts.gzip** _Default "false"._ Auto gzip messages to reduce message size.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
 - **opts.idlePollIntervalMs** _Default 0._ The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.

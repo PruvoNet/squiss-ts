@@ -4,6 +4,7 @@ import {SQS} from 'aws-sdk';
 import {BodyFormat, Squiss} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';
+import {GZIP_MARKER, parseMessage} from './gzipUtils';
 
 const EMPTY_BODY = '{}';
 
@@ -52,6 +53,7 @@ export class Message extends EventEmitter {
   public sqsAttributes: { [k: string]: string };
   private _squiss: Squiss;
   private _handled: boolean;
+  private _opts: IMessageOpts;
 
   /**
    * Creates a new Message.
@@ -67,6 +69,7 @@ export class Message extends EventEmitter {
    */
   constructor(opts: IMessageOpts) {
     super();
+    this._opts = opts;
     this.raw = opts.msg;
     this.body = opts.msg.Body;
     if (opts.unwrapSns) {
@@ -78,11 +81,27 @@ export class Message extends EventEmitter {
         this.topicName = unwrapped.TopicArn.substr(unwrapped.TopicArn.lastIndexOf(':') + 1);
       }
     }
-    this.body = Message.formatMessage(this.body, opts.bodyFormat);
     this._squiss = opts.squiss;
     this._handled = false;
     this.attributes = parseMessageAttributes(opts.msg.MessageAttributes);
     this.sqsAttributes = opts.msg.Attributes || {};
+  }
+
+  public parse() {
+    if (this.body === undefined || this.body === null) {
+      return Promise.resolve();
+    }
+    let promise: Promise<string>;
+    if (this.attributes[GZIP_MARKER] === 1) {
+      delete this.attributes[GZIP_MARKER];
+      promise = parseMessage(this.body);
+    } else {
+      promise = Promise.resolve(this.body);
+    }
+    return promise
+      .then((parsedBody) => {
+        this.body = Message.formatMessage(parsedBody, this._opts.bodyFormat);
+      });
   }
 
   public isHandled() {

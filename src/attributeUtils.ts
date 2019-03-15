@@ -1,7 +1,7 @@
 'use strict';
 
 import {SQS} from 'aws-sdk';
-import {isNumber, isString} from 'ts-type-guards';
+import {isBoolean, isNumber, isString} from 'ts-type-guards';
 
 const EMPTY_OBJ = {};
 const STRING_TYPE = 'String';
@@ -13,6 +13,7 @@ export type IMessageAttribute = number | string | SQS.Binary | undefined;
 export interface IMessageAttributes {
   FIFO_MessageDeduplicationId?: string;
   FIFO_MessageGroupId?: string;
+
   [k: string]: IMessageAttribute;
 }
 
@@ -61,6 +62,11 @@ const createAttributeValue = (unparsedAttribute: IMessageAttribute): SQS.Message
     return {
       DataType: STRING_TYPE,
       StringValue: unparsedAttribute,
+    };
+  } else if (isBoolean(unparsedAttribute)) {
+    return {
+      DataType: STRING_TYPE,
+      StringValue: `${unparsedAttribute}`,
     };
   } else {
     return {
