@@ -4,7 +4,7 @@ import {SQS} from 'aws-sdk';
 import {BodyFormat, Squiss} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';
-import {GZIP_MARKER, parseMessage} from './gzipUtils';
+import {GZIP_MARKER, decompressMessage} from './gzipUtils';
 
 const EMPTY_BODY = '{}';
 
@@ -94,7 +94,7 @@ export class Message extends EventEmitter {
     let promise: Promise<string>;
     if (this.attributes[GZIP_MARKER] === 1) {
       delete this.attributes[GZIP_MARKER];
-      promise = parseMessage(this.body);
+      promise = decompressMessage(this.body);
     } else {
       promise = Promise.resolve(this.body);
     }

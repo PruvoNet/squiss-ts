@@ -7,10 +7,11 @@ import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
-import {SQS} from 'aws-sdk';
-import {GZIP_MARKER, prepareMessage} from './gzipUtils';
+import {SQS, S3} from 'aws-sdk';
+import {GZIP_MARKER, compressMessage} from './gzipUtils';
+import {getMessageSize, S3_MARKER, uploadBlob} from './s3Utils';
 
-export {SQS} from 'aws-sdk';
+export {SQS, S3} from 'aws-sdk';
 
 /**
  * The maximum number of messages that can be sent in an SQS sendMessageBatch request.
@@ -58,6 +59,8 @@ export interface ISquissOptions {
   accountNumber?: string | number;
   noExtensionsAfterSecs?: number;
   advancedCallMs?: number;
+  s3Fallback?: boolean;
+  s3Bucket?: string;
 }
 
 interface IDeleteQueueItem {
@@ -72,7 +75,7 @@ interface IDeleteQueueItemById {
   [k: string]: IDeleteQueueItem;
 }
 
-interface ISendMessageRequest {
+export interface ISendMessageRequest {
   MessageBody: string;
   DelaySeconds?: number;
   MessageAttributes?: SQS.MessageBodyAttributeMap;
@@ -101,6 +104,7 @@ const optDefaults: ISquissOptions = {
   idlePollIntervalMs: 0,
   delaySecs: 0,
   gzip: false,
+  s3Fallback: false,
   maxMessageBytes: 262144,
   messageRetentionSecs: 345600,
   autoExtendTimeout: false,
@@ -127,6 +131,7 @@ export class Squiss extends EventEmitter {
     return this._running;
   }
 
+  public s3?: S3;
   public sqs: SQS;
   public _timeoutExtender: TimeoutExtender | undefined;
   public _opts: ISquissOptions;
@@ -134,6 +139,7 @@ export class Squiss extends EventEmitter {
   private _paused: boolean;
   private _inFlight: number;
   private _queueVisibilityTimeout: number;
+  private _queueMaximumMessageSize: number;
   private _queueUrl: string;
   private _delQueue: IDeleteQueueItem[];
   private _delTimer: number | undefined;
@@ -157,6 +163,8 @@ export class Squiss extends EventEmitter {
    *    configured SQS endpoint, applicable only if opts.queueName is specified. This can be useful for testing against
    *    a stubbed SQS service, such as ElasticMQ.
    * @param {boolean} [opts.gzip=false] Auto gzip messages to reduce message size.
+   * @param {boolean} [opts.s3Fallback=false] Upload messages bigger than `maxMessageBytes` or queue default
+   * @param {string} [opts.s3Bucket] if `s3Fallback` is true, upload message to this s3 bucket.
    * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
    *    batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued
    *    delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
@@ -238,8 +246,15 @@ export class Squiss extends EventEmitter {
     this._delTimer = undefined;
     this._queueUrl = this._opts.queueUrl || '';
     this._queueVisibilityTimeout = 0;
+    this._queueMaximumMessageSize = 0;
     if (!this._opts.queueUrl && !this._opts.queueName) {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
+    }
+    if (this._opts.s3Fallback) {
+      if (!this._opts.s3Bucket) {
+        throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
+      }
+      this.s3 = new S3(this._opts.awsConfig);
     }
     this._timeoutExtender = undefined;
   }
@@ -388,6 +403,25 @@ export class Squiss extends EventEmitter {
       }
       this._queueVisibilityTimeout = parseInt(res.Attributes.VisibilityTimeout, 10);
       return this._queueVisibilityTimeout;
+    });
+  }
+
+  public getQueueMaximumMessageSize(): Promise<number> {
+    if (this._queueMaximumMessageSize) {
+      return Promise.resolve(this._queueMaximumMessageSize);
+    }
+    return this.getQueueUrl().then((queueUrl) => {
+      return this.sqs.getQueueAttributes({
+        AttributeNames: ['MaximumMessageSize'],
+        QueueUrl: queueUrl,
+      }).promise();
+    }).then((res) => {
+      if (!res.Attributes || !res.Attributes.MaximumMessageSize) {
+        throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
+          JSON.stringify(res));
+      }
+      this._queueMaximumMessageSize = parseInt(res.Attributes.MaximumMessageSize, 10);
+      return this._queueMaximumMessageSize;
     });
   }
 
@@ -797,12 +831,26 @@ export class Squiss extends EventEmitter {
       });
   }
 
+  private isLargeMessage(message: ISendMessageRequest): Promise<{ result: boolean, size: number }> {
+    return this.getQueueMaximumMessageSize()
+      .then((queueMaximumMessageSize) => {
+        const size = getMessageSize(message);
+        return {result: size > queueMaximumMessageSize, size};
+      });
+  }
+
   private perpareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
     : Promise<ISendMessageRequest> {
+    if (attributes && attributes[GZIP_MARKER]) {
+      return Promise.reject(`Using of internal attribute ${GZIP_MARKER} is not allowed`);
+    }
+    if (attributes && attributes[S3_MARKER]) {
+      return Promise.reject(`Using of internal attribute ${S3_MARKER} is not allowed`);
+    }
     const messageStr = isString(message) ? message : JSON.stringify(message);
     let promise: Promise<string>;
     if (this._opts.gzip) {
-      promise = prepareMessage(messageStr);
+      promise = compressMessage(messageStr);
     } else {
       promise = Promise.resolve(messageStr);
     }
@@ -832,7 +880,25 @@ export class Squiss extends EventEmitter {
           }
           params.MessageAttributes = createMessageAttributes(attributes);
         }
-        return Promise.resolve(params);
+        if (!this._opts.s3Fallback) {
+          return Promise.resolve(params);
+        }
+        return this.isLargeMessage(params)
+          .then((isLargeResult) => {
+            if (!isLargeResult.result) {
+              return Promise.resolve(params);
+            }
+            return uploadBlob(this.s3!, this._opts.s3Bucket!, finalMessage)
+              .then((uploadData) => {
+                params.MessageBody = JSON.stringify(uploadData);
+                params.MessageAttributes = params.MessageAttributes || {};
+                params.MessageAttributes[S3_MARKER] = {
+                  StringValue: `${isLargeResult.size}`,
+                  DataType: 'Number',
+                };
+                return Promise.resolve(params);
+              });
+          });
       });
   }
 }
