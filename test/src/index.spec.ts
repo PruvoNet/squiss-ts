@@ -924,6 +924,22 @@ describe('index', () => {
         spy.should.be.calledWith({QueueUrl: 'foo', MessageBody: 'bar'});
       });
     });
+    it('sends a string gzip message with no extra arguments', () => {
+      inst = new Squiss({queueUrl: 'foo', gzip: true});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      return inst!.sendMessage('{"i": 1}').then(() => {
+        spy.should.be.calledOnce();
+        spy.should.be.calledWith({
+          QueueUrl: 'foo', MessageBody: 'iwOAeyJpIjogMX0D', MessageAttributes: {
+            __SQS_MESSAGE_GZIPPED__: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+          },
+        });
+      });
+    });
     it('sends a JSON message with no extra arguments', () => {
       inst = new Squiss({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
@@ -951,6 +967,56 @@ describe('index', () => {
           MessageBody: 'bar',
           DelaySeconds: 10,
           MessageAttributes: {
+            baz: {
+              DataType: 'String',
+              StringValue: 'fizz',
+            },
+            boolean1: {
+              DataType: 'String',
+              StringValue: 'true',
+            },
+            boolean2: {
+              DataType: 'String',
+              StringValue: 'false',
+            },
+            empty: {
+              DataType: 'String',
+              StringValue: '',
+            },
+            num: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+            bin: {
+              DataType: 'Binary',
+              BinaryValue: buffer,
+            },
+          },
+        });
+      });
+    });
+    it('sends a gzip message with a delay and attributes', () => {
+      inst = new Squiss({queueUrl: 'foo', gzip: true});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      return inst!.sendMessage({'i': 1}, 10, {
+        baz: 'fizz',
+        num: 1,
+        boolean1: true,
+        boolean2: false,
+        bin: buffer,
+        empty: undefined,
+      }).then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: 'CwOAeyJpIjoxfQM=',
+          DelaySeconds: 10,
+          MessageAttributes: {
+            __SQS_MESSAGE_GZIPPED__: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
             baz: {
               DataType: 'String',
               StringValue: 'fizz',
@@ -1108,6 +1174,41 @@ describe('index', () => {
             MessageGroupId: 'groupId',
             DelaySeconds: 10,
             MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
+          }],
+        });
+      });
+    });
+    it('sends multiple gzip messages with delay and single attributes object', () => {
+      inst = new Squiss({queueUrl: 'foo', gzip: true});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+      return inst!.sendMessages(['bar', 'baz'], 10, {
+        baz: 'fizz', FIFO_MessageGroupId: 'groupId',
+        FIFO_MessageDeduplicationId: 'dedupId',
+      }).then(() => {
+        spy.should.be.calledOnce();
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          Entries: [{
+            Id: '0',
+            MessageBody: 'CwGAYmFyAw==',
+            MessageDeduplicationId: 'dedupId',
+            MessageGroupId: 'groupId',
+            DelaySeconds: 10,
+            MessageAttributes: {
+              baz: {StringValue: 'fizz', DataType: 'String'},
+              __SQS_MESSAGE_GZIPPED__: {DataType: 'Number', StringValue: '1'},
+            },
+          }, {
+            Id: '1',
+            MessageBody: 'CwGAYmF6Aw==',
+            MessageDeduplicationId: 'dedupId',
+            MessageGroupId: 'groupId',
+            DelaySeconds: 10,
+            MessageAttributes: {
+              baz: {StringValue: 'fizz', DataType: 'String'},
+              __SQS_MESSAGE_GZIPPED__: {DataType: 'Number', StringValue: '1'},
+            },
           }],
         });
       });

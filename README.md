@@ -9,6 +9,14 @@
 # Squiss-TS 
 High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up (with full typescript support)
 
+## Main features
+- Control how many messages can be handled at any given point
+- Efficiently auto pull new messages when concurrency is not fully utilized
+- Easy message lifecycle management
+- Options to auto renew messages visibility timeout for long message processing
+- Option to automatically gzip incoming and outgoing messages to decrease message sizes
+- Full typescript support
+
 ## Quick example
 ```typescript
 import {Squiss, Message} from 'squiss-ts';
