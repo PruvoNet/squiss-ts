@@ -941,6 +941,8 @@ describe('index', () => {
       return inst!.sendMessage('bar', 10, {
         baz: 'fizz',
         num: 1,
+        boolean1: true,
+        boolean2: false,
         bin: buffer,
         empty: undefined,
       }).then(() => {
@@ -952,6 +954,14 @@ describe('index', () => {
             baz: {
               DataType: 'String',
               StringValue: 'fizz',
+            },
+            boolean1: {
+              DataType: 'String',
+              StringValue: 'true',
+            },
+            boolean2: {
+              DataType: 'String',
+              StringValue: 'false',
             },
             empty: {
               DataType: 'String',

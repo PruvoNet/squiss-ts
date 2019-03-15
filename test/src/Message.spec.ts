@@ -3,12 +3,13 @@
 import {Message} from '../../dist/Message';
 import {SquissStub} from '../stubs/SquissStub';
 import {Squiss} from '../../dist';
+import {SQS} from 'aws-sdk';
 
 const getSquissStub = () => {
   return new SquissStub() as any as Squiss;
 };
 
-function getSQSMsg(body: string) {
+function getSQSMsg(body?: string): SQS.Message {
   return {
     MessageId: 'msgId',
     ReceiptHandle: 'handle',
@@ -84,6 +85,61 @@ describe('Message', () => {
         msg.body!.should.be.an('object');
         msg.body!.should.have.property('Message').equal('foo');
         msg.body!.should.have.property('bar').equal('baz');
+        msg.attributes.should.be.eql({
+          SomeNumber: 1,
+          SomeString: 's',
+          SomeBinary: new Buffer(['s']),
+          SomeCustomBinary: new Buffer(['c']),
+        });
+      });
+  });
+  it('parses gzipped JSON', () => {
+    const rawMsg = getSQSMsg('iwOAeyJpIjogMX0D');
+    rawMsg.MessageAttributes!.__SQS_MESSAGE_GZIPPED__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    const msg = new Message({
+      squiss: getSquissStub(),
+      msg: rawMsg,
+      bodyFormat: 'json',
+    });
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.be.an('object');
+        msg.body!.should.have.property('i').equal(1);
+      });
+  });
+  it('parses gzipped plain', () => {
+    const rawMsg = getSQSMsg('iwOAeyJpIjogMX0D');
+    rawMsg.MessageAttributes!.__SQS_MESSAGE_GZIPPED__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    const msg = new Message({
+      squiss: getSquissStub(),
+      msg: rawMsg,
+    });
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.eql('{"i": 1}');
+      });
+  });
+  it('not parse empty gzipped body', () => {
+    const rawMsg = getSQSMsg(undefined);
+    rawMsg.MessageAttributes!.__SQS_MESSAGE_GZIPPED__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    const msg = new Message({
+      squiss: getSquissStub(),
+      msg: rawMsg,
+    });
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body').equals(undefined);
       });
   });
   it('parses empy string as json', () => {
@@ -96,6 +152,17 @@ describe('Message', () => {
       .then(() => {
         msg.should.have.property('body');
         msg.body!.should.be.an('object');
+      });
+  });
+  it('not parse empty body', () => {
+    const msg = new Message({
+      squiss: getSquissStub(),
+      msg: getSQSMsg(undefined),
+      bodyFormat: 'json',
+    });
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body').equal(undefined);
       });
   });
   it('calls Squiss.deleteMessage on delete', (done) => {

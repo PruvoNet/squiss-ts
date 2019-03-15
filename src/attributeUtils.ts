@@ -50,7 +50,7 @@ export const createMessageAttributes = (messageAttributes: IMessageAttributes)
 };
 
 const createAttributeValue = (unparsedAttribute: IMessageAttribute): SQS.MessageAttributeValue => {
-  if (!unparsedAttribute) {
+  if (unparsedAttribute === undefined || unparsedAttribute === null) {
     unparsedAttribute = '';
   }
   if (isNumber(unparsedAttribute)) {
