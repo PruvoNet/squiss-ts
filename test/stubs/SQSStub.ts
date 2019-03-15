@@ -76,6 +76,7 @@ export class SQSStub extends EventEmitter {
       return Promise.resolve({
         Attributes: {
           VisibilityTimeout: '31',
+          MaximumMessageSize: '200',
         },
       });
     });

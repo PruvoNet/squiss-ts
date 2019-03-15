@@ -44,7 +44,18 @@ describe('index', () => {
         e.should.be.instanceOf(Error);
         errored = true;
       }
-      errored.should.be.true;
+      errored.should.eql(true);
+    });
+    it('fail if s3 but no bucket is not specified', () => {
+      let errored = false;
+      try {
+        new Squiss({queueUrl: 'foo', s3Fallback: true});
+      } catch (e) {
+        should.exist(e);
+        e.should.be.instanceOf(Error);
+        errored = true;
+      }
+      errored.should.eql(true);
     });
     it('provides a configured sqs client instance', () => {
       inst = new Squiss({
@@ -54,8 +65,19 @@ describe('index', () => {
         },
       } as ISquissOptions);
       inst!.should.have.property('sqs');
-      (inst!.sqs as any as SQSStub).should.be.an('object');
-      (inst!.sqs as any as SQSStub).config.region!.should.equal('us-east-1');
+      inst.sqs.should.be.an('object');
+      inst.sqs.config.region!.should.equal('us-east-1');
+    });
+    it('provides a configured s3 client instance', () => {
+      inst = new Squiss({
+        queueUrl: 'foo',
+        awsConfig: {
+          region: 'us-east-1',
+        },
+      } as ISquissOptions);
+      const s3 = inst!.getS3();
+      s3.should.be.an('object');
+      s3.config.region!.should.equal('us-east-1');
     });
     it('accepts an sqs function for instantiation if one is provided', () => {
       const spy = sinon.spy();
@@ -67,6 +89,18 @@ describe('index', () => {
       (inst!.sqs as any as SQSStub).should.be.an('object');
       spy.should.be.calledOnce();
     });
+    it('accepts an s3 function for instantiation if one is provided', () => {
+      const spy = sinon.spy();
+      inst = new Squiss({
+        queueUrl: 'foo',
+        S3: spy,
+      } as ISquissOptions);
+      const s3 = inst!.getS3();
+      s3.should.be.an('object');
+      inst!.getS3();
+      spy.should.be.calledOnce();
+
+    });
     it('accepts an instance of sqs client if one is provided', () => {
       inst = new Squiss({
         queueUrl: 'foo',
@@ -74,6 +108,14 @@ describe('index', () => {
       } as ISquissOptions);
       inst!.should.have.property('sqs');
       (inst!.sqs as any as SQSStub).should.be.an('object');
+    });
+    it('accepts an instance of s3 client if one is provided', () => {
+      inst = new Squiss({
+        queueUrl: 'foo',
+        S3: {},
+      } as ISquissOptions);
+      const s3 = inst!.getS3();
+      s3.should.be.an('object');
     });
   });
   describe('Receiving', () => {
@@ -693,7 +735,7 @@ describe('index', () => {
     it('rejects if Squiss was instantiated without queueName', () => {
       inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
-      return inst!.createQueue().should.be.rejected;
+      return inst!.createQueue().should.be.rejected('not rejected');
     });
     it('calls SQS SDK createQueue method with default attributes', () => {
       inst = new Squiss({queueName: 'foo'} as ISquissOptions);
@@ -887,6 +929,44 @@ describe('index', () => {
       return inst!.getQueueVisibilityTimeout().should.be.rejectedWith(/foo/);
     });
   });
+  describe('getQueueMaximumMessageSize', () => {
+    it('makes a successful API call', () => {
+      inst = new Squiss({queueUrl: 'https://foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
+      return inst!.getQueueMaximumMessageSize().then((timeout: number) => {
+        should.exist(timeout);
+        timeout.should.equal(200);
+        spy.should.be.calledOnce();
+        spy.should.be.calledWith({
+          AttributeNames: ['MaximumMessageSize'],
+          QueueUrl: 'https://foo',
+        });
+      });
+    });
+    it('caches the API call for successive function calls', () => {
+      inst = new Squiss({queueUrl: 'https://foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
+      return inst!.getQueueMaximumMessageSize().then((timeout: number) => {
+        timeout.should.equal(200);
+        spy.should.be.calledOnce();
+        return inst!.getQueueMaximumMessageSize();
+      }).then((timeout: number) => {
+        should.exist(timeout);
+        timeout.should.equal(200);
+        spy.should.be.calledOnce();
+      });
+    });
+    it('catches badly formed AWS responses', () => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      (inst!.sqs as any as SQSStub).getQueueAttributes = sinon.stub().returns({
+        promise: () => ({foo: 'bar'}),
+      });
+      return inst!.getQueueMaximumMessageSize().should.be.rejectedWith(/foo/);
+    });
+  });
   describe('releaseMessage', () => {
     it('marks the message as handled and changes visibility to 0', () => {
       inst = new Squiss({queueName: 'foo'});
@@ -993,6 +1073,46 @@ describe('index', () => {
             },
           },
         });
+      });
+    });
+    it('sends a message with a delay and not allowed internal gzip attribute', (done) => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      inst!.sendMessage('bar', 10, {
+        baz: 'fizz',
+        num: 1,
+        __SQS_GZIP__: true,
+        boolean1: true,
+        boolean2: false,
+        bin: buffer,
+        empty: undefined,
+      }).catch((err: Error) => {
+        spy.should.have.callCount(0);
+        err.should.be.instanceOf(Error);
+        err.message.should.be.eq('Using of internal attribute __SQS_GZIP__ is not allowed');
+        done();
+      });
+    });
+    it('sends a message with a delay and not allowed internal s3 attribute', (done) => {
+      inst = new Squiss({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      inst!.sendMessage('bar', 10, {
+        baz: 'fizz',
+        num: 1,
+        __SQS_S3__: true,
+        boolean1: true,
+        boolean2: false,
+        bin: buffer,
+        empty: undefined,
+      }).catch((err: Error) => {
+        spy.should.have.callCount(0);
+        err.should.be.instanceOf(Error);
+        err.message.should.be.eq('Using of internal attribute __SQS_S3__ is not allowed');
+        done();
       });
     });
     it('sends a gzip message with a delay and attributes', () => {

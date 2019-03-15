@@ -132,10 +132,10 @@ export class Squiss extends EventEmitter {
     return this._running;
   }
 
-  public s3?: S3;
   public sqs: SQS;
   public _timeoutExtender: TimeoutExtender | undefined;
   public _opts: ISquissOptions;
+  private _s3?: S3;
   private _running: boolean;
   private _paused: boolean;
   private _inFlight: number;
@@ -832,6 +832,22 @@ export class Squiss extends EventEmitter {
       });
   }
 
+  public getS3(): S3 {
+    if (this._s3) {
+      return this._s3;
+    }
+    if (this._opts.S3) {
+      if (typeof this._opts.S3 === 'function') {
+        this._s3 = new this._opts.S3(this._opts.awsConfig);
+      } else {
+        this._s3 = this._opts.S3;
+      }
+    } else {
+      this._s3 = new S3(this._opts.awsConfig);
+    }
+    return this._s3;
+  }
+
   private isLargeMessage(message: ISendMessageRequest): Promise<boolean> {
     return this.getQueueMaximumMessageSize()
       .then((queueMaximumMessageSize) => {
@@ -839,29 +855,13 @@ export class Squiss extends EventEmitter {
       });
   }
 
-  private getS3(): S3 {
-    if (this.s3) {
-      return this.s3;
-    }
-    if (this._opts.S3) {
-      if (typeof this._opts.S3 === 'function') {
-        this.s3 = new this._opts.S3(this._opts.awsConfig);
-      } else {
-        this.s3 = this._opts.S3;
-      }
-    } else {
-      this.s3 = new S3(this._opts.awsConfig);
-    }
-    return this.s3;
-  }
-
   private perpareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
     : Promise<ISendMessageRequest> {
     if (attributes && attributes[GZIP_MARKER]) {
-      return Promise.reject(`Using of internal attribute ${GZIP_MARKER} is not allowed`);
+      return Promise.reject(new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`));
     }
     if (attributes && attributes[S3_MARKER]) {
-      return Promise.reject(`Using of internal attribute ${S3_MARKER} is not allowed`);
+      return Promise.reject(new Error(`Using of internal attribute ${S3_MARKER} is not allowed`));
     }
     const messageStr = isString(message) ? message : JSON.stringify(message);
     let promise: Promise<string>;
