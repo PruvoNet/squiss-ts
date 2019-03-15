@@ -1,10 +1,11 @@
 'use strict';
 
-import {SQS} from 'aws-sdk';
+import {SQS, S3} from 'aws-sdk';
 import {BodyFormat, Squiss} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';
 import {GZIP_MARKER, decompressMessage} from './gzipUtils';
+import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './s3Utils';
 
 const EMPTY_BODY = '{}';
 
@@ -18,6 +19,7 @@ export interface IMessageOpts {
   unwrapSns?: boolean;
   bodyFormat?: BodyFormat;
   squiss: Squiss;
+  s3Retriever: () => S3;
 }
 
 interface SNSBody {
@@ -54,6 +56,8 @@ export class Message extends EventEmitter {
   private _squiss: Squiss;
   private _handled: boolean;
   private _opts: IMessageOpts;
+  private _deleteCallback?: () => Promise<void>;
+  private _s3Retriever: () => S3;
 
   /**
    * Creates a new Message.
@@ -85,6 +89,7 @@ export class Message extends EventEmitter {
     this._handled = false;
     this.attributes = parseMessageAttributes(opts.msg.MessageAttributes);
     this.sqsAttributes = opts.msg.Attributes || {};
+    this._s3Retriever = opts.s3Retriever;
   }
 
   public parse() {
@@ -92,12 +97,29 @@ export class Message extends EventEmitter {
       return Promise.resolve();
     }
     let promise: Promise<string>;
-    if (this.attributes[GZIP_MARKER] === 1) {
-      delete this.attributes[GZIP_MARKER];
-      promise = decompressMessage(this.body);
+    if (this.attributes[S3_MARKER]) {
+      delete this.attributes[S3_MARKER];
+      const uploadData: IS3Upload = JSON.parse(this.body);
+      const s3 = this._s3Retriever();
+      promise = getBlob(s3, uploadData)
+        .then((resolvedBody) => {
+          this._deleteCallback = () => {
+            return deleteBlob(s3, uploadData);
+          };
+          return Promise.resolve(resolvedBody);
+        });
     } else {
       promise = Promise.resolve(this.body);
     }
+    promise = promise
+      .then((resolvedBody) => {
+        if (this.attributes[GZIP_MARKER] === 1) {
+          delete this.attributes[GZIP_MARKER];
+          return decompressMessage(resolvedBody);
+        } else {
+          return Promise.resolve(resolvedBody);
+        }
+      });
     return promise
       .then((parsedBody) => {
         this.body = Message.formatMessage(parsedBody, this._opts.bodyFormat);
@@ -134,7 +156,16 @@ export class Message extends EventEmitter {
    */
   public release(): Promise<void> {
     if (!this._handled) {
-      return this._squiss.releaseMessage(this)
+      let promise: Promise<void>;
+      if (this._deleteCallback) {
+        promise = this._deleteCallback();
+      } else {
+        promise = Promise.resolve();
+      }
+      return promise
+        .then(() => {
+          return this._squiss.releaseMessage(this);
+        })
         .then(() => {
           this._handled = true;
         });

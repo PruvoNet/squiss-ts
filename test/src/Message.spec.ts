@@ -3,10 +3,15 @@
 import {Message} from '../../dist/Message';
 import {SquissStub} from '../stubs/SquissStub';
 import {Squiss} from '../../dist';
-import {SQS} from 'aws-sdk';
+import {SQS, S3} from 'aws-sdk';
+import {S3Stub} from '../stubs/S3Stub';
 
 const getSquissStub = () => {
   return new SquissStub() as any as Squiss;
+};
+
+const getS3Stub = () => {
+  return new S3Stub() as any as S3;
 };
 
 function getSQSMsg(body?: string): SQS.Message {
@@ -56,6 +61,7 @@ describe('Message', () => {
       msg: getSQSMsg(JSON.stringify(snsMsg)),
       unwrapSns: true,
       bodyFormat: 'plain',
+      s3Retriever: getS3Stub,
     });
     msg.should.have.property('body').equal('foo');
     msg.should.have.property('subject').equal('some-subject');
@@ -68,6 +74,7 @@ describe('Message', () => {
       msg: getSQSMsg(''),
       unwrapSns: true,
       bodyFormat: 'plain',
+      s3Retriever: getS3Stub,
     });
     msg.should.have.property('body').equal(undefined);
     msg.should.have.property('subject').equal(undefined);
@@ -78,6 +85,7 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
       bodyFormat: 'json',
+      s3Retriever: getS3Stub,
     });
     return msg.parse()
       .then(() => {
@@ -103,6 +111,7 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: rawMsg,
       bodyFormat: 'json',
+      s3Retriever: getS3Stub,
     });
     return msg.parse()
       .then(() => {
@@ -120,6 +129,7 @@ describe('Message', () => {
     const msg = new Message({
       squiss: getSquissStub(),
       msg: rawMsg,
+      s3Retriever: getS3Stub,
     });
     return msg.parse()
       .then(() => {
@@ -136,6 +146,7 @@ describe('Message', () => {
     const msg = new Message({
       squiss: getSquissStub(),
       msg: rawMsg,
+      s3Retriever: getS3Stub,
     });
     return msg.parse()
       .then(() => {
@@ -147,6 +158,7 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: getSQSMsg(''),
       bodyFormat: 'json',
+      s3Retriever: getS3Stub,
     });
     return msg.parse()
       .then(() => {
@@ -159,6 +171,7 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: getSQSMsg(undefined),
       bodyFormat: 'json',
+      s3Retriever: getS3Stub,
     });
     return msg.parse()
       .then(() => {
@@ -175,6 +188,7 @@ describe('Message', () => {
           done();
         },
       } as any as Squiss,
+      s3Retriever: getS3Stub,
     });
     msg.del();
   });
@@ -185,6 +199,7 @@ describe('Message', () => {
       squiss: {
         handledMessage: () => done(),
       } as any as Squiss,
+      s3Retriever: getS3Stub,
     });
     msg.keep();
   });
@@ -204,6 +219,7 @@ describe('Message', () => {
           calls += 100;
         },
       } as any as Squiss,
+      s3Retriever: getS3Stub,
     });
     msg.del();
     msg.keep();
@@ -223,6 +239,7 @@ describe('Message', () => {
           done();
         },
       } as any as Squiss,
+      s3Retriever: getS3Stub,
     });
     message.changeVisibility(timeout);
   });
@@ -236,6 +253,7 @@ describe('Message', () => {
           return Promise.resolve();
         },
       } as any as Squiss,
+      s3Retriever: getS3Stub,
     });
     message.release()
       .then(() => {
