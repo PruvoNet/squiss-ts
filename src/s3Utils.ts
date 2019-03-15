@@ -19,6 +19,18 @@ export const uploadBlob = (s3: S3, bucket: string, blob: string): Promise<IS3Upl
   });
 };
 
+export const getBlob = (s3: S3, uploadData: IS3Upload): Promise<string> => {
+  // const key = uploadData.key;
+  // const bucket = uploadData.bucket;
+  return Promise.resolve('');
+};
+
+export const deleteBlob = (s3: S3, uploadData: IS3Upload): Promise<void> => {
+  // const key = uploadData.key;
+  // const bucket = uploadData.bucket;
+  return Promise.resolve();
+};
+
 export const getMessageSize = (message: ISendMessageRequest): number => {
   const msgAttributesSize = getMsgAttributesSize(message.MessageAttributes);
   const msgBodySize = getSizeInBytes(message.MessageBody);

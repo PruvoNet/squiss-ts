@@ -59,6 +59,7 @@ Use the following options to point Squiss at the right queue:
 
 Squiss's defaults are great out of the box for most use cases, but you can use the below to fine-tune your Squiss experience:
 - **opts.SQS** _Default AWS.SQS_ An instance of the official SQS Client, or an SQS constructor function to use rather than the default one provided by AWS.SQS
+- **opts.S3** _Default AWS.S3_ An instance of the official S3 Client, or an S3 constructor function to use rather than the default one provided by AWS.S3
 - **opts.activePollIntervalMs** _Default 0._ The number of milliseconds to wait between requesting batches of messages when the queue is not empty, and the maxInFlight cap has not been hit. For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency according to maxInFlight.
 - **opts.autoExtendTimeout** _Default false._ If true, Squiss will automatically extend each message's VisibilityTimeout in the SQS queue until it's handled (by keeping, deleting, or releasing it). It will place the API call to extend the timeout `opts.advancedCallMs` milliseconds in advance of the expiration, and will extend it by the number of seconds specified in `opts.visibilityTimeoutSecs`. If that's not specified, the VisibilityTimeout setting on the queue itself will be used.
 - **opts.noExtensionsAfterSecs** _Default 43200._ If `opts.autoExtendTimeout` is used, Squiss will stop auto-renewing a message's VisibilityTimeout when it reaches this age. Default is 12 hours, SQS's VisbilityTimeout maximum.

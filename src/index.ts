@@ -51,6 +51,7 @@ export interface ISquissOptions {
   messageRetentionSecs?: number;
   autoExtendTimeout?: boolean;
   SQS?: typeof SQS;
+  S3?: typeof S3;
   awsConfig?: SQS.Types.ClientConfiguration;
   queueUrl?: string;
   queueName?: string;
@@ -150,6 +151,8 @@ export class Squiss extends EventEmitter {
    * @param {Object} opts A map of options to configure this instance
    * @param {Function} [opts.SQS] An instance of the official SQS Client, or an SQS constructor function to use
    *    rather than the default one provided by SQS
+   * @param {Function} [opts.S3] An instance of the official S3 Client, or an S3 constructor function to use
+   *    rather than the default one provided by S3
    * @param {Object} [opts.awsConfig] An object mapping to pass to the SQS constructor, configuring the
    *    aws-sdk library. This is commonly used to set the AWS region, or the user credentials. See
    *    http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
@@ -250,11 +253,8 @@ export class Squiss extends EventEmitter {
     if (!this._opts.queueUrl && !this._opts.queueName) {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
     }
-    if (this._opts.s3Fallback) {
-      if (!this._opts.s3Bucket) {
-        throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
-      }
-      this.s3 = new S3(this._opts.awsConfig);
+    if (this._opts.s3Fallback && !this._opts.s3Bucket) {
+      throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
     }
     this._timeoutExtender = undefined;
   }
@@ -674,6 +674,7 @@ export class Squiss extends EventEmitter {
         unwrapSns: this._opts.unwrapSns,
         bodyFormat: this._opts.bodyFormat,
         msg,
+        s3Retriever: this.getS3.bind(this),
       });
       this._inFlight++;
       message.parse()
@@ -839,6 +840,22 @@ export class Squiss extends EventEmitter {
       });
   }
 
+  private getS3(): S3 {
+    if (this.s3) {
+      return this.s3;
+    }
+    if (this._opts.S3) {
+      if (typeof this._opts.S3 === 'function') {
+        this.s3 = new this._opts.S3(this._opts.awsConfig);
+      } else {
+        this.s3 = this._opts.S3;
+      }
+    } else {
+      this.s3 = new S3(this._opts.awsConfig);
+    }
+    return this.s3;
+  }
+
   private perpareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
     : Promise<ISendMessageRequest> {
     if (attributes && attributes[GZIP_MARKER]) {
@@ -888,7 +905,7 @@ export class Squiss extends EventEmitter {
             if (!isLargeResult.result) {
               return Promise.resolve(params);
             }
-            return uploadBlob(this.s3!, this._opts.s3Bucket!, finalMessage)
+            return uploadBlob(this.getS3(), this._opts.s3Bucket!, finalMessage)
               .then((uploadData) => {
                 params.MessageBody = JSON.stringify(uploadData);
                 params.MessageAttributes = params.MessageAttributes || {};
