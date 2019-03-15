@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Add ability to control SQS attributes returned and expose them in Message object [#4](https://github.com/PruvoNet/squiss-ts/issues/4)
 - Option to auto gzip messages to reduce message sizes [#5](https://github.com/PruvoNet/squiss-ts/issues/5)
 - Updated npm packages versions
+- Add support to auto upload large messages to s3 [#6](https://github.com/PruvoNet/squiss-ts/issues/6) (same behaviour like [amazon-sqs-java-extended-client-lib](https://github.com/awslabs/amazon-sqs-java-extended-client-lib))
 ### Fixed
 - Batch message sending to handle FIFO message attributes properly
 - Message properties parser to handle boolean values properly

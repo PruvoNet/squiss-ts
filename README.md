@@ -1,4 +1,4 @@
-[![Npm Version](https://img.shields.io/npm/v/squiss-ts.svg?color=%2339db0d&style=popout)](https://www.npmjs.com/package/squiss-ts)
+[![Npm Version](https://img.shields.io/npm/v/squiss-ts.svg?style=popout)](https://www.npmjs.com/package/squiss-ts)
 [![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
 [![Coverage Status](https://coveralls.io/repos/github/PruvoNet/squiss-ts/badge.svg?branch=master)](https://coveralls.io/github/PruvoNet/squiss-ts?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/58abd1713b064f4c9af7dc88d7178ebe)](https://www.codacy.com/app/regevbr/squiss-ts?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PruvoNet/squiss-ts&amp;utm_campaign=Badge_Grade)
@@ -15,6 +15,7 @@ High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up (with
 - Easy message lifecycle management
 - Options to auto renew messages visibility timeout for long message processing
 - Option to automatically gzip incoming and outgoing messages to decrease message sizes
+- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive
 - Full typescript support
 
 ## Quick example
@@ -64,6 +65,8 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.advancedCallMs** _Default 5000._ If `opts.autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the VisibilityTimeout of the message, before the message is set to expire.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.gzip** _Default "false"._ Auto gzip messages to reduce message size.
+- **opts.s3Fallback** _Default "false"._ Upload messages bigger than `maxMessageBytes` or queue default `maxMessageBytes` to s3, and retrieve it from there when message is received.
+- **opts.s3Bucket** if `s3Fallback` is true, upload message to this s3 bucket.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
 - **opts.idlePollIntervalMs** _Default 0._ The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.
