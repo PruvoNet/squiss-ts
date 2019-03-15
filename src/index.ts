@@ -36,6 +36,7 @@ export type BodyFormat = 'json' | 'plain' | undefined;
 export interface ISquissOptions {
   receiveBatchSize?: number;
   receiveAttributes?: string[];
+  receiveSqsAttributes?: string[];
   minReceiveBatchSize?: number;
   receiveWaitTimeSecs?: number;
   deleteBatchSize?: number;
@@ -81,6 +82,7 @@ interface IDeleteQueueItemById {
 const optDefaults: ISquissOptions = {
   receiveBatchSize: 10,
   receiveAttributes: ['All'],
+  receiveSqsAttributes: ['All'],
   minReceiveBatchSize: 1,
   receiveWaitTimeSecs: 20,
   deleteBatchSize: 10,
@@ -182,9 +184,12 @@ export class Squiss extends EventEmitter {
    * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
    *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
    *    more information.
-   * @param {Object} [opts.receiveAttributes] An array of strings with attribute names (e.g. `ApproximateReceiveCount`)
+   * @param {Object} [opts.receiveAttributes] An array of strings with attribute names (e.g. `myAttribute`)
    *    to request along with the `receiveMessage` call. The attributes will be accessible via
    *    `message.attributes.<attribute>`.
+   * @param {Object} [opts.receiveSqsAttributes] An array of strings with attribute names
+   *    (e.g. `ApproximateReceiveCount`) to request along with the `receiveMessage` call.
+   *    The attributes will be accessible via `message.sqsAttributes.<attribute>`.
    */
 
   constructor(opts?: ISquissOptions | undefined) {
@@ -666,6 +671,7 @@ export class Squiss extends EventEmitter {
       WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
     };
     params.MessageAttributeNames = this._opts.receiveAttributes;
+    params.AttributeNames = this._opts.receiveSqsAttributes;
     if (this._opts.visibilityTimeoutSecs !== undefined) {
       params.VisibilityTimeout = this._opts.visibilityTimeoutSecs;
     }

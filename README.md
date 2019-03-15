@@ -65,7 +65,8 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. If this needs to be set low, consider setting activePollIntervalMs to space out calls to SQS. Maximum 20.
 - **opts.unwrapSns** _Default false._ Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
 - **opts.visibilityTimeoutSecs** _Defaults to queue setting on read, or 30 seconds for createQueue._ The amount of time, in seconds, that received messages will be unavailable to other pollers without being deleted.
-- **opts.receiveAttributes** _Defaults to `[All']`._ An an array of strings with attribute names (e.g. `ApproximateReceiveCount`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.attributes.<attributeName>`.
+- **opts.receiveAttributes** _Defaults to `[All']`._ An an array of strings with attribute names (e.g. `myAttribute`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.attributes.<attributeName>`.
+- **opts.receiveSqsAttributes** _Defaults to `[All']`._ An an array of strings with attribute names (e.g. `ApproximateReceiveCount`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.sqsAttributes.<attributeName>`.
 
 Are you using Squiss to create your queue, as well? Squiss will use `opts.receiveWaitTimeSecs` and `opts.visibilityTimeoutSecs` above in the queue settings, but consider setting any of the following options to configure it further. Note that the defaults are the same as Amazon's own:
 - **opts.delaySecs** _Default 0._ The number of milliseconds by which to delay the delivery of new messages into the queue by default.
@@ -189,7 +190,10 @@ Emitted every time Squiss pulls a new message from the queue. The Squiss Message
 The body of the SQS message, unwrapped from the SNS metadata wrapper (if `unwrapSns` was specified in the constructor), and JSON-parsed (if `bodyFormat: 'json'` was specified in the constructor). Otherwise the body will just be a string.
 
 #### {Object} message.attributes
-The parsed attributes map of the SQS message. To get the raw attributes, use `message.raw.MessageAttributes`
+The parsed message attributes map of the SQS message. To get the raw attributes, use `message.raw.MessageAttributes`
+
+#### {Object} message.sqsAttributes
+The SQS attributes map of the SQS message.
 
 #### {string} message.subject
 The subject of the SNS message, if set. Exists only if unwrapSns was specified.

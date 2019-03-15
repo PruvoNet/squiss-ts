@@ -1,6 +1,11 @@
 # Squiss-TS Change Log
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Development
+### Added
+- Add ability to control SQS attributes returned and expose them in Message object (#4)
+- Updated npm packages versions
+
 ## [v1.3.0]
 ### Added
 - Expose method to check if message was handled
