@@ -136,9 +136,22 @@ export class Message extends EventEmitter {
   public del(): Promise<void> {
     if (!this._handled) {
       this._handled = true;
-      return this._squiss.deleteMessage(this);
+      let promise: Promise<void>;
+      if (this._deleteCallback) {
+        promise = this._deleteCallback();
+      } else {
+        promise = Promise.resolve();
+      }
+      return promise
+        .then(() => {
+          return this._squiss.deleteMessage(this);
+        })
+        .catch(() => {
+          this._handled = false;
+        });
+    } else {
+      return Promise.resolve();
     }
-    return Promise.resolve();
   }
 
   /**
@@ -156,22 +169,13 @@ export class Message extends EventEmitter {
    */
   public release(): Promise<void> {
     if (!this._handled) {
-      let promise: Promise<void>;
-      if (this._deleteCallback) {
-        promise = this._deleteCallback();
-      } else {
-        promise = Promise.resolve();
-      }
-      return promise
-        .then(() => {
-          return this._squiss.releaseMessage(this);
-        })
-        .then(() => {
-          this._handled = true;
+      this._handled = true;
+      return this._squiss.releaseMessage(this)
+        .catch(() => {
+          this._handled = false;
         });
-    } else {
-      return Promise.resolve();
     }
+    return Promise.resolve();
   }
 
   /**

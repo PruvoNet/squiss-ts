@@ -4,7 +4,7 @@ import {ISendMessageRequest} from './index';
 import {SQS, S3} from 'aws-sdk';
 import * as uuid from 'uuid/v4';
 
-export const S3_MARKER = '__SQS_MESSAGE_S3__';
+export const S3_MARKER = '__SQS_S3__';
 
 export interface IS3Upload {
   bucket: string;
