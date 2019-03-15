@@ -1,6 +1,6 @@
 'use strict';
 
-import {Message} from '../../dist/Message';
+import {Message} from '../../dist';
 import {SquissStub} from '../stubs/SquissStub';
 import {Squiss} from '../../dist';
 import {SQS, S3} from 'aws-sdk';

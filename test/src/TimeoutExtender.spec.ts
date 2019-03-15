@@ -7,8 +7,8 @@ import delay from 'delay';
 import {Squiss} from '../../dist';
 // @ts-ignore
 import * as sinon from 'sinon';
-import {S3Stub} from "../stubs/S3Stub";
-import {S3} from "aws-sdk";
+import {S3Stub} from '../stubs/S3Stub';
+import {S3} from 'aws-sdk';
 
 const getSquissStub = () => {
   return new SquissStub() as any as Squiss;

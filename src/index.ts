@@ -832,11 +832,10 @@ export class Squiss extends EventEmitter {
       });
   }
 
-  private isLargeMessage(message: ISendMessageRequest): Promise<{ result: boolean, size: number }> {
+  private isLargeMessage(message: ISendMessageRequest): Promise<boolean> {
     return this.getQueueMaximumMessageSize()
       .then((queueMaximumMessageSize) => {
-        const size = getMessageSize(message);
-        return {result: size > queueMaximumMessageSize, size};
+        return getMessageSize(message) > queueMaximumMessageSize;
       });
   }
 
@@ -901,8 +900,8 @@ export class Squiss extends EventEmitter {
           return Promise.resolve(params);
         }
         return this.isLargeMessage(params)
-          .then((isLargeResult) => {
-            if (!isLargeResult.result) {
+          .then((isLarge) => {
+            if (!isLarge) {
               return Promise.resolve(params);
             }
             return uploadBlob(this.getS3(), this._opts.s3Bucket!, finalMessage)
@@ -910,7 +909,7 @@ export class Squiss extends EventEmitter {
                 params.MessageBody = JSON.stringify(uploadData);
                 params.MessageAttributes = params.MessageAttributes || {};
                 params.MessageAttributes[S3_MARKER] = {
-                  StringValue: `${isLargeResult.size}`,
+                  StringValue: `${uploadData.uploadSize}`,
                   DataType: 'Number',
                 };
                 return Promise.resolve(params);
