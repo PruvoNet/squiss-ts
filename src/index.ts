@@ -8,6 +8,7 @@ import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
 import {SQS} from 'aws-sdk';
+import {GZIP_MARKER, prepareMessage} from './gzipUtils';
 
 export {SQS} from 'aws-sdk';
 
@@ -22,11 +23,6 @@ export interface IObject {
 }
 
 export type IMessageToSend = IObject | string;
-
-interface IBatchMessage {
-  message: IMessageToSend;
-  attributes?: SQS.MessageBodyAttributeMap;
-}
 
 export {IMessageAttributes} from './attributeUtils';
 export {Message} from './Message';
@@ -49,6 +45,7 @@ export interface ISquissOptions {
   activePollIntervalMs?: number;
   idlePollIntervalMs?: number;
   delaySecs?: number;
+  gzip?: boolean;
   maxMessageBytes?: number;
   messageRetentionSecs?: number;
   autoExtendTimeout?: boolean;
@@ -75,6 +72,14 @@ interface IDeleteQueueItemById {
   [k: string]: IDeleteQueueItem;
 }
 
+interface ISendMessageRequest {
+  MessageBody: string;
+  DelaySeconds?: number;
+  MessageAttributes?: SQS.MessageBodyAttributeMap;
+  MessageDeduplicationId?: string;
+  MessageGroupId?: string;
+}
+
 /**
  * Option defaults.
  * @type {Object}
@@ -95,6 +100,7 @@ const optDefaults: ISquissOptions = {
   activePollIntervalMs: 0,
   idlePollIntervalMs: 0,
   delaySecs: 0,
+  gzip: false,
   maxMessageBytes: 262144,
   messageRetentionSecs: 345600,
   autoExtendTimeout: false,
@@ -104,6 +110,22 @@ const optDefaults: ISquissOptions = {
  * Squiss is a high-volume-capable Amazon SQS polling class. See README for usage details.
  */
 export class Squiss extends EventEmitter {
+
+  /**
+   * Getter for the number of messages currently in flight.
+   * @returns {number}
+   */
+  get inFlight(): number {
+    return this._inFlight;
+  }
+
+  /**
+   * Getter to determine whether Squiss is currently polling or not.
+   * @returns {boolean}
+   */
+  get running(): boolean {
+    return this._running;
+  }
 
   public sqs: SQS;
   public _timeoutExtender: TimeoutExtender | undefined;
@@ -134,6 +156,7 @@ export class Squiss extends EventEmitter {
    * @param {boolean} [opts.correctQueueUrl=false] Changes the protocol, host, and port of the queue URL to match the
    *    configured SQS endpoint, applicable only if opts.queueName is specified. This can be useful for testing against
    *    a stubbed SQS service, such as ElasticMQ.
+   * @param {boolean} [opts.gzip=false] Auto gzip messages to reduce message size.
    * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
    *    batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued
    *    delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
@@ -219,22 +242,6 @@ export class Squiss extends EventEmitter {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
     }
     this._timeoutExtender = undefined;
-  }
-
-  /**
-   * Getter for the number of messages currently in flight.
-   * @returns {number}
-   */
-  get inFlight(): number {
-    return this._inFlight;
-  }
-
-  /**
-   * Getter to determine whether Squiss is currently polling or not.
-   * @returns {boolean}
-   */
-  get running(): boolean {
-    return this._running;
   }
 
   /**
@@ -448,27 +455,19 @@ export class Squiss extends EventEmitter {
    */
   public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
     : Promise<SQS.Types.SendMessageResult> {
-    return this.getQueueUrl().then((queueUrl) => {
-      const params: SQS.Types.SendMessageRequest = {
-        QueueUrl: queueUrl,
-        MessageBody: isString(message) ? message : JSON.stringify(message),
-      };
-      if (delay) {
-        params.DelaySeconds = delay;
-      }
-      if (attributes) {
-        if (attributes.FIFO_MessageGroupId) {
-          params.MessageGroupId = attributes.FIFO_MessageGroupId;
-          delete attributes.FIFO_MessageGroupId;
-        }
-        if (attributes.FIFO_MessageDeduplicationId) {
-          params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
-          delete attributes.FIFO_MessageDeduplicationId;
-        }
-        params.MessageAttributes = createMessageAttributes(attributes);
-      }
-      return this.sqs.sendMessage(params).promise();
-    });
+    return Promise.all([
+      this.perpareMessageRequest(message, delay, attributes),
+      this.getQueueUrl(),
+    ])
+      .then((data) => {
+        const rawParams = data[0];
+        const queueUrl = data[1];
+        const params: SQS.Types.SendMessageRequest = {
+          QueueUrl: queueUrl,
+          ...rawParams,
+        };
+        return this.sqs.sendMessage(params).promise();
+      });
   }
 
   /**
@@ -501,42 +500,40 @@ export class Squiss extends EventEmitter {
   public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
                       attributes?: IMessageAttributes | IMessageAttributes[])
     : Promise<SQS.Types.SendMessageBatchResult> {
-    const batches: IBatchMessage[][] = [];
+    const batches: ISendMessageRequest[][] = [];
     const msgs: IMessageToSend[] = Array.isArray(messages) ? messages : [messages];
-    let formattedAttributes: SQS.MessageBodyAttributeMap | undefined;
-    let formattedAttributesArray: SQS.MessageBodyAttributeMap[] | undefined;
-    if (attributes) {
-      if (!Array.isArray(attributes)) {
-        formattedAttributes = createMessageAttributes(attributes);
-      } else {
-        formattedAttributesArray = attributes.map(createMessageAttributes);
+    const promises: Array<Promise<ISendMessageRequest>> = [];
+    msgs.forEach((msg, i) => {
+      let currentAttributes: IMessageAttributes | undefined;
+      if (attributes) {
+        if (!Array.isArray(attributes)) {
+          currentAttributes = attributes;
+        } else {
+          currentAttributes = attributes[i];
+        }
       }
-    }
-    for (let i = 0; i < msgs.length; i++) {
-      if (i % AWS_MAX_SEND_BATCH === 0) {
-        batches.push([]);
-      }
-      const msgBatchObj: IBatchMessage = {
-        message: msgs[i],
-      };
-      if (formattedAttributes) {
-        msgBatchObj.attributes = formattedAttributes;
-      } else if (formattedAttributesArray && formattedAttributesArray[i]) {
-        msgBatchObj.attributes = formattedAttributesArray[i];
-
-      }
-      batches[batches.length - 1].push(msgBatchObj);
-    }
-    return Promise.all(batches.map((batch, idx) => {
-      return this._sendMessageBatch(batch, delay, idx * AWS_MAX_SEND_BATCH);
-    })).then((results) => {
-      const merged: SQS.Types.SendMessageBatchResult = {Successful: [], Failed: []};
-      results.forEach((res) => {
-        res.Successful.forEach((elem) => merged.Successful.push(elem));
-        res.Failed.forEach((elem) => merged.Failed.push(elem));
-      });
-      return merged;
+      promises.push(this.perpareMessageRequest(msg, delay, currentAttributes));
     });
+    return Promise.all(promises)
+      .then((messageRequests) => {
+        for (let i = 0; i < messageRequests.length; i++) {
+          if (i % AWS_MAX_SEND_BATCH === 0) {
+            batches.push([]);
+          }
+          batches[batches.length - 1].push(messageRequests[i]);
+        }
+        return Promise.all(batches.map((batch, idx) => {
+          return this._sendMessageBatch(batch, delay, idx * AWS_MAX_SEND_BATCH);
+        }));
+      })
+      .then((results) => {
+        const merged: SQS.Types.SendMessageBatchResult = {Successful: [], Failed: []};
+        results.forEach((res) => {
+          res.Successful.forEach((elem) => merged.Successful.push(elem));
+          res.Failed.forEach((elem) => merged.Failed.push(elem));
+        });
+        return merged;
+      });
   }
 
   /**
@@ -645,7 +642,10 @@ export class Squiss extends EventEmitter {
         msg,
       });
       this._inFlight++;
-      this.emit('message', message);
+      message.parse()
+        .then(() => {
+          this.emit('message', message);
+        });
     });
   }
 
@@ -750,7 +750,7 @@ export class Squiss extends EventEmitter {
    *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
    * @private
    */
-  public _sendMessageBatch(messages: IBatchMessage[], delay: number | undefined, startIndex: number):
+  public _sendMessageBatch(messages: ISendMessageRequest[], delay: number | undefined, startIndex: number):
     Promise<SQS.Types.SendMessageBatchResult> {
     const start = startIndex || 0;
     return this.getQueueUrl().then((queueUrl) => {
@@ -758,20 +758,18 @@ export class Squiss extends EventEmitter {
         QueueUrl: queueUrl,
         Entries: [],
       };
-      messages.forEach((msgObj, idx) => {
+      const promises: Array<Promise<void>> = [];
+      messages.forEach((msg, idx) => {
         const entry: SQS.Types.SendMessageBatchRequestEntry = {
           Id: (start + idx).toString(),
-          MessageBody: typeof msgObj.message === 'object' ? JSON.stringify(msgObj.message) : msgObj.message,
+          ...msg,
         };
-        if (delay) {
-          entry.DelaySeconds = delay;
-        }
-        if (msgObj.attributes) {
-          entry.MessageAttributes = msgObj.attributes;
-        }
         params.Entries.push(entry);
       });
-      return this.sqs.sendMessageBatch(params).promise();
+      return Promise.all(promises)
+        .then(() => {
+          return this.sqs.sendMessageBatch(params).promise();
+        });
     });
   }
 
@@ -796,6 +794,45 @@ export class Squiss extends EventEmitter {
       .then((queueUrl) => this._getBatch(queueUrl))
       .catch((e) => {
         this.emit('error', e);
+      });
+  }
+
+  private perpareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    : Promise<ISendMessageRequest> {
+    const messageStr = isString(message) ? message : JSON.stringify(message);
+    let promise: Promise<string>;
+    if (this._opts.gzip) {
+      promise = prepareMessage(messageStr);
+    } else {
+      promise = Promise.resolve(messageStr);
+    }
+    return promise
+      .then((finalMessage) => {
+        const params: ISendMessageRequest = {
+          MessageBody: finalMessage,
+        };
+        if (delay) {
+          params.DelaySeconds = delay;
+        }
+        if (attributes) {
+          attributes = Object.assign({}, attributes);
+        }
+        if (this._opts.gzip) {
+          attributes = attributes || {};
+          attributes[GZIP_MARKER] = 1;
+        }
+        if (attributes) {
+          if (attributes.FIFO_MessageGroupId) {
+            params.MessageGroupId = attributes.FIFO_MessageGroupId;
+            delete attributes.FIFO_MessageGroupId;
+          }
+          if (attributes.FIFO_MessageDeduplicationId) {
+            params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
+            delete attributes.FIFO_MessageDeduplicationId;
+          }
+          params.MessageAttributes = createMessageAttributes(attributes);
+        }
+        return Promise.resolve(params);
       });
   }
 }

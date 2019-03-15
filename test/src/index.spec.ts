@@ -117,8 +117,8 @@ describe('index', () => {
       return wait().then(() => {
         spy.should.be.calledOnce();
         batches.should.deep.equal([
-          {total: 10, num: 10},
-          {total: 5, num: 5},
+          {total: 10, num: 0},
+          {total: 5, num: 15},
         ]);
       });
     });
@@ -156,8 +156,8 @@ describe('index', () => {
       return wait().then(() => {
         spy.should.not.be.called();
         batches.should.deep.equal([
-          {total: 10, num: 10},
-          {total: 5, num: 5},
+          {total: 10, num: 0},
+          {total: 5, num: 15},
         ]);
       });
     });
@@ -179,13 +179,13 @@ describe('index', () => {
       return wait().then(() => {
         spy.should.not.be.called();
         batches.should.deep.equal([
-          {total: 10, num: 10},
-          {total: 5, num: 5},
+          {total: 10, num: 0},
+          {total: 5, num: 15},
           {total: 1, num: 1},
         ]);
       });
     });
-    it('receives batches of messages as much as it can wiht min batch size', () => {
+    it('receives batches of messages as much as it can with min batch size', () => {
       const batches: any = [];
       const spy = sinon.spy();
       inst = new Squiss({
@@ -199,7 +199,7 @@ describe('index', () => {
       inst!.once('queueEmpty', spy);
       inst!.on('message', (m: Message) => {
         batches[batches.length - 1].num++;
-        if (batches.length === 2 && batches[batches.length - 1].num >= 4) {
+        if (batches.length === 2 && batches[batches.length - 1].num >= 14) {
           m.del();
         }
       });
@@ -207,8 +207,8 @@ describe('index', () => {
       return wait().then(() => {
         spy.should.not.be.called();
         batches.should.deep.equal([
-          {total: 10, num: 10},
-          {total: 5, num: 5},
+          {total: 10, num: 0},
+          {total: 5, num: 15},
           {total: 1, num: 1},
         ]);
       });
@@ -235,8 +235,8 @@ describe('index', () => {
       return wait().then(() => {
         spy.should.not.be.called();
         batches.should.deep.equal([
-          {total: 10, num: 10},
-          {total: 5, num: 5},
+          {total: 10, num: 0},
+          {total: 5, num: 15},
         ]);
       });
     });
@@ -257,8 +257,8 @@ describe('index', () => {
       return wait().then(() => {
         spy.should.be.calledOnce();
         batches.should.deep.equal([
-          {total: 10, num: 10},
-          {total: 5, num: 5},
+          {total: 10, num: 0},
+          {total: 5, num: 15},
         ]);
       });
     });
@@ -1077,18 +1077,25 @@ describe('index', () => {
       inst = new Squiss({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-      return inst!.sendMessages(['bar', 'baz'], 10, {baz: 'fizz'}).then(() => {
+      return inst!.sendMessages(['bar', 'baz'], 10, {
+        baz: 'fizz', FIFO_MessageGroupId: 'groupId',
+        FIFO_MessageDeduplicationId: 'dedupId',
+      }).then(() => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           Entries: [{
             Id: '0',
             MessageBody: 'bar',
+            MessageDeduplicationId: 'dedupId',
+            MessageGroupId: 'groupId',
             DelaySeconds: 10,
             MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
           }, {
             Id: '1',
             MessageBody: 'baz',
+            MessageDeduplicationId: 'dedupId',
+            MessageGroupId: 'groupId',
             DelaySeconds: 10,
             MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
           }],
@@ -1099,7 +1106,13 @@ describe('index', () => {
       inst = new Squiss({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-      return inst!.sendMessages(['bar', 'baz'], 10, [{baz: 'fizz'}, {baz1: 'fizz1'}]).then(() => {
+      return inst!.sendMessages(['bar', 'baz'], 10, [{
+        baz: 'fizz', FIFO_MessageGroupId: 'groupId',
+        FIFO_MessageDeduplicationId: 'dedupId',
+      }, {
+        baz1: 'fizz1', FIFO_MessageGroupId: 'groupId1',
+        FIFO_MessageDeduplicationId: 'dedupId1',
+      }]).then(() => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueUrl: 'foo',
@@ -1107,11 +1120,15 @@ describe('index', () => {
             Id: '0',
             MessageBody: 'bar',
             DelaySeconds: 10,
+            MessageDeduplicationId: 'dedupId',
+            MessageGroupId: 'groupId',
             MessageAttributes: {baz: {StringValue: 'fizz', DataType: 'String'}},
           }, {
             Id: '1',
             MessageBody: 'baz',
             DelaySeconds: 10,
+            MessageDeduplicationId: 'dedupId1',
+            MessageGroupId: 'groupId1',
             MessageAttributes: {baz1: {StringValue: 'fizz1', DataType: 'String'}},
           }],
         });
