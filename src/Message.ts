@@ -49,6 +49,7 @@ export class Message extends EventEmitter {
   public topicArn?: string;
   public topicName?: string;
   public attributes: IMessageAttributes;
+  public sqsAttributes: { [k: string]: string };
   private _squiss: Squiss;
   private _handled: boolean;
 
@@ -81,6 +82,7 @@ export class Message extends EventEmitter {
     this._squiss = opts.squiss;
     this._handled = false;
     this.attributes = parseMessageAttributes(opts.msg.MessageAttributes);
+    this.sqsAttributes = opts.msg.Attributes || {};
   }
 
   public isHandled() {

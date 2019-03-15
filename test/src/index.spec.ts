@@ -426,6 +426,7 @@ describe('index', () => {
       return wait().then(() => {
         spy.should.be.calledWith({
           QueueUrl: 'foo',
+          AttributeNames: ['All'],
           MessageAttributeNames: ['All'],
           MaxNumberOfMessages: 10,
           WaitTimeSeconds: 20,
@@ -469,6 +470,7 @@ describe('index', () => {
           QueueUrl: 'foo',
           MaxNumberOfMessages: 10,
           WaitTimeSeconds: 20,
+          AttributeNames: ['All'],
           MessageAttributeNames: ['All'],
         });
       });
@@ -483,7 +485,23 @@ describe('index', () => {
           QueueUrl: 'foo',
           MaxNumberOfMessages: 10,
           WaitTimeSeconds: 20,
+          AttributeNames: ['All'],
           MessageAttributeNames: ['a'],
+        });
+      });
+    });
+    it('observes receiveSqsAttributes', () => {
+      inst = new Squiss({queueUrl: 'foo', receiveSqsAttributes: ['a']});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst.sqs, 'receiveMessage');
+      inst.start();
+      return wait().then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MaxNumberOfMessages: 10,
+          WaitTimeSeconds: 20,
+          AttributeNames: ['a'],
+          MessageAttributeNames: ['All'],
         });
       });
     });
