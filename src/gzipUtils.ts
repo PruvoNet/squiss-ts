@@ -2,7 +2,7 @@
 
 import {compress, decompress} from 'iltorb';
 
-export const GZIP_MARKER = '__SQS_MESSAGE_GZIPPED__';
+export const GZIP_MARKER = '__SQS_GZIP__';
 
 export const compressMessage = <T>(message: string): Promise<string> => {
   return compress(new Buffer(message))

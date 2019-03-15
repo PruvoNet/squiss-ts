@@ -4,14 +4,18 @@ import {Message} from '../../dist';
 import {SquissStub} from '../stubs/SquissStub';
 import {Squiss} from '../../dist';
 import {SQS, S3} from 'aws-sdk';
-import {S3Stub} from '../stubs/S3Stub';
+import {Blobs, S3Stub} from '../stubs/S3Stub';
+import delay from 'delay';
+
+const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
 const getSquissStub = () => {
   return new SquissStub() as any as Squiss;
 };
 
-const getS3Stub = () => {
-  return new S3Stub() as any as S3;
+const getS3Stub = (blobs?: Blobs) => {
+  const stub = new S3Stub(blobs) as any as S3;
+  return () => stub;
 };
 
 function getSQSMsg(body?: string): SQS.Message {
@@ -61,7 +65,7 @@ describe('Message', () => {
       msg: getSQSMsg(JSON.stringify(snsMsg)),
       unwrapSns: true,
       bodyFormat: 'plain',
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     msg.should.have.property('body').equal('foo');
     msg.should.have.property('subject').equal('some-subject');
@@ -74,7 +78,7 @@ describe('Message', () => {
       msg: getSQSMsg(''),
       unwrapSns: true,
       bodyFormat: 'plain',
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     msg.should.have.property('body').equal(undefined);
     msg.should.have.property('subject').equal(undefined);
@@ -85,7 +89,7 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
       bodyFormat: 'json',
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     return msg.parse()
       .then(() => {
@@ -101,9 +105,14 @@ describe('Message', () => {
         });
       });
   });
-  it('parses gzipped JSON', () => {
-    const rawMsg = getSQSMsg('iwOAeyJpIjogMX0D');
-    rawMsg.MessageAttributes!.__SQS_MESSAGE_GZIPPED__ = {
+  it('parses S3 JSON', () => {
+    const bucket = 'my_bucket';
+    const key = 'my_key';
+    const blobs: Blobs = {};
+    blobs[bucket] = {};
+    blobs[bucket][key] = '{"i": 1}';
+    const rawMsg = getSQSMsg(JSON.stringify({bucket, key}));
+    rawMsg.MessageAttributes!.__SQS_S3__ = {
       DataType: 'Number',
       StringValue: '1',
     };
@@ -111,7 +120,54 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: rawMsg,
       bodyFormat: 'json',
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(blobs),
+    });
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.be.an('object');
+        msg.body!.should.have.property('i').equal(1);
+      });
+  });
+  it('parses gzipped JSON', () => {
+    const rawMsg = getSQSMsg('iwOAeyJpIjogMX0D');
+    rawMsg.MessageAttributes!.__SQS_GZIP__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    const msg = new Message({
+      squiss: getSquissStub(),
+      msg: rawMsg,
+      bodyFormat: 'json',
+      s3Retriever: getS3Stub(),
+    });
+    return msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.be.an('object');
+        msg.body!.should.have.property('i').equal(1);
+      });
+  });
+  it('parses gzipped S3 JSON', () => {
+    const bucket = 'my_bucket';
+    const key = 'my_key';
+    const blobs: Blobs = {};
+    blobs[bucket] = {};
+    blobs[bucket][key] = 'iwOAeyJpIjogMX0D';
+    const rawMsg = getSQSMsg(JSON.stringify({bucket, key}));
+    rawMsg.MessageAttributes!.__SQS_S3__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    rawMsg.MessageAttributes!.__SQS_GZIP__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    const msg = new Message({
+      squiss: getSquissStub(),
+      msg: rawMsg,
+      bodyFormat: 'json',
+      s3Retriever: getS3Stub(blobs),
     });
     return msg.parse()
       .then(() => {
@@ -122,14 +178,14 @@ describe('Message', () => {
   });
   it('parses gzipped plain', () => {
     const rawMsg = getSQSMsg('iwOAeyJpIjogMX0D');
-    rawMsg.MessageAttributes!.__SQS_MESSAGE_GZIPPED__ = {
+    rawMsg.MessageAttributes!.__SQS_GZIP__ = {
       DataType: 'Number',
       StringValue: '1',
     };
     const msg = new Message({
       squiss: getSquissStub(),
       msg: rawMsg,
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     return msg.parse()
       .then(() => {
@@ -139,26 +195,26 @@ describe('Message', () => {
   });
   it('not parse empty gzipped body', () => {
     const rawMsg = getSQSMsg(undefined);
-    rawMsg.MessageAttributes!.__SQS_MESSAGE_GZIPPED__ = {
+    rawMsg.MessageAttributes!.__SQS_GZIP__ = {
       DataType: 'Number',
       StringValue: '1',
     };
     const msg = new Message({
       squiss: getSquissStub(),
       msg: rawMsg,
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     return msg.parse()
       .then(() => {
         msg.should.have.property('body').equals(undefined);
       });
   });
-  it('parses empy string as json', () => {
+  it('parses empty string as json', () => {
     const msg = new Message({
       squiss: getSquissStub(),
       msg: getSQSMsg(''),
       bodyFormat: 'json',
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     return msg.parse()
       .then(() => {
@@ -171,11 +227,42 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: getSQSMsg(undefined),
       bodyFormat: 'json',
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     return msg.parse()
       .then(() => {
         msg.should.have.property('body').equal(undefined);
+      });
+  });
+  it('removes S3 on delete', (done) => {
+    const bucket = 'my_bucket';
+    const key = 'my_key';
+    const blobs: Blobs = {};
+    blobs[bucket] = {};
+    blobs[bucket][key] = '{"i": 1}';
+    const rawMsg = getSQSMsg(JSON.stringify({bucket, key}));
+    rawMsg.MessageAttributes!.__SQS_S3__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    const msg = new Message({
+      squiss: {
+        deleteMessage: (toDel: Message) => {
+          blobs[bucket].should.not.have.property(key);
+          toDel.should.equal(msg);
+          done();
+        },
+      } as any as Squiss,
+      msg: rawMsg,
+      bodyFormat: 'json',
+      s3Retriever: getS3Stub(blobs),
+    });
+    msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.be.an('object');
+        msg.body!.should.have.property('i').equal(1);
+        msg.del();
       });
   });
   it('calls Squiss.deleteMessage on delete', (done) => {
@@ -188,9 +275,41 @@ describe('Message', () => {
           done();
         },
       } as any as Squiss,
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     msg.del();
+  });
+  it('should not mark as handled if failed to delete message', () => {
+    const msg = new Message({
+      msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
+      bodyFormat: 'json',
+      squiss: {
+        deleteMessage: (toDel: Message) => {
+          return Promise.reject();
+        },
+      } as any as Squiss,
+      s3Retriever: getS3Stub(),
+    });
+    return msg.del()
+      .then(() => {
+        msg.isHandled().should.eql(false);
+      });
+  });
+  it('should not mark as handled if failed to release message', () => {
+    const msg = new Message({
+      msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
+      bodyFormat: 'json',
+      squiss: {
+        releaseMessage: (toDel: Message) => {
+          return Promise.reject();
+        },
+      } as any as Squiss,
+      s3Retriever: getS3Stub(),
+    });
+    return msg.release()
+      .then(() => {
+        msg.isHandled().should.eql(false);
+      });
   });
   it('calls Squiss.handledMessage on keep', (done) => {
     const msg = new Message({
@@ -199,7 +318,7 @@ describe('Message', () => {
       squiss: {
         handledMessage: () => done(),
       } as any as Squiss,
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     msg.keep();
   });
@@ -219,13 +338,16 @@ describe('Message', () => {
           calls += 100;
         },
       } as any as Squiss,
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     msg.del();
     msg.keep();
     msg.release();
     msg.del();
-    calls.should.equal(1);
+    return wait()
+      .then(() => {
+        calls.should.equal(1);
+      });
   });
   it('calls Squiss.changeMessageVisibility on changeVisibility', (done) => {
     const timeout = 10;
@@ -239,7 +361,7 @@ describe('Message', () => {
           done();
         },
       } as any as Squiss,
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     message.changeVisibility(timeout);
   });
@@ -253,7 +375,7 @@ describe('Message', () => {
           return Promise.resolve();
         },
       } as any as Squiss,
-      s3Retriever: getS3Stub,
+      s3Retriever: getS3Stub(),
     });
     message.release()
       .then(() => {

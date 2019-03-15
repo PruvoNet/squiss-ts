@@ -932,7 +932,7 @@ describe('index', () => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueUrl: 'foo', MessageBody: 'iwOAeyJpIjogMX0D', MessageAttributes: {
-            __SQS_MESSAGE_GZIPPED__: {
+            __SQS_GZIP__: {
               DataType: 'Number',
               StringValue: '1',
             },
@@ -1013,7 +1013,7 @@ describe('index', () => {
           MessageBody: 'CwOAeyJpIjoxfQM=',
           DelaySeconds: 10,
           MessageAttributes: {
-            __SQS_MESSAGE_GZIPPED__: {
+            __SQS_GZIP__: {
               DataType: 'Number',
               StringValue: '1',
             },
@@ -1197,7 +1197,7 @@ describe('index', () => {
             DelaySeconds: 10,
             MessageAttributes: {
               baz: {StringValue: 'fizz', DataType: 'String'},
-              __SQS_MESSAGE_GZIPPED__: {DataType: 'Number', StringValue: '1'},
+              __SQS_GZIP__: {DataType: 'Number', StringValue: '1'},
             },
           }, {
             Id: '1',
@@ -1207,7 +1207,7 @@ describe('index', () => {
             DelaySeconds: 10,
             MessageAttributes: {
               baz: {StringValue: 'fizz', DataType: 'String'},
-              __SQS_MESSAGE_GZIPPED__: {DataType: 'Number', StringValue: '1'},
+              __SQS_GZIP__: {DataType: 'Number', StringValue: '1'},
             },
           }],
         });
