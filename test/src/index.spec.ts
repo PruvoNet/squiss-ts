@@ -1150,6 +1150,49 @@ describe('index', () => {
         });
       });
     });
+    it('sends a S3 message with a delay and no attributes', () => {
+      const blobs: Blobs = {};
+      const s3Stub = getS3Stub(blobs);
+      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      const largeMessage = generateLargeMessage(300);
+      return inst!.sendMessage(largeMessage, 10, ).then(() => {
+        blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: '{"uploadSize":300,"bucket":"my_bucket","key":"my_uuid"}',
+          DelaySeconds: 10,
+          MessageAttributes: {
+            __SQS_S3__: {DataType: 'Number', StringValue: '300'},
+          },
+        });
+      });
+    });
+    it('sends a skipped S3 message with a delay and attributes', () => {
+      const blobs: Blobs = {};
+      const s3Stub = getS3Stub(blobs);
+      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      const smallMessage = generateLargeMessage(50);
+      return inst!.sendMessage(smallMessage, 10, {
+        baz: 'fizz',
+      }).then(() => {
+        blobs.should.not.have.property('my_bucket');
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: smallMessage,
+          DelaySeconds: 10,
+          MessageAttributes: {
+            baz: {
+              DataType: 'String',
+              StringValue: 'fizz',
+            },
+          },
+        });
+      });
+    });
     it('sends a message with a delay and not allowed internal gzip attribute', (done) => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
