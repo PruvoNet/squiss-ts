@@ -33,6 +33,7 @@ export class S3Stub extends EventEmitter {
       }
       // @ts-ignore
       this.blobs[Bucket][Key] = Body;
+      return Promise.resolve();
     });
   }
 
