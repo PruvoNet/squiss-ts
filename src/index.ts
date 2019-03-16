@@ -50,8 +50,8 @@ export interface ISquissOptions {
   maxMessageBytes?: number;
   messageRetentionSecs?: number;
   autoExtendTimeout?: boolean;
-  SQS?: typeof SQS;
-  S3?: typeof S3;
+  SQS?: SQS | typeof SQS;
+  S3?: S3| typeof S3;
   awsConfig?: SQS.Types.ClientConfiguration;
   queueUrl?: string;
   queueName?: string;
@@ -851,7 +851,7 @@ export class Squiss extends EventEmitter {
   private isLargeMessage(message: ISendMessageRequest): Promise<boolean> {
     return this.getQueueMaximumMessageSize()
       .then((queueMaximumMessageSize) => {
-        return getMessageSize(message) > queueMaximumMessageSize;
+        return getMessageSize(message) >= queueMaximumMessageSize;
       });
   }
 

@@ -1,21 +1,45 @@
 'use strict';
 
+import * as proxyquire from 'proxyquire';
+
+const uuidStub = () => {
+  return 'my_uuid';
+};
+(uuidStub as any)['@global'] = true;
+const stubs = {
+  'uuid/v4': uuidStub,
+};
+// tslint:disable-next-line
+const {Squiss: SquissPatched, Message: MessagePatched} = proxyquire('../../dist/', stubs);
+
 import * as AWS from 'aws-sdk';
-import {Squiss} from '../../dist/';
+import {ISquissOptions, Squiss} from '../../dist/';
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';
-import {IMessageOpts, Message} from '../../dist/Message';
+import {IMessageOpts, Message } from '../../dist/Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';
-import {ISquissOptions} from '../../src';
-import {SQS} from 'aws-sdk';
+import {SQS, S3} from 'aws-sdk';
 import {EventEmitter} from 'events';
+import {Blobs, S3Stub} from '../stubs/S3Stub';
 
 const should = chai.should();
 let inst: Squiss | null = null;
 const origSQS = AWS.SQS;
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
+
+const getS3Stub = (blobs?: Blobs) => {
+  return new S3Stub(blobs) as any as S3;
+};
+
+const generateLargeMessage = (length: number) => {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += 's';
+  }
+  return result;
+};
 
 describe('index', () => {
   afterEach(() => {
@@ -27,8 +51,8 @@ describe('index', () => {
     AWS.SQS = origSQS;
   });
   describe('constructor', () => {
-    it('creates a new Squiss instance', () => {
-      inst = new Squiss({
+    it('creates a new SquissPatched instance', () => {
+      inst = new SquissPatched({
         queueUrl: 'foo',
         unwrapSns: true,
         visibilityTimeoutSecs: 10,
@@ -38,7 +62,7 @@ describe('index', () => {
     it('fails if queue is not specified', () => {
       let errored = false;
       try {
-        new Squiss();
+        new SquissPatched();
       } catch (e) {
         should.exist(e);
         e.should.be.instanceOf(Error);
@@ -49,7 +73,7 @@ describe('index', () => {
     it('fail if s3 but no bucket is not specified', () => {
       let errored = false;
       try {
-        new Squiss({queueUrl: 'foo', s3Fallback: true});
+        new SquissPatched({queueUrl: 'foo', s3Fallback: true});
       } catch (e) {
         should.exist(e);
         e.should.be.instanceOf(Error);
@@ -58,18 +82,18 @@ describe('index', () => {
       errored.should.eql(true);
     });
     it('provides a configured sqs client instance', () => {
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         awsConfig: {
           region: 'us-east-1',
         },
       } as ISquissOptions);
       inst!.should.have.property('sqs');
-      inst.sqs.should.be.an('object');
-      inst.sqs.config.region!.should.equal('us-east-1');
+      inst!.sqs.should.be.an('object');
+      inst!.sqs.config.region!.should.equal('us-east-1');
     });
     it('provides a configured s3 client instance', () => {
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         awsConfig: {
           region: 'us-east-1',
@@ -81,7 +105,7 @@ describe('index', () => {
     });
     it('accepts an sqs function for instantiation if one is provided', () => {
       const spy = sinon.spy();
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         SQS: spy,
       } as ISquissOptions);
@@ -91,7 +115,7 @@ describe('index', () => {
     });
     it('accepts an s3 function for instantiation if one is provided', () => {
       const spy = sinon.spy();
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         S3: spy,
       } as ISquissOptions);
@@ -102,7 +126,7 @@ describe('index', () => {
 
     });
     it('accepts an instance of sqs client if one is provided', () => {
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         SQS: {},
       } as ISquissOptions);
@@ -110,7 +134,7 @@ describe('index', () => {
       (inst!.sqs as any as SQSStub).should.be.an('object');
     });
     it('accepts an instance of s3 client if one is provided', () => {
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         S3: {},
       } as ISquissOptions);
@@ -120,7 +144,7 @@ describe('index', () => {
   });
   describe('Receiving', () => {
     it('reports the appropriate "running" status', () => {
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!._getBatch = () => {
       };
       inst!.running.should.eq(false);
@@ -128,7 +152,7 @@ describe('index', () => {
       inst!.running.should.eq(true);
     });
     it('treats start() as idempotent', () => {
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!._getBatch = () => {
       };
       inst!.running.should.eq(false);
@@ -138,7 +162,7 @@ describe('index', () => {
     });
     it('receives a batch of messages under the max', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(5) as any as SQS;
       inst!.on('gotMessages', spy);
       inst!.start();
@@ -150,7 +174,7 @@ describe('index', () => {
     it('receives batches of messages', () => {
       const batches: any = [];
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(15, 0) as any as SQS;
       inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
       inst!.on('message', () => batches[batches.length - 1].num++);
@@ -167,7 +191,7 @@ describe('index', () => {
     it('receives batches of messages when maxInflight = receiveBatchSize', () => {
       const batches: any = [];
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', maxInFlight: 10, receiveBatchSize: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', maxInFlight: 10, receiveBatchSize: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(15, 0) as any as SQS;
       inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
       inst!.on('message', (m: Message) => {
@@ -187,7 +211,7 @@ describe('index', () => {
     it('receives batches of messages when maxInflight % receiveBatchSize != 0', () => {
       const batches: any = [];
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(15, 0) as any as SQS;
       inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
       inst!.once('queueEmpty', spy);
@@ -207,7 +231,7 @@ describe('index', () => {
     it('receives batches of messages as much as it can', () => {
       const batches: any = [];
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(16, 0) as any as SQS;
       inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
       inst!.once('queueEmpty', spy);
@@ -230,7 +254,7 @@ describe('index', () => {
     it('receives batches of messages as much as it can with min batch size', () => {
       const batches: any = [];
       const spy = sinon.spy();
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         maxInFlight: 15,
         receiveBatchSize: 10,
@@ -258,7 +282,7 @@ describe('index', () => {
     it('receives batches of messages as much as it can but with min batch size', () => {
       const batches: any = [];
       const spy = sinon.spy();
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         maxInFlight: 15,
         receiveBatchSize: 10,
@@ -285,7 +309,7 @@ describe('index', () => {
     it('receives batches of messages as much as it can and gets empty', () => {
       const batches: any = [];
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(15, 0) as any as SQS;
       inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
       inst!.once('queueEmpty', spy);
@@ -307,7 +331,7 @@ describe('index', () => {
     it('emits queueEmpty event with no messages', () => {
       const msgSpy = sinon.spy();
       const qeSpy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(0, 0) as any as SQS;
       inst!.on('message', msgSpy);
       inst!.once('queueEmpty', qeSpy);
@@ -319,7 +343,7 @@ describe('index', () => {
     });
     it('emits aborted when stopped with an active message req', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(0, 1000) as any as SQS;
       inst!.on('aborted', spy);
       inst!.start();
@@ -335,7 +359,7 @@ describe('index', () => {
 
     it('should resolve when timeout exceeded and queue not drained', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1, 1000) as any as SQS;
       inst!.on('aborted', spy);
       inst!.start();
@@ -348,7 +372,7 @@ describe('index', () => {
     });
     it('should resolve when queue already drained', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(0, 1000) as any as SQS;
       inst!.on('aborted', spy);
       inst!.start();
@@ -361,7 +385,7 @@ describe('index', () => {
     });
     it('should resolve when queue drained before timeout', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1, 1000) as any as SQS;
       inst!.on('aborted', spy);
       inst!.on('message', (msg: Message) => {
@@ -380,7 +404,7 @@ describe('index', () => {
     it('should not double resolve if queue drained after timeout', function() {
       this.timeout(5000);
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1, 1000) as any as SQS;
       inst!.on('aborted', spy);
       inst!.on('message', (msg: Message) => {
@@ -400,7 +424,7 @@ describe('index', () => {
     it('observes the maxInFlight cap', () => {
       const msgSpy = sinon.spy();
       const maxSpy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', maxInFlight: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', maxInFlight: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(15) as any as SQS;
       inst!.on('message', msgSpy);
       inst!.on('maxInFlight', maxSpy);
@@ -414,7 +438,7 @@ describe('index', () => {
       const msgSpy = sinon.spy();
       const qeSpy = sinon.spy();
       const gmSpy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', maxInFlight: 0} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', maxInFlight: 0} as ISquissOptions);
       inst!.sqs = new SQSStub(35, 0) as any as SQS;
       inst!.on('message', msgSpy);
       inst!.on('gotMessages', gmSpy);
@@ -428,7 +452,7 @@ describe('index', () => {
     });
     it('reports the correct number of inFlight messages', () => {
       const msgs: Message[] = [];
-      inst = new Squiss({queueUrl: 'foo', deleteWaitMs: 1} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteWaitMs: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(5) as any as SQS;
       inst!.on('message', (msg: Message) => msgs.push(msg));
       inst!.start();
@@ -444,7 +468,7 @@ describe('index', () => {
     it('pauses polling when maxInFlight is reached; resumes after', () => {
       const msgSpy = sinon.spy();
       const maxSpy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', maxInFlight: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', maxInFlight: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(11, 1000) as any as SQS;
       inst!.on('message', msgSpy);
       inst!.on('maxInFlight', maxSpy);
@@ -461,7 +485,7 @@ describe('index', () => {
       });
     });
     it('observes the visibilityTimeout setting', () => {
-      inst = new Squiss({queueUrl: 'foo', visibilityTimeoutSecs: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', visibilityTimeoutSecs: 10} as ISquissOptions);
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'receiveMessage');
       inst!.start();
@@ -479,7 +503,7 @@ describe('index', () => {
     it('observes activePollIntervalMs', () => {
       const abortSpy = sinon.spy();
       const gmSpy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', activePollIntervalMs: 1000} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', activePollIntervalMs: 1000} as ISquissOptions);
       inst!.sqs = new SQSStub(1, 0) as any as SQS;
       inst!.on('aborted', abortSpy);
       inst!.on('gotMessages', gmSpy);
@@ -492,7 +516,7 @@ describe('index', () => {
     it('observes idlePollIntervalMs', () => {
       const abortSpy = sinon.spy();
       const qeSpy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', idlePollIntervalMs: 1000} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', idlePollIntervalMs: 1000} as ISquissOptions);
       inst!.sqs = new SQSStub(1, 0) as any as SQS;
       inst!.on('aborted', abortSpy);
       inst!.on('queueEmpty', qeSpy);
@@ -503,10 +527,10 @@ describe('index', () => {
       });
     });
     it('receiveAttributes defaults to all', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
-      const spy = sinon.spy(inst.sqs, 'receiveMessage');
-      inst.start();
+      const spy = sinon.spy(inst!.sqs, 'receiveMessage');
+      inst!.start();
       return wait().then(() => {
         spy.should.be.calledWith({
           QueueUrl: 'foo',
@@ -518,10 +542,10 @@ describe('index', () => {
       });
     });
     it('observes receiveAttributes', () => {
-      inst = new Squiss({queueUrl: 'foo', receiveAttributes: ['a']});
+      inst = new SquissPatched({queueUrl: 'foo', receiveAttributes: ['a']});
       inst!.sqs = new SQSStub() as any as SQS;
-      const spy = sinon.spy(inst.sqs, 'receiveMessage');
-      inst.start();
+      const spy = sinon.spy(inst!.sqs, 'receiveMessage');
+      inst!.start();
       return wait().then(() => {
         spy.should.be.calledWith({
           QueueUrl: 'foo',
@@ -533,10 +557,10 @@ describe('index', () => {
       });
     });
     it('observes receiveSqsAttributes', () => {
-      inst = new Squiss({queueUrl: 'foo', receiveSqsAttributes: ['a']});
+      inst = new SquissPatched({queueUrl: 'foo', receiveSqsAttributes: ['a']});
       inst!.sqs = new SQSStub() as any as SQS;
-      const spy = sinon.spy(inst.sqs, 'receiveMessage');
-      inst.start();
+      const spy = sinon.spy(inst!.sqs, 'receiveMessage');
+      inst!.start();
       return wait().then(() => {
         spy.should.be.calledWith({
           QueueUrl: 'foo',
@@ -551,7 +575,7 @@ describe('index', () => {
   describe('Deleting', () => {
     it('deletes messages using internal API', () => {
       const msgs: Message[] = [];
-      inst = new Squiss({queueUrl: 'foo', deleteWaitMs: 1} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteWaitMs: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(5) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
       inst!.on('message', (msg: Message) => msgs.push(msg));
@@ -568,7 +592,7 @@ describe('index', () => {
     });
     it('deletes messages using Message API', () => {
       const msgs: Message[] = [];
-      inst = new Squiss({queueUrl: 'foo', deleteWaitMs: 1} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteWaitMs: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(5) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
       inst!.on('message', (msg: Message) => msgs.push(msg));
@@ -582,7 +606,7 @@ describe('index', () => {
       });
     });
     it('deletes messages in batches', () => {
-      inst = new Squiss({queueUrl: 'foo', deleteWaitMs: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteWaitMs: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(15) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
       inst!.on('message', (msg: Message) => msg.del());
@@ -592,7 +616,7 @@ describe('index', () => {
       });
     });
     it('deletes immediately with batch size=1', () => {
-      inst = new Squiss({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(5) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
       inst!.on('message', (msg: Message) => msg.del());
@@ -603,7 +627,7 @@ describe('index', () => {
     });
     it('delWaitTime timeout should be cleared after timeout runs', () => {
       const msgs: Message[] = [];
-      inst = new Squiss({queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10} as ISquissOptions);
       inst!.sqs = new SQSStub(2) as any as SQS;
       const spy = sinon.spy(inst, '_deleteMessages');
       inst!.on('message', (msg: Message) => msgs.push(msg));
@@ -621,7 +645,7 @@ describe('index', () => {
       });
     });
     it('requires a Message object be sent to deleteMessage', () => {
-      inst = new Squiss({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       const promise = inst!.deleteMessage('foo' as any);
       return promise.should.be.rejectedWith(/Message/);
     });
@@ -629,10 +653,10 @@ describe('index', () => {
   describe('Failures', () => {
     it('emits delError when a message fails to delete', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       inst!.on('delError', spy);
-      inst!.deleteMessage(new Message({
+      inst!.deleteMessage(new MessagePatched({
         msg: {
           MessageId: 'foo',
           ReceiptHandle: 'bar',
@@ -646,7 +670,7 @@ describe('index', () => {
     });
     it('emits error when delete call fails', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       (inst!.sqs as any as SQSStub).deleteMessageBatch = () => {
         return {
@@ -668,7 +692,7 @@ describe('index', () => {
     });
     it('emits error when receive call fails', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       (inst!.sqs as any as SQSStub).receiveMessage = () => {
         return {
@@ -687,7 +711,7 @@ describe('index', () => {
     it('attempts to restart polling after a receive call fails', () => {
       const msgSpy = sinon.spy();
       const errSpy = sinon.spy();
-      inst = new Squiss({queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 5} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 5} as ISquissOptions);
       inst!.sqs = new SQSStub(2) as any as SQS;
       (sinon.stub(inst!.sqs, 'receiveMessage').callsFake(() => {
         ((inst!.sqs as any as SQSStub).receiveMessage as any).restore();
@@ -707,7 +731,7 @@ describe('index', () => {
     });
     it('emits error when GetQueueURL call fails', () => {
       const spy = sinon.spy();
-      inst = new Squiss({queueName: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueName: 'foo'} as ISquissOptions);
       (inst!.sqs as any as SQSStub).getQueueUrl = (params: SQS.GetQueueUrlRequest) => {
         return {
           promise: () => Promise.reject(new Error('test')),
@@ -724,7 +748,7 @@ describe('index', () => {
   });
   describe('Testing', () => {
     it('allows queue URLs to be corrected to the endpoint hostname', () => {
-      inst = new Squiss({queueName: 'foo', correctQueueUrl: true} as ISquissOptions);
+      inst = new SquissPatched({queueName: 'foo', correctQueueUrl: true} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       return inst!.getQueueUrl().then((url: string) => {
         url.should.equal('http://foo.bar/queues/foo');
@@ -733,12 +757,12 @@ describe('index', () => {
   });
   describe('createQueue', () => {
     it('rejects if Squiss was instantiated without queueName', () => {
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       return inst!.createQueue().should.be.rejected('not rejected');
     });
     it('calls SQS SDK createQueue method with default attributes', () => {
-      inst = new Squiss({queueName: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueName: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'createQueue');
       return inst!.createQueue().then((queueUrl: string) => {
@@ -756,7 +780,7 @@ describe('index', () => {
       });
     });
     it('configures VisibilityTimeout if specified', () => {
-      inst = new Squiss({queueName: 'foo', visibilityTimeoutSecs: 15} as ISquissOptions);
+      inst = new SquissPatched({queueName: 'foo', visibilityTimeoutSecs: 15} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'createQueue');
       return inst!.createQueue().then((queueUrl: string) => {
@@ -775,7 +799,7 @@ describe('index', () => {
       });
     });
     it('calls SQS SDK createQueue method with custom attributes', () => {
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueName: 'foo',
         receiveWaitTimeSecs: 10,
         delaySecs: 300,
@@ -805,7 +829,7 @@ describe('index', () => {
   });
   describe('changeMessageVisibility', () => {
     it('calls SQS SDK changeMessageVisibility method', () => {
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'changeMessageVisibility');
       return inst!.changeMessageVisibility('bar', 1).then(() => {
@@ -816,11 +840,11 @@ describe('index', () => {
         });
       });
     });
-    it('calls SQS SDK changeMessageVisibility method', () => {
-      inst = new Squiss({queueUrl: 'foo'} as ISquissOptions);
+    it('calls SQS SDK changeMessageVisibility method 2', () => {
+      inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'changeMessageVisibility');
-      const msg = new Message({
+      const msg = new MessagePatched({
         msg: {
           ReceiptHandle: 'bar',
         },
@@ -836,7 +860,7 @@ describe('index', () => {
   });
   describe('deleteQueue', () => {
     it('calls SQS SDK deleteQueue method with queue URL', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'deleteQueue');
       return inst!.deleteQueue().then((res: object) => {
@@ -848,7 +872,7 @@ describe('index', () => {
   });
   describe('getQueueUrl', () => {
     it('resolves with the provided queueUrl without hitting SQS', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
       return inst!.getQueueUrl().then((queueUrl: string) => {
@@ -857,7 +881,7 @@ describe('index', () => {
       });
     });
     it('asks SQS for the URL if queueUrl was not provided', () => {
-      inst = new Squiss({queueName: 'foo'});
+      inst = new SquissPatched({queueName: 'foo'});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
       return inst!.getQueueUrl().then((queueUrl: string) => {
@@ -867,7 +891,7 @@ describe('index', () => {
       });
     });
     it('caches the queueUrl after the first call to SQS', () => {
-      inst = new Squiss({queueName: 'foo'});
+      inst = new SquissPatched({queueName: 'foo'});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
       return inst!.getQueueUrl().then(() => {
@@ -878,7 +902,7 @@ describe('index', () => {
       });
     });
     it('includes the account number if provided', () => {
-      inst = new Squiss({queueName: 'foo', accountNumber: 1234});
+      inst = new SquissPatched({queueName: 'foo', accountNumber: 1234});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
       return inst!.getQueueUrl().then((queueUrl: string) => {
@@ -893,7 +917,7 @@ describe('index', () => {
   });
   describe('getQueueVisibilityTimeout', () => {
     it('makes a successful API call', () => {
-      inst = new Squiss({queueUrl: 'https://foo'});
+      inst = new SquissPatched({queueUrl: 'https://foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
       return inst!.getQueueVisibilityTimeout().then((timeout: number) => {
@@ -907,7 +931,7 @@ describe('index', () => {
       });
     });
     it('caches the API call for successive function calls', () => {
-      inst = new Squiss({queueUrl: 'https://foo'});
+      inst = new SquissPatched({queueUrl: 'https://foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
       return inst!.getQueueVisibilityTimeout().then((timeout: number) => {
@@ -921,7 +945,7 @@ describe('index', () => {
       });
     });
     it('catches badly formed AWS responses', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       (inst!.sqs as any as SQSStub).getQueueAttributes = sinon.stub().returns({
         promise: () => ({foo: 'bar'}),
@@ -931,7 +955,7 @@ describe('index', () => {
   });
   describe('getQueueMaximumMessageSize', () => {
     it('makes a successful API call', () => {
-      inst = new Squiss({queueUrl: 'https://foo'});
+      inst = new SquissPatched({queueUrl: 'https://foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
       return inst!.getQueueMaximumMessageSize().then((timeout: number) => {
@@ -945,7 +969,7 @@ describe('index', () => {
       });
     });
     it('caches the API call for successive function calls', () => {
-      inst = new Squiss({queueUrl: 'https://foo'});
+      inst = new SquissPatched({queueUrl: 'https://foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
       return inst!.getQueueMaximumMessageSize().then((timeout: number) => {
@@ -959,7 +983,7 @@ describe('index', () => {
       });
     });
     it('catches badly formed AWS responses', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       (inst!.sqs as any as SQSStub).getQueueAttributes = sinon.stub().returns({
         promise: () => ({foo: 'bar'}),
@@ -969,7 +993,7 @@ describe('index', () => {
   });
   describe('releaseMessage', () => {
     it('marks the message as handled and changes visibility to 0', () => {
-      inst = new Squiss({queueName: 'foo'});
+      inst = new SquissPatched({queueName: 'foo'});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const handledSpy = sinon.spy(inst, 'handledMessage');
       const visibilitySpy = sinon.spy(inst, 'changeMessageVisibility');
@@ -983,7 +1007,7 @@ describe('index', () => {
   });
   describe('purgeQueue', () => {
     it('calls SQS SDK purgeQueue method with queue URL', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'purgeQueue');
       return inst!.purgeQueue().then(() => {
@@ -996,7 +1020,7 @@ describe('index', () => {
   });
   describe('sendMessage', () => {
     it('sends a string message with no extra arguments', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
       return inst!.sendMessage('bar').then(() => {
@@ -1005,7 +1029,7 @@ describe('index', () => {
       });
     });
     it('sends a string gzip message with no extra arguments', () => {
-      inst = new Squiss({queueUrl: 'foo', gzip: true});
+      inst = new SquissPatched({queueUrl: 'foo', gzip: true});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
       return inst!.sendMessage('{"i": 1}').then(() => {
@@ -1021,7 +1045,7 @@ describe('index', () => {
       });
     });
     it('sends a JSON message with no extra arguments', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
       return inst!.sendMessage({bar: 'baz'}).then(() => {
@@ -1030,7 +1054,7 @@ describe('index', () => {
       });
     });
     it('sends a message with a delay and attributes', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const buffer = Buffer.from('s');
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
@@ -1075,8 +1099,59 @@ describe('index', () => {
         });
       });
     });
+    it('sends a S3 message with a delay and attributes', () => {
+      const blobs: Blobs = {};
+      const s3Stub = getS3Stub(blobs);
+      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      const largeMessage = generateLargeMessage(300);
+      return inst!.sendMessage(largeMessage, 10, {
+        baz: 'fizz',
+        num: 1,
+        boolean1: true,
+        boolean2: false,
+        bin: buffer,
+        empty: undefined,
+      }).then(() => {
+        blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: '{"uploadSize":300,"bucket":"my_bucket","key":"my_uuid"}',
+          DelaySeconds: 10,
+          MessageAttributes: {
+            __SQS_S3__: {DataType: 'Number', StringValue: '300'},
+            baz: {
+              DataType: 'String',
+              StringValue: 'fizz',
+            },
+            boolean1: {
+              DataType: 'String',
+              StringValue: 'true',
+            },
+            boolean2: {
+              DataType: 'String',
+              StringValue: 'false',
+            },
+            empty: {
+              DataType: 'String',
+              StringValue: '',
+            },
+            num: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+            bin: {
+              DataType: 'Binary',
+              BinaryValue: buffer,
+            },
+          },
+        });
+      });
+    });
     it('sends a message with a delay and not allowed internal gzip attribute', (done) => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const buffer = Buffer.from('s');
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
@@ -1096,7 +1171,7 @@ describe('index', () => {
       });
     });
     it('sends a message with a delay and not allowed internal s3 attribute', (done) => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const buffer = Buffer.from('s');
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
@@ -1116,7 +1191,7 @@ describe('index', () => {
       });
     });
     it('sends a gzip message with a delay and attributes', () => {
-      inst = new Squiss({queueUrl: 'foo', gzip: true});
+      inst = new SquissPatched({queueUrl: 'foo', gzip: true});
       inst!.sqs = new SQSStub() as any as SQS;
       const buffer = Buffer.from('s');
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
@@ -1166,7 +1241,7 @@ describe('index', () => {
       });
     });
     it('sends a message with a delay and attributes and fifo attributes', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const buffer = Buffer.from('s');
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
@@ -1208,7 +1283,7 @@ describe('index', () => {
   });
   describe('sendMessages', () => {
     it('sends a single string message with no extra arguments', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       return inst!.sendMessages('bar').then((res: SQS.Types.SendMessageBatchResult) => {
@@ -1224,7 +1299,7 @@ describe('index', () => {
       });
     });
     it('sends a single JSON message with no extra arguments', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       return inst!.sendMessages({bar: 'baz'}).then(() => {
@@ -1238,7 +1313,7 @@ describe('index', () => {
       });
     });
     it('sends a multiple JSON message with no extra arguments', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       return inst!.sendMessages([{bar: 'baz'}, {bar1: 'baz1'}]).then(() => {
@@ -1253,7 +1328,7 @@ describe('index', () => {
       });
     });
     it('sends a single message with delay and attributes', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       return inst!.sendMessages('bar', 10, {baz: 'fizz'}).then(() => {
@@ -1270,7 +1345,7 @@ describe('index', () => {
       });
     });
     it('sends multiple messages with delay and single attributes object', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       return inst!.sendMessages(['bar', 'baz'], 10, {
@@ -1299,7 +1374,7 @@ describe('index', () => {
       });
     });
     it('sends multiple gzip messages with delay and single attributes object', () => {
-      inst = new Squiss({queueUrl: 'foo', gzip: true});
+      inst = new SquissPatched({queueUrl: 'foo', gzip: true});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       return inst!.sendMessages(['bar', 'baz'], 10, {
@@ -1334,7 +1409,7 @@ describe('index', () => {
       });
     });
     it('sends multiple messages with delay and multiple attributes objects', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       return inst!.sendMessages(['bar', 'baz'], 10, [{
@@ -1366,7 +1441,7 @@ describe('index', () => {
       });
     });
     it('sends multiple batches of messages and merges successes', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
@@ -1378,7 +1453,7 @@ describe('index', () => {
       });
     });
     it('sends multiple batches of messages and merges failures', () => {
-      inst = new Squiss({queueUrl: 'foo'});
+      inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       const msgs = 'a.FAIL.c.d.e.f.g.h.i.j.k.l.m.n.FAIL'.split('.');
@@ -1392,7 +1467,7 @@ describe('index', () => {
   });
   describe('auto-extensions', () => {
     it('initializes a TimeoutExtender', () => {
-      inst = new Squiss({queueUrl: 'foo', autoExtendTimeout: true});
+      inst = new SquissPatched({queueUrl: 'foo', autoExtendTimeout: true});
       inst!.sqs = new SQSStub() as any as SQS;
       return inst!.start().then(() => {
         should.exist(inst!._timeoutExtender);
@@ -1403,7 +1478,7 @@ describe('index', () => {
       });
     });
     it('constructs a TimeoutExtender with custom options', () => {
-      inst = new Squiss({
+      inst = new SquissPatched({
         queueUrl: 'foo',
         autoExtendTimeout: true,
         visibilityTimeoutSecs: 53,
