@@ -1283,6 +1283,104 @@ describe('index', () => {
         });
       });
     });
+    it('sends a gzip message with a delay and attributes when gzip limit is passed', () => {
+      inst = new SquissPatched({queueUrl: 'foo', gzip: true, minGzipSize: 20});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const largeMessage = generateLargeMessage(200);
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      return inst!.sendMessage(largeMessage, 10, {
+        baz: 'fizz',
+        num: 1,
+        boolean1: true,
+        boolean2: false,
+        bin: buffer,
+        empty: undefined,
+      }).then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: 'G8cA+CXmYrFAIAA=',
+          DelaySeconds: 10,
+          MessageAttributes: {
+            __SQS_GZIP__: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+            baz: {
+              DataType: 'String',
+              StringValue: 'fizz',
+            },
+            boolean1: {
+              DataType: 'String',
+              StringValue: 'true',
+            },
+            boolean2: {
+              DataType: 'String',
+              StringValue: 'false',
+            },
+            empty: {
+              DataType: 'String',
+              StringValue: '',
+            },
+            num: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+            bin: {
+              DataType: 'Binary',
+              BinaryValue: buffer,
+            },
+          },
+        });
+      });
+    });
+    it('sends a non gzip message with a delay and attributes when gzip limit is not passed', () => {
+      inst = new SquissPatched({queueUrl: 'foo', gzip: true, minGzipSize: 500});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const largeMessage = generateLargeMessage(200);
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      return inst!.sendMessage(largeMessage, 10, {
+        baz: 'fizz',
+        num: 1,
+        boolean1: true,
+        boolean2: false,
+        bin: buffer,
+        empty: undefined,
+      }).then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: largeMessage,
+          DelaySeconds: 10,
+          MessageAttributes: {
+            baz: {
+              DataType: 'String',
+              StringValue: 'fizz',
+            },
+            boolean1: {
+              DataType: 'String',
+              StringValue: 'true',
+            },
+            boolean2: {
+              DataType: 'String',
+              StringValue: 'false',
+            },
+            empty: {
+              DataType: 'String',
+              StringValue: '',
+            },
+            num: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+            bin: {
+              DataType: 'Binary',
+              BinaryValue: buffer,
+            },
+          },
+        });
+      });
+    });
     it('sends a message with a delay and attributes and fifo attributes', () => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;

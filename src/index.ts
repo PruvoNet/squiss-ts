@@ -48,6 +48,7 @@ export interface ISquissOptions {
   idlePollIntervalMs?: number;
   delaySecs?: number;
   gzip?: boolean;
+  minGzipSize?: number;
   maxMessageBytes?: number;
   messageRetentionSecs?: number;
   autoExtendTimeout?: boolean;
@@ -106,6 +107,7 @@ const optDefaults: ISquissOptions = {
   idlePollIntervalMs: 0,
   delaySecs: 0,
   gzip: false,
+  minGzipSize: 0,
   s3Fallback: false,
   maxMessageBytes: 262144,
   messageRetentionSecs: 345600,
@@ -167,6 +169,7 @@ export class Squiss extends EventEmitter {
    *    configured SQS endpoint, applicable only if opts.queueName is specified. This can be useful for testing against
    *    a stubbed SQS service, such as ElasticMQ.
    * @param {boolean} [opts.gzip=false] Auto gzip messages to reduce message size.
+   * @param {number} [opts.minGzipSize=0] The min message size to gzip (in bytes) when `gzip` is set to `true`.
    * @param {boolean} [opts.s3Fallback=false] Upload messages bigger than `maxMessageBytes` or queue default
    * @param {string} [opts.s3Bucket] if `s3Fallback` is true, upload message to this s3 bucket.
    * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
@@ -865,38 +868,44 @@ export class Squiss extends EventEmitter {
       return Promise.reject(new Error(`Using of internal attribute ${S3_MARKER} is not allowed`));
     }
     const messageStr = isString(message) ? message : JSON.stringify(message);
+    const params: ISendMessageRequest = {
+      MessageBody: messageStr,
+    };
+    if (delay) {
+      params.DelaySeconds = delay;
+    }
+    if (attributes) {
+      attributes = Object.assign({}, attributes);
+    }
+    if (attributes) {
+      if (attributes.FIFO_MessageGroupId) {
+        params.MessageGroupId = attributes.FIFO_MessageGroupId;
+        delete attributes.FIFO_MessageGroupId;
+      }
+      if (attributes.FIFO_MessageDeduplicationId) {
+        params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
+        delete attributes.FIFO_MessageDeduplicationId;
+      }
+      params.MessageAttributes = createMessageAttributes(attributes);
+    }
     let promise: Promise<string>;
     if (this._opts.gzip) {
-      promise = compressMessage(messageStr);
+      if (this._opts.minGzipSize && getMessageSize(params) < this._opts.minGzipSize) {
+        promise = Promise.resolve(messageStr);
+      } else {
+        promise = compressMessage(messageStr);
+        params.MessageAttributes = params.MessageAttributes || {};
+        params.MessageAttributes[GZIP_MARKER] = {
+          StringValue: `1`,
+          DataType: 'Number',
+        };
+      }
     } else {
       promise = Promise.resolve(messageStr);
     }
     return promise
       .then((finalMessage) => {
-        const params: ISendMessageRequest = {
-          MessageBody: finalMessage,
-        };
-        if (delay) {
-          params.DelaySeconds = delay;
-        }
-        if (attributes) {
-          attributes = Object.assign({}, attributes);
-        }
-        if (this._opts.gzip) {
-          attributes = attributes || {};
-          attributes[GZIP_MARKER] = 1;
-        }
-        if (attributes) {
-          if (attributes.FIFO_MessageGroupId) {
-            params.MessageGroupId = attributes.FIFO_MessageGroupId;
-            delete attributes.FIFO_MessageGroupId;
-          }
-          if (attributes.FIFO_MessageDeduplicationId) {
-            params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
-            delete attributes.FIFO_MessageDeduplicationId;
-          }
-          params.MessageAttributes = createMessageAttributes(attributes);
-        }
+        params.MessageBody = finalMessage;
         if (!this._opts.s3Fallback) {
           return Promise.resolve(params);
         }
