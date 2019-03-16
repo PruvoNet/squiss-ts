@@ -9,7 +9,8 @@ import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
 import {SQS, S3} from 'aws-sdk';
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
-import {getMessageSize, S3_MARKER, uploadBlob} from './s3Utils';
+import {S3_MARKER, uploadBlob} from './s3Utils';
+import {getMessageSize} from './messageSizeUtils';
 
 export {SQS, S3} from 'aws-sdk';
 
@@ -51,7 +52,7 @@ export interface ISquissOptions {
   messageRetentionSecs?: number;
   autoExtendTimeout?: boolean;
   SQS?: SQS | typeof SQS;
-  S3?: S3| typeof S3;
+  S3?: S3 | typeof S3;
   awsConfig?: SQS.Types.ClientConfiguration;
   queueUrl?: string;
   queueName?: string;

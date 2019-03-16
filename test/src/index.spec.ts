@@ -1157,7 +1157,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
       const largeMessage = generateLargeMessage(300);
-      return inst!.sendMessage(largeMessage, 10, ).then(() => {
+      return inst!.sendMessage(largeMessage, 10).then(() => {
         blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
         spy.should.be.calledWith({
           QueueUrl: 'foo',
