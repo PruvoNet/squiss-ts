@@ -2,6 +2,9 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Development
+- Nothing yet
+
+## [v1.4.0]
 ### Added
 - Add ability to control SQS attributes returned and expose them in Message object [#4](https://github.com/PruvoNet/squiss-ts/issues/4)
 - Option to auto gzip messages to reduce message sizes [#5](https://github.com/PruvoNet/squiss-ts/issues/5)
@@ -65,3 +68,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [v1.2.3]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.2...v1.2.3
 [v1.2.4]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.3...v1.2.4
 [v1.3.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.4...v1.3.0
+[v1.4.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.3.0...v1.4.0
