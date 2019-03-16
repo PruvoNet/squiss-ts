@@ -2,7 +2,7 @@
 
 import {decompressMessage, compressMessage} from '../../dist/gzipUtils';
 
-describe('gzipUtils', () => {
+describe('gzip utils', () => {
 
   it('should compress message', () => {
     return compressMessage('{"i": 1}')
