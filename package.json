@@ -32,7 +32,11 @@
     "poller",
     "queue",
     "typescript",
-    "sns"
+    "sns",
+    "s3",
+    "extended",
+    "client",
+    "sdk"
   ],
   "author": "Regev Brody <regevbr@gmail.com>",
   "license": "ISC",
