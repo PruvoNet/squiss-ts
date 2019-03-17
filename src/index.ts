@@ -559,14 +559,24 @@ export class Squiss extends EventEmitter {
       }
       promises.push(this.perpareMessageRequest(msg, delay, currentAttributes));
     });
-    return Promise.all(promises)
-      .then((messageRequests) => {
-        for (let i = 0; i < messageRequests.length; i++) {
-          if (i % AWS_MAX_SEND_BATCH === 0) {
+    return Promise.all([this.getQueueMaximumMessageSize(), Promise.all(promises)])
+      .then((results) => {
+        const queueMaximumMessageSize = results[0];
+        const messageRequests = results[1];
+        let currentBatchSize = 0;
+        let currentBatchLength = 0;
+        messageRequests.forEach((message) => {
+          const messageSize = getMessageSize(message);
+          if (currentBatchLength % AWS_MAX_SEND_BATCH === 0 ||
+            currentBatchSize + messageSize >= queueMaximumMessageSize) {
+            currentBatchLength = 0;
+            currentBatchSize = 0;
             batches.push([]);
           }
-          batches[batches.length - 1].push(messageRequests[i]);
-        }
+          currentBatchSize += messageSize;
+          currentBatchLength++;
+          batches[batches.length - 1].push(message);
+        });
         return Promise.all(batches.map((batch, idx) => {
           return this._sendMessageBatch(batch, delay, idx * AWS_MAX_SEND_BATCH);
         }));

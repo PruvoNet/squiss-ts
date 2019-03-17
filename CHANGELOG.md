@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Optionally retain s3 blobs on message delete [#16](https://github.com/PruvoNet/squiss-ts/issues/16)
 - Optionally set prefix for s3 blob names [#15](https://github.com/PruvoNet/squiss-ts/issues/15)
+### Fixed
+- Batch messaging to create batches by max of 10 messages, or by max message size [#14](https://github.com/PruvoNet/squiss-ts/issues/14)
 
 ## [v1.4.0]
 ### Added
