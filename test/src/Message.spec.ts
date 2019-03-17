@@ -66,6 +66,7 @@ describe('Message', () => {
       unwrapSns: true,
       bodyFormat: 'plain',
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     msg.should.have.property('body').equal('foo');
     msg.should.have.property('subject').equal('some-subject');
@@ -79,6 +80,7 @@ describe('Message', () => {
       unwrapSns: true,
       bodyFormat: 'plain',
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     msg.should.have.property('body').equal(undefined);
     msg.should.have.property('subject').equal(undefined);
@@ -90,6 +92,7 @@ describe('Message', () => {
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
       bodyFormat: 'json',
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -121,6 +124,7 @@ describe('Message', () => {
       msg: rawMsg,
       bodyFormat: 'json',
       s3Retriever: getS3Stub(blobs),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -140,6 +144,7 @@ describe('Message', () => {
       msg: rawMsg,
       bodyFormat: 'json',
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -168,6 +173,7 @@ describe('Message', () => {
       msg: rawMsg,
       bodyFormat: 'json',
       s3Retriever: getS3Stub(blobs),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -186,6 +192,7 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: rawMsg,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -203,6 +210,7 @@ describe('Message', () => {
       squiss: getSquissStub(),
       msg: rawMsg,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -215,6 +223,7 @@ describe('Message', () => {
       msg: getSQSMsg(''),
       bodyFormat: 'json',
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -228,6 +237,7 @@ describe('Message', () => {
       msg: getSQSMsg(undefined),
       bodyFormat: 'json',
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.parse()
       .then(() => {
@@ -256,6 +266,39 @@ describe('Message', () => {
       msg: rawMsg,
       bodyFormat: 'json',
       s3Retriever: getS3Stub(blobs),
+      s3Retain: false,
+    });
+    msg.parse()
+      .then(() => {
+        msg.should.have.property('body');
+        msg.body!.should.be.an('object');
+        msg.body!.should.have.property('i').equal(1);
+        msg.del();
+      });
+  });
+  it('does not removes S3 on delete when s3Retain is set', (done) => {
+    const bucket = 'my_bucket';
+    const key = 'my_key';
+    const blobs: Blobs = {};
+    blobs[bucket] = {};
+    blobs[bucket][key] = '{"i": 1}';
+    const rawMsg = getSQSMsg(JSON.stringify({bucket, key}));
+    rawMsg.MessageAttributes!.__SQS_S3__ = {
+      DataType: 'Number',
+      StringValue: '1',
+    };
+    const msg = new Message({
+      squiss: {
+        deleteMessage: (toDel: Message) => {
+          blobs[bucket].should.have.property(key);
+          toDel.should.equal(msg);
+          done();
+        },
+      } as any as Squiss,
+      msg: rawMsg,
+      bodyFormat: 'json',
+      s3Retriever: getS3Stub(blobs),
+      s3Retain: true,
     });
     msg.parse()
       .then(() => {
@@ -276,6 +319,7 @@ describe('Message', () => {
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     msg.del();
   });
@@ -289,6 +333,7 @@ describe('Message', () => {
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.del()
       .then(() => {
@@ -305,6 +350,7 @@ describe('Message', () => {
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     return msg.release()
       .then(() => {
@@ -319,6 +365,7 @@ describe('Message', () => {
         handledMessage: () => done(),
       } as any as Squiss,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     msg.keep();
   });
@@ -339,6 +386,7 @@ describe('Message', () => {
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     msg.del();
     msg.keep();
@@ -362,6 +410,7 @@ describe('Message', () => {
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     message.changeVisibility(timeout);
   });
@@ -376,6 +425,7 @@ describe('Message', () => {
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
+      s3Retain: false,
     });
     message.release()
       .then(() => {

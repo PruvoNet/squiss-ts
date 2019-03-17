@@ -21,9 +21,24 @@ const getS3Stub = () => {
 let inst = null;
 let clock: any = null;
 const msgSquissStub = getSquissStub();
-const fooMsg = new Message({squiss: msgSquissStub, msg: {MessageId: 'foo', Body: 'foo'}, s3Retriever: getS3Stub});
-const barMsg = new Message({squiss: msgSquissStub, msg: {MessageId: 'bar', Body: 'bar'}, s3Retriever: getS3Stub});
-const bazMsg = new Message({squiss: msgSquissStub, msg: {MessageId: 'baz', Body: 'baz'}, s3Retriever: getS3Stub});
+const fooMsg = new Message({
+  squiss: msgSquissStub,
+  msg: {MessageId: 'foo', Body: 'foo'},
+  s3Retriever: getS3Stub,
+  s3Retain: false,
+});
+const barMsg = new Message({
+  squiss: msgSquissStub,
+  msg: {MessageId: 'bar', Body: 'bar'},
+  s3Retriever: getS3Stub,
+  s3Retain: false,
+});
+const bazMsg = new Message({
+  squiss: msgSquissStub,
+  msg: {MessageId: 'baz', Body: 'baz'},
+  s3Retriever: getS3Stub,
+  s3Retain: false,
+});
 const notExistError = new Error('Value AQEB5iHoiWO4nU0Tx3mGzJLdXNQ+fg3nadtYYTDoWMhuOiUOP7sjZTgC64MlRbSwFneA5+' +
   'C+fS5DGRbiEC1VAF0KTMEBrgEOVAQpwRQo8yfie8ltzf+0LLasaHrTB1IFDIvQ0+wsrM4PxXiDJD1tzQ2kw89ijfP4W4tAy6Dqvd5mhlAn' +
   'V+Gvq5IhSRrlzUx9ZOSZyoYPfWN7KwJVKrCWYIyGN3nkGaKwTc+HlJ3jABjTEWHULD9lZjWfBXMWY9bvIVvYuyg2BkSjqb/WKdM6eSPjIA' +

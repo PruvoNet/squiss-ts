@@ -2,7 +2,8 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Development
-- Nothing yet
+### Added
+- Optionally retain s3 blobs on message delete
 
 ## [v1.4.0]
 ### Added

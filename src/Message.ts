@@ -20,6 +20,7 @@ export interface IMessageOpts {
   bodyFormat?: BodyFormat;
   squiss: Squiss;
   s3Retriever: () => S3;
+  s3Retain: boolean;
 }
 
 interface SNSBody {
@@ -58,6 +59,7 @@ export class Message extends EventEmitter {
   private _opts: IMessageOpts;
   private _deleteCallback?: () => Promise<void>;
   private _s3Retriever: () => S3;
+  private _s3Retain: boolean;
 
   /**
    * Creates a new Message.
@@ -90,6 +92,7 @@ export class Message extends EventEmitter {
     this.attributes = parseMessageAttributes(opts.msg.MessageAttributes);
     this.sqsAttributes = opts.msg.Attributes || {};
     this._s3Retriever = opts.s3Retriever;
+    this._s3Retain = opts.s3Retain;
   }
 
   public parse() {
@@ -103,9 +106,11 @@ export class Message extends EventEmitter {
       const s3 = this._s3Retriever();
       promise = getBlob(s3, uploadData)
         .then((resolvedBody) => {
-          this._deleteCallback = () => {
-            return deleteBlob(s3, uploadData);
-          };
+          if (!this._s3Retain) {
+            this._deleteCallback = () => {
+              return deleteBlob(s3, uploadData);
+            };
+          }
           return Promise.resolve(resolvedBody);
         });
     } else {
