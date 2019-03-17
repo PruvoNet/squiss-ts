@@ -1645,6 +1645,19 @@ describe('index', () => {
         res.should.have.property('Failed').with.length(0);
       });
     });
+    it('sends multiple batches of messages and merges successes with batch size is too big', () => {
+      inst = new SquissPatched({queueUrl: 'foo'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+      const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
+      msgs.unshift(generateLargeMessage(300));
+      return inst!.sendMessages(msgs).then((res: SQS.Types.SendMessageBatchResult) => {
+        spy.should.be.calledThrice();
+        (inst!.sqs as any as SQSStub).msgs.length.should.equal(16);
+        res.should.have.property('Successful').with.length(16);
+        res.should.have.property('Failed').with.length(0);
+      });
+    });
     it('sends multiple batches of messages and merges failures', () => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
