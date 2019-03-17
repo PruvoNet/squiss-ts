@@ -12,8 +12,8 @@ export interface IS3Upload {
   uploadSize: number;
 }
 
-export const uploadBlob = (s3: S3, bucket: string, blob: string): Promise<IS3Upload> => {
-  const key = uuid();
+export const uploadBlob = (s3: S3, bucket: string, blob: string, prefix: string): Promise<IS3Upload> => {
+  const key = `${prefix}${uuid()}`;
   const size = getSizeInBytes(blob);
   return s3.putObject({
     Body: blob,

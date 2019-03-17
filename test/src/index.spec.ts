@@ -1150,6 +1150,58 @@ describe('index', () => {
         });
       });
     });
+    it('sends a S3 message with a delay and attributes and s3 prefix', () => {
+      const blobs: Blobs = {};
+      const s3Stub = getS3Stub(blobs);
+      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket',
+        s3Prefix: 'my_prefix/'});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const buffer = Buffer.from('s');
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      const largeMessage = generateLargeMessage(300);
+      return inst!.sendMessage(largeMessage, 10, {
+        baz: 'fizz',
+        num: 1,
+        boolean1: true,
+        boolean2: false,
+        bin: buffer,
+        empty: undefined,
+      }).then(() => {
+        blobs.my_bucket!['my_prefix/my_uuid'].should.be.eq(largeMessage);
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: '{"uploadSize":300,"bucket":"my_bucket","key":"my_prefix/my_uuid"}',
+          DelaySeconds: 10,
+          MessageAttributes: {
+            __SQS_S3__: {DataType: 'Number', StringValue: '300'},
+            baz: {
+              DataType: 'String',
+              StringValue: 'fizz',
+            },
+            boolean1: {
+              DataType: 'String',
+              StringValue: 'true',
+            },
+            boolean2: {
+              DataType: 'String',
+              StringValue: 'false',
+            },
+            empty: {
+              DataType: 'String',
+              StringValue: '',
+            },
+            num: {
+              DataType: 'Number',
+              StringValue: '1',
+            },
+            bin: {
+              DataType: 'Binary',
+              BinaryValue: buffer,
+            },
+          },
+        });
+      });
+    });
     it('sends a S3 message with a delay and no attributes', () => {
       const blobs: Blobs = {};
       const s3Stub = getS3Stub(blobs);
