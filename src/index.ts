@@ -64,6 +64,7 @@ export interface ISquissOptions {
   advancedCallMs?: number;
   s3Fallback?: boolean;
   s3Bucket?: string;
+  s3Retain?: boolean;
 }
 
 interface IDeleteQueueItem {
@@ -109,6 +110,7 @@ const optDefaults: ISquissOptions = {
   gzip: false,
   minGzipSize: 0,
   s3Fallback: false,
+  s3Retain: false,
   maxMessageBytes: 262144,
   messageRetentionSecs: 345600,
   autoExtendTimeout: false,
@@ -170,8 +172,10 @@ export class Squiss extends EventEmitter {
    *    a stubbed SQS service, such as ElasticMQ.
    * @param {boolean} [opts.gzip=false] Auto gzip messages to reduce message size.
    * @param {number} [opts.minGzipSize=0] The min message size to gzip (in bytes) when `gzip` is set to `true`.
-   * @param {boolean} [opts.s3Fallback=false] Upload messages bigger than `maxMessageBytes` or queue default
+   * @param {boolean} [opts.s3Fallback=false] Upload messages bigger than `maxMessageBytes` or queue default to s3,
+   *    and retrieve it from there when message is received.
    * @param {string} [opts.s3Bucket] if `s3Fallback` is true, upload message to this s3 bucket.
+   * @param {string} [opts.s3Retain=false] if `s3Fallback` is true, do not delete blob on message delete.
    * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
    *    batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued
    *    delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
@@ -679,6 +683,7 @@ export class Squiss extends EventEmitter {
         bodyFormat: this._opts.bodyFormat,
         msg,
         s3Retriever: this.getS3.bind(this),
+        s3Retain: this._opts.s3Retain || false,
       });
       this._inFlight++;
       message.parse()
