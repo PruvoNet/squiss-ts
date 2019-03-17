@@ -3,7 +3,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Development
 ### Added
-- Optionally retain s3 blobs on message delete
+- Optionally retain s3 blobs on message delete [#16](https://github.com/PruvoNet/squiss-ts/issues/16)
+- Optionally set prefix for s3 blob names [#15](https://github.com/PruvoNet/squiss-ts/issues/15)
 
 ## [v1.4.0]
 ### Added

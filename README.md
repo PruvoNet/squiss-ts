@@ -70,6 +70,7 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.s3Fallback** _Default "false"._ Upload messages bigger than `maxMessageBytes` or queue default `maxMessageBytes` to s3, and retrieve it from there when message is received.
 - **opts.s3Bucket** if `s3Fallback` is true, upload message to this s3 bucket.
 - **opts.s3Retain** _Default "false"._ if `s3Fallback` is true, do not delete blob on message delete.
+- **opts.s3Prefix** _Default ""._ if `s3Fallback` is true, set this prefix to uploaded s3 blobs.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
 - **opts.idlePollIntervalMs** _Default 0._ The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.
