@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## [v1.5.1]
+### Fixed
+- `deleteMessageBatch` causes error [#20](https://github.com/PruvoNet/squiss-ts/issues/20)
+
 ## [v1.5.0]
 ### Added
 - Optionally retain s3 blobs on message delete [#16](https://github.com/PruvoNet/squiss-ts/issues/16)
@@ -77,3 +81,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [v1.3.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.2.4...v1.3.0
 [v1.4.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.3.0...v1.4.0
 [v1.5.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.4.0...v1.5.0
+[v1.5.1]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.0...v1.5.1

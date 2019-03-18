@@ -659,7 +659,12 @@ export class Squiss extends EventEmitter {
     return this.getQueueUrl().then((queueUrl) => {
       return this.sqs.deleteMessageBatch({
         QueueUrl: queueUrl,
-        Entries: batch,
+        Entries: batch.map((item) => {
+          return {
+            Id: item.Id,
+            ReceiptHandle: item.ReceiptHandle,
+          };
+        }),
       }).promise();
     }).then((data) => {
       if (data.Failed && data.Failed.length) {
