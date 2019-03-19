@@ -214,7 +214,7 @@ export class TimeoutExtender {
         }
       });
     this._deleteNode(node);
-    node.timerOn = Date.now() + extendBySecs * 1000;
+    node.timerOn = Date.now() + extendByMs - this._apiLeadMs;
     this._addNode(node);
   }
 }

@@ -4,9 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
-## [v1.5.1]
+## [v1.5.2]
 ### Fixed
 - `deleteMessageBatch` causes error [#20](https://github.com/PruvoNet/squiss-ts/issues/20)
+
+## [v1.5.1]
+### Fixed
+- Timeout extender doesn't extend message on time [#22](https://github.com/PruvoNet/squiss-ts/issues/22)
 
 ## [v1.5.0]
 ### Added
@@ -82,3 +86,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [v1.4.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.3.0...v1.4.0
 [v1.5.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.4.0...v1.5.0
 [v1.5.1]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.0...v1.5.1
+[v1.5.2]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.1...v1.5.2
