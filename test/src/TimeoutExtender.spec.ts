@@ -143,8 +143,23 @@ describe('TimeoutExtender', () => {
     clock.tick(10000);
     spy.should.be.calledOnce();
     clock.tick(10000);
-    spy.should.be.calledTwice();
+    spy.callCount.should.eql(3);
     clock.tick(10000);
+    spy.callCount.should.eql(4);
+  });
+  it('renews multiple times with proper advanced time', () => {
+    clock = sinon.useFakeTimers(100000);
+    const squiss = getSquissStub();
+    const spy = sinon.spy(squiss, 'changeMessageVisibility');
+    inst = new TimeoutExtender(squiss, {visibilityTimeoutSecs: 20});
+    inst.addMessage(fooMsg);
+    clock.tick(10000);
+    spy.should.not.be.called();
+    clock.tick(5000);
+    spy.should.be.calledOnce();
+    clock.tick(15000);
+    spy.should.be.calledTwice();
+    clock.tick(15000);
     spy.should.be.calledThrice();
   });
   it('renews only until the configured age limit', (done) => {
