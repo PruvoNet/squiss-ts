@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## [v2.0.0]
+Marking the library as stable after stress usage in a full blown production environment 
+
 ## [v1.5.2]
 ### Fixed
 - `deleteMessageBatch` causes error [#20](https://github.com/PruvoNet/squiss-ts/issues/20)
@@ -87,3 +90,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [v1.5.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.4.0...v1.5.0
 [v1.5.1]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.0...v1.5.1
 [v1.5.2]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.1...v1.5.2
+[v2.0.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.2...v2.0.0
