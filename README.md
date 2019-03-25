@@ -8,6 +8,7 @@
 
 # Squiss-TS 
 High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up (with full typescript support)
+The library is production ready and is being stress used in a full blown production environment
 
 ## Main features
 - Control how many messages can be handled at any given point
