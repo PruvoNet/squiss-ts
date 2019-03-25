@@ -7,7 +7,7 @@
 [![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev)
 
 # Squiss-TS 
-High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up (with full typescript support)
+High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up (with full typescript support)  
 The library is production ready and is being stress used in a full blown production environment
 
 ## Main features
