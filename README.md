@@ -187,6 +187,24 @@ Emitted when Squiss asks SQS for new messages, and doesn't get any.
 
 ### released {Message}
 Emitted after `release()` or `releaseMessage` has been called and the VisibilityTimeout of a message has successfully been changed to `0`. The `handled` event will also be fired for released messages, but that will come earlier, when the release function is initially called.
+
+### timeoutReached {Message}
+Emitted when a message reaches it's timeout limit, including any extensions made with the `autoExtendTimeout` feature. The event is sent on the message itself, and on the Squiss class. Note that on the event sent on the message, there is no data sent to the listener callback function (because the `message` will be in scope anyway).
+
+Example at the Squiss level: 
+
+```javascript
+poller.on('timeoutReached', (msg) => {
+  console.log(msg,'timeout was reached!');
+});
+```
+
+Example at the Message level (for instance, in a message handler function):
+
+```javascript
+message.on('timeoutReached', ()=>console.log('message timed out'));
+message.on('timeoutReached', (msg)=>console.log(msg,'message timed out')); // undefined message timed out
+```
  
 ### timeoutExtended {Message}
 Emitted when a message has had its timeout successfully extended by the `autoExtendTimeout` feature.
