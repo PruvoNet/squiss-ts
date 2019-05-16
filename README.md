@@ -188,6 +188,9 @@ Emitted when Squiss asks SQS for new messages, and doesn't get any.
 ### released {Message}
 Emitted after `release()` or `releaseMessage` has been called and the VisibilityTimeout of a message has successfully been changed to `0`. The `handled` event will also be fired for released messages, but that will come earlier, when the release function is initially called.
 
+### keep {Message}
+Emitted after `keep()` has been called. This happens when the timeout extender logic has exhausted all of its tries to extend the message visibility.
+
 ### timeoutReached {Message}
 Emitted when a message reaches it's timeout limit, including any extensions made with the `autoExtendTimeout` feature. The event is sent on the message itself, and on the Squiss class. Note that on the event sent on the message, there is no data sent to the listener callback function (because the `message` will be in scope anyway).
 

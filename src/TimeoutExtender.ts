@@ -4,6 +4,7 @@ import {Squiss} from './index';
 import {Message} from './Message';
 import * as LinkedList from 'linked-list';
 import {Item} from 'linked-list';
+import {AWSError} from 'aws-sdk';
 
 /**
  * The maximum age, in milliseconds, that a message can reach before AWS will no longer accept VisibilityTimeout
@@ -178,6 +179,8 @@ export class TimeoutExtender {
       if (this._getNodeAge(node) >= this._stopAfter) {
         this._deleteNode(node);
         node.message.keep();
+        node.message.emit('keep');
+        this._squiss.emit('keep', node.message);
         node.message.emit('timeoutReached');
         this._squiss.emit('timeoutReached', node.message);
         return;
@@ -198,19 +201,20 @@ export class TimeoutExtender {
     const extendByMs = Math.min(this._visTimeout, MAX_MESSAGE_AGE_MS - this._getNodeAge(node));
     const extendBySecs = Math.floor(extendByMs / 1000);
     node.message.emit('extendingTimeout');
+    this._squiss.emit('extendingTimeout', node.message);
     this._squiss.changeMessageVisibility(node.message, extendBySecs)
       .then(() => {
         node.message.emit('timeoutExtended');
         this._squiss.emit('timeoutExtended', node.message);
       })
-      .catch((err: Error) => {
+      .catch((err: AWSError) => {
         if (err.message.match(/Message does not exist or is not available/)) {
           this._deleteNode(node);
           node.message.emit('autoExtendFail', err);
           this._squiss.emit('autoExtendFail', {message: node.message, error: err});
         } else {
           node.message.emit('autoExtendError', err);
-          this._squiss.emit('error', err);
+          this._squiss.emit('autoExtendError', {message: node.message, error: err});
         }
       });
     this._deleteNode(node);

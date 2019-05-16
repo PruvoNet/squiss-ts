@@ -11,6 +11,9 @@ import {SQS, S3} from 'aws-sdk';
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
 import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
+import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
+import {AWSError} from 'aws-sdk';
+import {EventEmitterOverride} from './EventEmitterTypesHelper';
 
 export {SQS, S3} from 'aws-sdk';
 
@@ -118,10 +121,41 @@ const optDefaults: ISquissOptions = {
     autoExtendTimeout: false,
 };
 
+export interface IMessageDeletedEventPayload {
+    msg: Message;
+    successId: string;
+}
+
+export interface IMessageErrorEventPayload {
+    message: Message;
+    error: AWSError;
+}
+
+interface ISquissEvents {
+    delQueued: Message;
+    handled: Message;
+    released: Message;
+    timeoutReached: Message;
+    extendingTimeout: Message;
+    timeoutExtended: Message;
+    message: Message;
+    keep: Message;
+    drained: void;
+    queueEmpty: void;
+    maxInFlight: void;
+    deleted: IMessageDeletedEventPayload;
+    gotMessages: number;
+    error: Error;
+    aborted: AWSError;
+    delError: BatchResultErrorEntry;
+    autoExtendFail: IMessageErrorEventPayload;
+    autoExtendError: IMessageErrorEventPayload;
+}
+
 /**
  * Squiss is a high-volume-capable Amazon SQS polling class. See README for usage details.
  */
-export class Squiss extends EventEmitter {
+export class Squiss extends EventEmitter implements EventEmitterOverride<ISquissEvents> {
 
     /**
      * Getter for the number of messages currently in flight.
@@ -690,12 +724,13 @@ export class Squiss extends EventEmitter {
             }
             if (data.Successful && data.Successful.length) {
                 data.Successful.forEach((success) => {
-                    this.emit('deleted', success.Id);
-                    itemById[success.Id].msg.emit('deleted');
+                    const msg = itemById[success.Id].msg;
+                    this.emit('deleted', {msg, successId: success.Id});
+                    msg.emit('deleted', success.Id);
                     itemById[success.Id].resolve();
                 });
             }
-        }).catch((err) => {
+        }).catch((err: Error) => {
             this.emit('error', err);
             return Promise.reject(err);
         });
@@ -774,10 +809,10 @@ export class Squiss extends EventEmitter {
                 this._paused = true;
                 this.emit('maxInFlight');
             }
-        }).catch((err) => {
+        }).catch((err: AWSError) => {
             this._activeReq = undefined;
             if (err.code && err.code === 'RequestAbortedError') {
-                this.emit('aborted');
+                this.emit('aborted', err);
             } else {
                 setTimeout(next, this._opts.pollRetryMs);
                 this.emit('error', err);
@@ -868,7 +903,7 @@ export class Squiss extends EventEmitter {
         return this._initTimeoutExtender()
             .then(() => this.getQueueUrl())
             .then((queueUrl) => this._getBatch(queueUrl))
-            .catch((e) => {
+            .catch((e: Error) => {
                 this.emit('error', e);
             });
     }
