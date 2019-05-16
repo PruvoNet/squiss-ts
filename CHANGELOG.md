@@ -2,7 +2,11 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Development
-- nothing yet
+### Added
+- Added missing documentation on the `timeoutReached` event [#24](https://github.com/PruvoNet/squiss-ts/issues/24) (Thanks to [UpGo](https://github.com/upugo-dev) for the PR)
+- Added contributes list
+### Fixed
+- deduplicate messages in delete batches [#26](https://github.com/PruvoNet/squiss-ts/issues/26)
 
 ## [v2.0.0]
 Marking the library as stable after stress usage in a full blown production environment 

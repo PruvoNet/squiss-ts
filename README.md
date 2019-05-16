@@ -261,3 +261,7 @@ Squiss supports Node 6 LTS and higher.
 This project is a typescript port (with better performance) of the wonderful and unmaintnaed project [TomFrost/Squiss](https://www.github.com/TomFrost/Squiss)  
 Squiss was originally created at [TechnologyAdvice](http://www.technologyadvice.com) in Nashville, TN.
 
+## Contributing
+
+All contributions are happily welcomed!  
+Please make all pull requests to the `master` branch from your fork and ensure tests pass locally.

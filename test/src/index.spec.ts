@@ -615,6 +615,19 @@ describe('index', () => {
         spy.should.be.calledTwice();
       });
     });
+    it('deletes messages in batches without duplicates', () => {
+      inst = new SquissPatched({queueUrl: 'foo', deleteWaitMs: 10} as ISquissOptions);
+      inst!.sqs = new SQSStub(15) as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
+      inst!.on('message', (msg: Message) => {
+        inst!.deleteMessage(msg);
+        inst!.deleteMessage(msg);
+      });
+      inst!.start();
+      return wait().then(() => {
+        spy.should.be.calledTwice();
+      });
+    });
     it('deletes immediately with batch size=1', () => {
       inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(5) as any as SQS;
