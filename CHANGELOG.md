@@ -2,9 +2,18 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Development
+- nothing yet
+
+## [v3.0.0]
 ### Added
 - Added missing documentation on the `timeoutReached` event [#24](https://github.com/PruvoNet/squiss-ts/issues/24) (Thanks to [UpGo](https://github.com/upugo-dev) for the PR)
 - Added contributes list
+- Added typings for all events
+- Emit event on `keep` event - [#27](https://github.com/PruvoNet/squiss-ts/issues/27)
+- `deleted` event payload on `Squiss` class to also contain the message itself - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
+- `deleted` event payload on `Message` class to contain the success id - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
+- send `autoExtendError` event instead of `error` event on `Squiss` class - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
+- `aborted` event payload on `Squiss` class to be the error instance - [#28](https://github.com/PruvoNet/squiss-ts/issues/28)
 ### Fixed
 - deduplicate messages in delete batches [#26](https://github.com/PruvoNet/squiss-ts/issues/26)
 
@@ -95,3 +104,4 @@ Marking the library as stable after stress usage in a full blown production envi
 [v1.5.1]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.0...v1.5.1
 [v1.5.2]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.1...v1.5.2
 [v2.0.0]: https://github.com/PruvoNet/squiss-ts/compare/v1.5.2...v2.0.0
+[v3.0.0]: https://github.com/PruvoNet/squiss-ts/compare/v2.0.0...v3.0.0

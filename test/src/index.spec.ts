@@ -353,6 +353,7 @@ describe('index', () => {
         return wait();
       }).then(() => {
         spy.should.be.calledOnce();
+        spy.should.be.calledWith(sinon.match.instanceOf(Error));
         inst!.running.should.eq(false);
       });
     });
@@ -636,6 +637,26 @@ describe('index', () => {
       inst!.start();
       return wait().then(() => {
         spy.should.have.callCount(5);
+      });
+    });
+    it('emits deleted event', () => {
+      const msgSpyMessage = sinon.spy();
+      const msgSpySquiss = sinon.spy();
+      inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
+      inst!.sqs = new SQSStub(1) as any as SQS;
+      let message: Message;
+      inst!.on('message', (msg: Message) => {
+        message = msg;
+        msg!.on('deleted', msgSpyMessage);
+        msg.del();
+      });
+      inst!.on('deleted', msgSpySquiss);
+      inst!.start();
+      return wait().then(() => {
+          msgSpyMessage.should.be.calledOnce();
+          msgSpyMessage.should.be.calledWith('id_0');
+          msgSpySquiss.should.be.calledOnce();
+          msgSpySquiss.should.be.calledWith({successId: 'id_0', msg: message});
       });
     });
     it('delWaitTime timeout should be cleared after timeout runs', () => {

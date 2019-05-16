@@ -18,6 +18,8 @@ const getS3Stub = () => {
   return new S3Stub() as any as S3;
 };
 
+const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
+
 let inst = null;
 let clock: any = null;
 const msgSquissStub = getSquissStub();
@@ -162,13 +164,17 @@ describe('TimeoutExtender', () => {
     clock.tick(15000);
     spy.should.be.calledThrice();
   });
-  it('renews only until the configured age limit', (done) => {
+  it('renews only until the configured age limit', () => {
+    const keepSpyMessage = sinon.spy();
+    const keepSpySquiss = sinon.spy();
+    const timeoutSpyMessage = sinon.spy();
+    const timeoutSpySquiss = sinon.spy();
     clock = sinon.useFakeTimers(100000);
     const squiss = getSquissStub();
-    squiss.on('timeoutReached', (msg: Message) => {
-      msg.should.equal(fooMsg);
-      done();
-    });
+    squiss.on('timeoutReached', timeoutSpySquiss);
+    fooMsg.on('timeoutReached', timeoutSpyMessage);
+    squiss.on('keep', keepSpySquiss);
+    fooMsg.on('keep', keepSpyMessage);
     const spy = sinon.spy(squiss, 'changeMessageVisibility');
     inst = new TimeoutExtender(squiss, {visibilityTimeoutSecs: 10, noExtensionsAfterSecs: 15});
     inst.addMessage(fooMsg);
@@ -177,11 +183,19 @@ describe('TimeoutExtender', () => {
     clock.tick(20000);
     spy.should.be.calledOnce();
     fooMsg.isHandled().should.eql(true);
+    return wait().then(() => {
+      keepSpyMessage.should.be.calledOnce();
+      keepSpySquiss.should.be.calledOnce();
+      keepSpySquiss.should.be.calledWith(fooMsg);
+      timeoutSpyMessage.should.be.calledOnce();
+      timeoutSpySquiss.should.be.calledOnce();
+      timeoutSpySquiss.should.be.calledWith(fooMsg);
+    });
   });
   it('emits error on the parent Squiss object in case of issue', (done) => {
     clock = sinon.useFakeTimers(100000);
     const squiss = getSquissStub();
-    squiss.on('error', () => done());
+    squiss.on('autoExtendError', () => done());
     squiss.changeMessageVisibility = sinon.stub().returns(Promise.reject(new Error('test')));
     inst = new TimeoutExtender(squiss, {visibilityTimeoutSecs: 10});
     inst.addMessage(fooMsg);
