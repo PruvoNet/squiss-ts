@@ -69,6 +69,7 @@ export interface ISquissOptions {
     s3Bucket?: string;
     s3Retain?: boolean;
     s3Prefix?: string;
+    minS3Size?: number;
 }
 
 interface IDeleteQueueItem {
@@ -208,11 +209,13 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
      *     against a stubbed SQS service, such as ElasticMQ.
      * @param {boolean} [opts.gzip=false] Auto gzip messages to reduce message size.
      * @param {number} [opts.minGzipSize=0] The min message size to gzip (in bytes) when `gzip` is set to `true`.
-     * @param {boolean} [opts.s3Fallback=false] Upload messages bigger than `maxMessageBytes` or queue default to s3,
+     * @param {boolean} [opts.s3Fallback=false] Upload messages bigger than `minS3Size` or queue default to s3,
      *    and retrieve it from there when message is received.
      * @param {string} [opts.s3Bucket] if `s3Fallback` is true, upload message to this s3 bucket.
      * @param {boolean} [opts.s3Retain=false] if `s3Fallback` is true, do not delete blob on message delete.
      * @param {string} [opts.s3Prefix] if `s3Fallback` is true, set this prefix to uploaded s3 blobs.
+     * @param {number} [opts.minS3Size=queueMaxMessageSize] The min message size to send to S3 (in bytes) when
+     * `s3Fallback` is set to `true`.
      * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
      *    batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued
      *    delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
@@ -924,10 +927,14 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         return this._s3;
     }
 
-    private isLargeMessage(message: ISendMessageRequest): Promise<boolean> {
+    private isLargeMessage(message: ISendMessageRequest, minSize?: number): Promise<boolean> {
+        const messageSize = getMessageSize(message);
+        if (minSize) {
+            return Promise.resolve(messageSize > minSize);
+        }
         return this.getQueueMaximumMessageSize()
             .then((queueMaximumMessageSize) => {
-                return getMessageSize(message) >= queueMaximumMessageSize;
+                return messageSize >= queueMaximumMessageSize;
             });
     }
 
@@ -981,7 +988,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
                 if (!this._opts.s3Fallback) {
                     return Promise.resolve(params);
                 }
-                return this.isLargeMessage(params)
+                return this.isLargeMessage(params, this._opts.minS3Size)
                     .then((isLarge) => {
                         if (!isLarge) {
                             return Promise.resolve(params);

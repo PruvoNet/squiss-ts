@@ -22,20 +22,41 @@ The library is production ready and is being stress used in a full blown product
 ## Quick example
 ```typescript
 import {Squiss, Message} from 'squiss-ts';
-const poller = new Squiss({
+
+const awsConfig = {
+  accessKeyId: '<accessKeyId>',
+  secretAccessKey: '<secretAccessKey>',
+  region: '<region>',
+};
+
+const squiss = new Squiss({
+  awsConfig,
   queueName: 'my-sqs-queue',
   bodyFormat: 'json',
-  unwrapSns: true,
-  maxInFlight: 500
+  maxInFlight: 15
 });
 
-poller.on('message', (msg: Message) => {
-  console.log('%s says: %s', msg.body.name, msg.body.message);
+squiss.on('message', (msg: Message) => {
+  console.log('%s says: %s', msg.body.name, JSON.stringify(msg.body.message), msg.attributes.p1);
   msg.del();
 });
 
-poller.start();
+squiss.start();
 
+const messageToSend = {
+    name: 'messageName',
+    message: {
+        a: 1,
+        b: 2,
+    },
+}
+
+const propsToSend = {
+    p1: 1,
+    p2: 2,
+}
+
+squiss.sendMessage(messageToSend, 0, propsToSend);
 ```
 
 ## Install
@@ -74,9 +95,10 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.gzip** _Default "false"._ Auto gzip messages to reduce message size.
 - **opts.minGzipSize** _Default 0._ The min message size to gzip (in bytes) when `gzip` is set to `true`.
-- **opts.s3Fallback** _Default "false"._ Upload messages bigger than `maxMessageBytes` or queue default `maxMessageBytes` to s3, and retrieve it from there when message is received.
+- **opts.s3Fallback** _Default "false"._ Upload messages bigger than `minS3Size` or queue default `maxMessageBytes` to s3, and retrieve it from there when message is received.
 - **opts.s3Bucket** if `s3Fallback` is true, upload message to this s3 bucket.
 - **opts.s3Retain** _Default "false"._ if `s3Fallback` is true, do not delete blob on message delete.
+- **opts.minS3Size** _Defaults to queue max message size._ The min message size to send to S3 (in bytes) when `s3Fallback` is set to `true`.
 - **opts.s3Prefix** _Default ""._ if `s3Fallback` is true, set this prefix to uploaded s3 blobs.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when `deleteWaitMs` milliseconds have passed since the first queued delete in the batch, whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
@@ -87,7 +109,7 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.minReceiveBatchSize** _Default 1._ The minimum number of available message slots that will initiate a call to get the next batch. Maximum 10 or `maxInFlight`, whichever is lower.
 - **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. If this needs to be set low, consider setting `activePollIntervalMs` to space out calls to SQS. Maximum 20.
 - **opts.unwrapSns** _Default false._ Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
-- **opts.visibilityTimeoutSecs** _Defaults to queue setting on read, or 30 seconds for createQueue._ The amount of time, in seconds, that received messages will be unavailable to other pollers without being deleted.
+- **opts.visibilityTimeoutSecs** _Defaults to queue setting on read, or 30 seconds for createQueue._ The amount of time, in seconds, that received messages will be unavailable to other squiss instances without being deleted.
 - **opts.receiveAttributes** _Defaults to `['All']`._ An an array of strings with attribute names (e.g. `myAttribute`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.attributes.<attributeName>`.
 - **opts.receiveSqsAttributes** _Defaults to `['All']`._ An an array of strings with attribute names (e.g. `ApproximateReceiveCount`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.sqsAttributes.<attributeName>`.
 
@@ -203,7 +225,7 @@ Emitted when a message reaches it's timeout limit, including any extensions made
 Example at the Squiss level: 
 
 ```javascript
-poller.on('timeoutReached', (msg) => {
+squiss.on('timeoutReached', (msg) => {
   console.log(msg,'timeout was reached!');
 });
 ```

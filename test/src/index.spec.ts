@@ -1255,6 +1255,41 @@ describe('index', () => {
         });
       });
     });
+    it('sends a S3 message if it is bigger than minS3Size', () => {
+      const blobs: Blobs = {};
+      const s3Stub = getS3Stub(blobs);
+      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket', minS3Size: 250});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      const largeMessage = generateLargeMessage(300);
+      return inst!.sendMessage(largeMessage, 10).then(() => {
+        blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: '{"uploadSize":300,"bucket":"my_bucket","key":"my_uuid"}',
+          DelaySeconds: 10,
+          MessageAttributes: {
+            __SQS_S3__: {DataType: 'Number', StringValue: '300'},
+          },
+        });
+      });
+    });
+    it('does not send a S3 message if it is smaller than minS3Size', () => {
+      const blobs: Blobs = {};
+      const s3Stub = getS3Stub(blobs);
+      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket', minS3Size: 500});
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'sendMessage');
+      const largeMessage = generateLargeMessage(300);
+      return inst!.sendMessage(largeMessage, 10).then(() => {
+        Object.keys(blobs).length.should.be.eq(0);
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: largeMessage,
+          DelaySeconds: 10,
+        });
+      });
+    });
     it('sends a skipped S3 message with a delay and attributes', () => {
       const blobs: Blobs = {};
       const s3Stub = getS3Stub(blobs);
