@@ -2,7 +2,8 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Development
-- nothing yet
+### Fixed
+- Fixed documentation [#31](https://github.com/PruvoNet/squiss-ts/issues/31)
 
 ## [v3.0.0]
 ### Added

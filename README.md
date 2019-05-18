@@ -7,7 +7,7 @@
 [![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev)
 
 # Squiss-TS 
-High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up (with full typescript support)  
+High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up with full typescript support  
 The library is production ready and is being stress used in a full blown production environment
 
 ## Main features
@@ -15,8 +15,8 @@ The library is production ready and is being stress used in a full blown product
 - Efficiently auto pull new messages when concurrency is not fully utilized
 - Easy message lifecycle management
 - Options to auto renew messages visibility timeout for long message processing
-- Option to automatically gzip incoming and outgoing messages to decrease message sizes (based on message size)
-- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive
+- Option to automatically gzip incoming and outgoing messages (based on message size) to decrease message sizes and save SQS costs
+- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message sizes and save SQS costs
 - Full typescript support
 
 ## Quick example
@@ -28,12 +28,14 @@ const poller = new Squiss({
   unwrapSns: true,
   maxInFlight: 500
 });
-poller.start();
 
 poller.on('message', (msg: Message) => {
   console.log('%s says: %s', msg.body.name, msg.body.message);
   msg.del();
 });
+
+poller.start();
+
 ```
 
 ## Install
@@ -42,29 +44,33 @@ npm install squiss-ts
 ```
 
 ## How it works
-Squiss processes as many messages simultaneously as possible. Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion. If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time. Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time (set up by you) has passed (see `autoExtendTimeout`).  
+Squiss processes as many messages simultaneously as possible.
+Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion.
+If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.
+Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time (set up by you) has passed (see `autoExtendTimeout`).  
 Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
 
 ## Functions
 
 ### new Squiss(opts)
-Don't be scared of `new` -- you need to create a new Squiss instance for every queue you want to poll. Squiss is an EventEmitter, so don't forget to call `squiss.on('message', (msg: Message) => msg.del())` at the very least to keep the messages flowing.
+Don't be scared of `new` - you need to create a new Squiss instance for every queue you want to poll.
+Squiss is an EventEmitter, so don't forget to call `squiss.on('message', (msg: Message) => msg.del())` at the very least to keep the messages flowing.
 
 #### opts {...}
 Use the following options to point Squiss at the right queue:
 - **opts.awsConfig** An object mapping to pass to the SQS constructor, configuring the aws-sdk library. This is commonly used to set the AWS region, endpoint, or the user credentials. See the docs on [configuring the aws-sdk](http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html) for details.
-- **opts.queueName** The name of the queue to be polled. Used only if opts.queueUrl is not specified, but Squiss prefers just the name.
-- **opts.queueUrl** The URL of the queue to be polled. If not specified, opts.queueName is required.
-- **opts.accountNumber** If a queueName is specified, the accountNumber of the queue owner can optionally be specified to access a queue in a different AWS account.
-- **opts.correctQueueUrl** _Default false._ Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint (see opts.awsConfig), applicable only if opts.queueName is specified. This can be useful for testing against a local SQS service, such as ElasticMQ.
+- **opts.queueName** The name of the queue to be polled. Used only if `queueUrl` is not specified, but Squiss prefers just the name.
+- **opts.queueUrl** The URL of the queue to be polled. If not specified, `queueName` is required.
+- **opts.accountNumber** If `queueName` is specified, the accountNumber of the queue owner can optionally be specified to access a queue in a different AWS account.
+- **opts.correctQueueUrl** _Default false._ Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint (see `awsConfig`), applicable only if `queueName` is specified. This can be useful for testing against a local SQS service, such as ElasticMQ.
 
 Squiss's defaults are great out of the box for most use cases, but you can use the below to fine-tune your Squiss experience:
 - **opts.SQS** _Default AWS.SQS_ An instance of the official SQS Client, or an SQS constructor function to use rather than the default one provided by AWS.SQS
 - **opts.S3** _Default AWS.S3_ An instance of the official S3 Client, or an S3 constructor function to use rather than the default one provided by AWS.S3
-- **opts.activePollIntervalMs** _Default 0._ The number of milliseconds to wait between requesting batches of messages when the queue is not empty, and the maxInFlight cap has not been hit. For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency according to maxInFlight.
-- **opts.autoExtendTimeout** _Default false._ If true, Squiss will automatically extend each message's VisibilityTimeout in the SQS queue until it's handled (by keeping, deleting, or releasing it). It will place the API call to extend the timeout `opts.advancedCallMs` milliseconds in advance of the expiration, and will extend it by the number of seconds specified in `opts.visibilityTimeoutSecs`. If that's not specified, the VisibilityTimeout setting on the queue itself will be used.
-- **opts.noExtensionsAfterSecs** _Default 43200._ If `opts.autoExtendTimeout` is used, Squiss will stop auto-renewing a message's VisibilityTimeout when it reaches this age. Default is 12 hours, SQS's VisbilityTimeout maximum.
-- **opts.advancedCallMs** _Default 5000._ If `opts.autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the VisibilityTimeout of the message, before the message is set to expire.
+- **opts.activePollIntervalMs** _Default 0._ The number of milliseconds to wait between requesting batches of messages when the queue is not empty, and the `maxInFlight` cap has not been hit. For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency according to `maxInFlight`.
+- **opts.autoExtendTimeout** _Default false._ If true, Squiss will automatically extend each message's `VisibilityTimeout` in the SQS queue until it's handled (by keeping, deleting, or releasing it). It will place the API call to extend the timeout `advancedCallMs` milliseconds in advance of the expiration, and will extend it by the number of seconds specified in `visibilityTimeoutSecs`. If that's not specified, the `VisibilityTimeout` setting on the queue itself will be used.
+- **opts.noExtensionsAfterSecs** _Default 43200._ If `autoExtendTimeout` is used, Squiss will stop auto-renewing a message's `VisibilityTimeout` when it reaches this age. Default is 12 hours, SQS's VisbilityTimeout maximum.
+- **opts.advancedCallMs** _Default 5000._ If `autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the `VisibilityTimeout` of the message, before the message is set to expire.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.gzip** _Default "false"._ Auto gzip messages to reduce message size.
 - **opts.minGzipSize** _Default 0._ The min message size to gzip (in bytes) when `gzip` is set to `true`.
@@ -72,18 +78,18 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.s3Bucket** if `s3Fallback` is true, upload message to this s3 bucket.
 - **opts.s3Retain** _Default "false"._ if `s3Fallback` is true, do not delete blob on message delete.
 - **opts.s3Prefix** _Default ""._ if `s3Fallback` is true, set this prefix to uploaded s3 blobs.
-- **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
+- **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when `deleteWaitMs` milliseconds have passed since the first queued delete in the batch, whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
 - **opts.idlePollIntervalMs** _Default 0._ The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.
-- **opts.maxInFlight** _Default 100._ The number of messages to keep "in-flight", or processing simultaneously. When this cap is reached, no more messages will be polled until currently in-flight messages are marked as deleted or handled. Setting this option to 0 will uncap your inFlight messages, pulling and delivering messages as long as there are messages to pull.
+- **opts.maxInFlight** _Default 100._ The number of messages to keep "in-flight", or processing simultaneously. When this cap is reached, no more messages will be polled until currently in-flight messages are marked as deleted or handled. Setting this option to 0 will uncap your in flight messages, pulling and delivering messages as long as there are messages to pull.
 - **opts.pollRetryMs** _Default 2000._ The number of milliseconds to wait before retrying when Squiss's call to retrieve messages from SQS fails.
-- **opts.receiveBatchSize** _Default 10._ The number of messages to receive at one time. Maximum 10 or maxInFlight, whichever is lower.
-- **opts.minReceiveBatchSize** _Default 1._ he minimum number of available message slots that will initiate a call to get the next batch. Maximum 10 or maxInFlight, whichever is lower.
-- **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. If this needs to be set low, consider setting activePollIntervalMs to space out calls to SQS. Maximum 20.
+- **opts.receiveBatchSize** _Default 10._ The number of messages to receive at one time. Maximum 10 or `maxInFlight`, whichever is lower.
+- **opts.minReceiveBatchSize** _Default 1._ The minimum number of available message slots that will initiate a call to get the next batch. Maximum 10 or `maxInFlight`, whichever is lower.
+- **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. If this needs to be set low, consider setting `activePollIntervalMs` to space out calls to SQS. Maximum 20.
 - **opts.unwrapSns** _Default false._ Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
 - **opts.visibilityTimeoutSecs** _Defaults to queue setting on read, or 30 seconds for createQueue._ The amount of time, in seconds, that received messages will be unavailable to other pollers without being deleted.
-- **opts.receiveAttributes** _Defaults to `[All']`._ An an array of strings with attribute names (e.g. `myAttribute`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.attributes.<attributeName>`.
-- **opts.receiveSqsAttributes** _Defaults to `[All']`._ An an array of strings with attribute names (e.g. `ApproximateReceiveCount`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.sqsAttributes.<attributeName>`.
+- **opts.receiveAttributes** _Defaults to `['All']`._ An an array of strings with attribute names (e.g. `myAttribute`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.attributes.<attributeName>`.
+- **opts.receiveSqsAttributes** _Defaults to `['All']`._ An an array of strings with attribute names (e.g. `ApproximateReceiveCount`) to request along with the `receiveMessage` call. The attributes will be accessible via `message.sqsAttributes.<attributeName>`.
 
 Are you using Squiss to create your queue, as well? Squiss will use `opts.receiveWaitTimeSecs` and `opts.visibilityTimeoutSecs` above in the queue settings, but consider setting any of the following options to configure it further. Note that the defaults are the same as Amazon's own:
 - **opts.delaySecs** _Default 0._ The number of milliseconds by which to delay the delivery of new messages into the queue by default.
@@ -206,7 +212,6 @@ Example at the Message level (for instance, in a message handler function):
 
 ```javascript
 message.on('timeoutReached', ()=>console.log('message timed out'));
-message.on('timeoutReached', (msg)=>console.log(msg,'message timed out')); // undefined message timed out
 ```
  
 ### timeoutExtended {Message}
@@ -261,7 +266,7 @@ The raw, unprocessed SQS response object as delivered from the aws-sdk.
 Squiss supports Node 6 LTS and higher.
 
 ## Credits
-This project is a typescript port (with better performance) of the wonderful and unmaintnaed project [TomFrost/Squiss](https://www.github.com/TomFrost/Squiss)  
+This project is a typescript port (with better performance, bug fixes and new features) of the wonderful and unmaintnaed project [TomFrost/Squiss](https://www.github.com/TomFrost/Squiss)  
 Squiss was originally created at [TechnologyAdvice](http://www.technologyadvice.com) in Nashville, TN.
 
 ## Contributing
