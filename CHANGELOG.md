@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [v3.0.1]
 ### Fixed
 - Fixed documentation [#31](https://github.com/PruvoNet/squiss-ts/issues/31)
+### Added
 - Added `minS3Size` option to set the min size that will cause upload to S3 [#33](https://github.com/PruvoNet/squiss-ts/issues/33)
 
 ## [v3.0.0]
