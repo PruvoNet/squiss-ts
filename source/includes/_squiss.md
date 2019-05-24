@@ -29,7 +29,14 @@ Property | Type | Description
 
 ## Constructor Options
 
-### awsConfig
+<aside class="notice">
+Squiss's defaults are great out of the box for most use cases, 
+but you can use the below to fine-tune your Squiss experience
+</aside>
+
+### Aws Options
+
+#### awsConfig
 
 ```typescript
 const awsConfig = {
@@ -47,7 +54,31 @@ See the docs on [configuring the aws-sdk](http://docs.aws.amazon.com/AWSJavaScri
 Type | SQS.Types.ClientConfiguration
 Mandatory| False
 
-### queueName
+#### SQS
+
+An instance of the official SQS Client, or an SQS constructor function to use rather than the
+default one provided by AWS.SQS
+
+ | |
+---------- | -------  | -------
+Type | AWS.SQS
+Mandatory| False
+Default| `AWS.SQS`
+
+#### S3
+
+An instance of the official S3 Client, or an S3 constructor function to use rather than the
+default one provided by AWS.S3
+
+ | |
+---------- | -------  | -------
+Type | AWS.S3
+Mandatory| False
+Default| `AWS.S3`
+
+### Queue Options
+
+#### queueName
 
 The name of the queue to be polled.
 
@@ -56,7 +87,7 @@ The name of the queue to be polled.
 Type | string
 Mandatory| True if `queueUrl` is not specified
 
-### queueUrl
+#### queueUrl
 
 The URL of the queue to be polled.
 
@@ -65,7 +96,7 @@ The URL of the queue to be polled.
 Type | string
 Mandatory| True if `queueName` is not specified
 
-### accountNumber
+#### accountNumber
 
 If `queueName` is specified, the `accountNumber` of the queue owner can optionally be specified to access a queue in
 a different AWS account.
@@ -75,7 +106,7 @@ a different AWS account.
 Type | string &#124; number
 Mandatory| False
 
-### correctQueueUrl
+#### correctQueueUrl
 
 Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint (see `awsConfig`),
 applicable only if `queueName` is specified.  
@@ -87,32 +118,117 @@ Type | boolean
 Mandatory| False
 Default| `false`
 
-<aside class="notice">
-Squiss's defaults are great out of the box for most use cases, 
-but you can use the below to fine-tune your Squiss experience
-</aside>
+### Auto Extend Options
 
-### SQS
+#### autoExtendTimeout
 
-An instance of the official SQS Client, or an SQS constructor function to use rather than the
-default one provided by AWS.SQS
-
- | |
----------- | -------  | -------
-Type | AWS.SQS
-Mandatory| False
-Default| `AWS.SQS`
-
-### S3
-
-An instance of the official S3 Client, or an S3 constructor function to use rather than the
-default one provided by AWS.S3
+If true, Squiss will automatically extend each message's `VisibilityTimeout` in the SQS queue until
+it's handled (by keeping, deleting, or releasing it).  
+It will place the API call to extend the timeout `advancedCallMs` milliseconds in advance of the expiration,
+and will extend it by the number of seconds specified in `visibilityTimeoutSecs`.  
+If `visibilityTimeoutSecs` is not specified, the `VisibilityTimeout` setting on the queue itself will be used.
 
  | |
 ---------- | -------  | -------
-Type | AWS.S3
+Type | boolean
 Mandatory| False
-Default| `AWS.S3`
+Default| `false`
+
+#### noExtensionsAfterSecs
+
+If `autoExtendTimeout` is used, Squiss will stop auto-renewing a message's `VisibilityTimeout`
+when it reaches this age. Default is 12 hours, SQS's `VisbilityTimeout` maximum.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `43200`
+
+#### advancedCallMs
+
+If `autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the
+`VisibilityTimeout` of the message, before the message is set to expire.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `5000`
+
+### Gzip Options
+
+#### gzip
+
+Auto gzip messages to reduce message size.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default| `false`
+
+#### minGzipSize
+
+The min message size to gzip (in bytes) when `gzip` is set to `true`.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `0`
+
+### S3 Options
+
+#### s3Fallback
+
+Upload messages bigger than `minS3Size` or queue default `maxMessageBytes` to S3,
+and retrieve it from there when message is received.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default| `false`
+
+#### s3Bucket
+
+if `s3Fallback` is set to `true`, upload message to this S3 bucket.
+
+ | |
+---------- | -------  | -------
+Type | string
+Mandatory| True if `s3Fallback` is set to `true`
+
+#### s3Retain
+
+if `s3Fallback` is true, do not delete blob on message delete.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default | `false`
+
+#### minS3Size
+
+The min message size to send to S3 (in bytes) when `s3Fallback` is set to `true`.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default | queue max message size
+
+#### s3Prefix
+
+if `s3Fallback` is set to `true`, set this prefix to uploaded S3 blobs.
+
+ | |
+---------- | -------  | -------
+Type | string
+Mandatory| False
+Default | ``
 
 ### activePollIntervalMs
 
@@ -127,42 +243,6 @@ Type | number
 Mandatory| False
 Default| `0`
 
-### autoExtendTimeout
-
-If true, Squiss will automatically extend each message's `VisibilityTimeout` in the SQS queue until
-it's handled (by keeping, deleting, or releasing it).  
-It will place the API call to extend the timeout `advancedCallMs` milliseconds in advance of the expiration,
-and will extend it by the number of seconds specified in `visibilityTimeoutSecs`.  
-If `visibilityTimeoutSecs` is not specified, the `VisibilityTimeout` setting on the queue itself will be used.
-
- | |
----------- | -------  | -------
-Type | boolean
-Mandatory| False
-Default| `false`
-
-### noExtensionsAfterSecs
-
-If `autoExtendTimeout` is used, Squiss will stop auto-renewing a message's `VisibilityTimeout`
-when it reaches this age. Default is 12 hours, SQS's `VisbilityTimeout` maximum.
-
- | |
----------- | -------  | -------
-Type | number
-Mandatory| False
-Default| `43200`
-
-### advancedCallMs
-
-If `autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the
-`VisibilityTimeout` of the message, before the message is set to expire.
-
- | |
----------- | -------  | -------
-Type | number
-Mandatory| False
-Default| `5000`
-
 ### bodyFormat
 
 The format of the incoming message.  
@@ -173,76 +253,6 @@ Set to "json" to automatically call `JSON.parse()` on each incoming message.
 Type | 'json' &#124; 'plain' &#124; undefined
 Mandatory| False
 Default| `plain`
-
-### gzip
-
-Auto gzip messages to reduce message size.
-
- | |
----------- | -------  | -------
-Type | boolean
-Mandatory| False
-Default| `false`
-
-### minGzipSize
-
-The min message size to gzip (in bytes) when `gzip` is set to `true`.
-
- | |
----------- | -------  | -------
-Type | number
-Mandatory| False
-Default| `0`
-
-### s3Fallback
-
-Upload messages bigger than `minS3Size` or queue default `maxMessageBytes` to S3,
-and retrieve it from there when message is received.
-
- | |
----------- | -------  | -------
-Type | boolean
-Mandatory| False
-Default| `false`
-
-### s3Bucket
-
-if `s3Fallback` is set to `true`, upload message to this S3 bucket.
-
- | |
----------- | -------  | -------
-Type | string
-Mandatory| True if `s3Fallback` is set to `true`
-
-### s3Retain
-
-if `s3Fallback` is true, do not delete blob on message delete.
-
- | |
----------- | -------  | -------
-Type | boolean
-Mandatory| False
-Default | `false`
-
-### minS3Size
-
-The min message size to send to S3 (in bytes) when `s3Fallback` is set to `true`.
-
- | |
----------- | -------  | -------
-Type | number
-Mandatory| False
-Default | queue max message size
-
-### s3Prefix
-
-if `s3Fallback` is set to `true`, set this prefix to uploaded S3 blobs.
-
- | |
----------- | -------  | -------
-Type | string
-Mandatory| False
-Default | ``
 
 ## Methods
 
