@@ -162,7 +162,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
      * Getter for the number of messages currently in flight.
      * @returns {number}
      */
-    get inFlight(): number {
+    public get inFlight(): number {
         return this._inFlight;
     }
 
@@ -170,7 +170,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
      * Getter to determine whether Squiss is currently polling or not.
      * @returns {boolean}
      */
-    get running(): boolean {
+    public get running(): boolean {
         return this._running;
     }
 
