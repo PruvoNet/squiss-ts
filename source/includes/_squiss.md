@@ -61,7 +61,7 @@ default one provided by AWS.SQS
 
  | |
 ---------- | -------  | -------
-Type | AWS.SQS
+Type | AWS.SQS  &#124; Object typeof AWS.SQS 
 Mandatory| False
 Default| `AWS.SQS`
 
@@ -72,7 +72,7 @@ default one provided by AWS.S3
 
  | |
 ---------- | -------  | -------
-Type | AWS.S3
+Type | AWS.S3  &#124; Object typeof AWS.S3 
 Mandatory| False
 Default| `AWS.S3`
 
@@ -356,7 +356,7 @@ Set to "json" to automatically call `JSON.parse()` on each incoming message.
 
  | |
 ---------- | -------  | -------
-Type | 'json' &#124; 'plain' &#124; undefined
+Type | 'json' &#124; 'plain' &#124
 Mandatory| False
 Default| `plain`
 
@@ -446,7 +446,6 @@ information.
 ---------- | -------  | -------
 Type | string
 Mandatory| False
-Default| ``
 
 ## Methods
 
