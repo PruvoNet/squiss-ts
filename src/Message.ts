@@ -64,7 +64,7 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
     }
 
     public raw: SQS.Message;
-    public body?: string;
+    public body?: string | any;
     public subject?: string;
     public topicArn?: string;
     public topicName?: string;
@@ -111,7 +111,7 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
         this._s3Retain = opts.s3Retain;
     }
 
-    public parse() {
+    public parse(): Promise<string | any> {
         if (this.body === undefined || this.body === null) {
             return Promise.resolve();
         }
@@ -202,7 +202,7 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
     /**
      * Changes the visibility timeout of the message.
      */
-    public changeVisibility(timeoutInSeconds: number): Promise<any> {
+    public changeVisibility(timeoutInSeconds: number): Promise<void> {
         return this._squiss.changeMessageVisibility(this, timeoutInSeconds);
     }
 

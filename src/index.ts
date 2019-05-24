@@ -313,7 +313,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
      * @param {number} timeoutInSeconds Visibility timeout in seconds.
      * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
      */
-    public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<any> {
+    public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void> {
         let receiptHandle: string;
         if (msg instanceof Message) {
             receiptHandle = msg.raw.ReceiptHandle!;
@@ -328,7 +328,10 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
                         VisibilityTimeout: timeoutInSeconds,
                     }).promise();
                 }
-            );
+            )
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 
     /**
