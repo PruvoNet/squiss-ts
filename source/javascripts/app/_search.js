@@ -42,7 +42,7 @@
     content = $('.content');
     searchResults = $('.search-results');
 
-    $('#input-search').on('keyup',function(e) {
+    function inputCallback(e) {
       var wait = function() {
         return function(executingFunction, waitTime){
           clearTimeout(timeoutHandle);
@@ -52,7 +52,9 @@
       wait(function(){
         search(e);
       }, searchDelay );
-    });
+    }
+    $('#input-search').on('search',inputCallback);
+    $('#input-search').on('keyup',inputCallback);
   }
 
   function search(event) {
