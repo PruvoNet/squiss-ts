@@ -163,6 +163,87 @@ Type | number
 Mandatory| False
 Default| `5000`
 
+### bodyFormat
+
+The format of the incoming message.  
+Set to "json" to automatically call `JSON.parse()` on each incoming message.
+
+ | |
+---------- | -------  | -------
+Type | 'json' &#124; 'plain' &#124; undefined
+Mandatory| False
+Default| `plain`
+
+### gzip
+
+Auto gzip messages to reduce message size.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default| `false`
+
+### minGzipSize
+
+The min message size to gzip (in bytes) when `gzip` is set to `true`.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `0`
+
+### s3Fallback
+
+Upload messages bigger than `minS3Size` or queue default `maxMessageBytes` to S3,
+and retrieve it from there when message is received.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default| `false`
+
+### s3Bucket
+
+if `s3Fallback` is set to `true`, upload message to this S3 bucket.
+
+ | |
+---------- | -------  | -------
+Type | string
+Mandatory| True if `s3Fallback` is set to `true`
+
+### s3Retain
+
+if `s3Fallback` is true, do not delete blob on message delete.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default | `false`
+
+### minS3Size
+
+The min message size to send to S3 (in bytes) when `s3Fallback` is set to `true`.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default | queue max message size
+
+### s3Prefix
+
+if `s3Fallback` is set to `true`, set this prefix to uploaded S3 blobs.
+
+ | |
+---------- | -------  | -------
+Type | string
+Mandatory| False
+Default | ``
+
 ## Methods
 
 ### parse(): Promise<string | any>
