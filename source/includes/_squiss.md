@@ -23,13 +23,23 @@ Queue message poller.
 
 Property | Type | Description
 ---------- | ------- | -------
-`raw` | SQS.Message | The raw SQS message
-`body` | String &#124; Object | The parsed body of the message
-`subject` | String | The SNS subject
-`topicArn` | String | The SNS topic arn
-`topicName` | String | The SNS topic name
-`attributes` | Object | The user message attributes
-`sqsAttributes` | Object | The SQS message attributes
+`inFlight` | number | The number of messages currently in flight
+`running` | number | Whether Squiss is currently polling or not
+`sqs` | SQS | The SQS model used
+
+## Constructor Options
+
+### awsConfig
+
+An object mapping to pass to the SQS constructor, configuring the aws-sdk library.  
+This is commonly used to set the AWS region, endpoint, or the user credentials.  
+See the docs on [configuring the aws-sdk](http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html) for details.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| '0'
 
 ## Methods
 
