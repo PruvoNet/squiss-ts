@@ -118,6 +118,17 @@ Type | boolean
 Mandatory| False
 Default| `false`
 
+### visibilityTimeoutSecs
+
+The amount of time, in seconds, that received messages will be unavailable to other squiss instances without
+being deleted.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| queue setting on read, or 30 seconds for `createQueue()`
+
 ### Auto Extend Options
 
 #### autoExtendTimeout
@@ -230,7 +241,34 @@ Type | string
 Mandatory| False
 Default | ``
 
-### activePollIntervalMs
+### Delete options
+
+#### deleteBatchSize
+
+The number of messages to delete at one time.  
+Squiss will trigger a batch delete when this limit is reached, or when `deleteWaitMs` 
+milliseconds have passed since the first queued delete in the batch, whichever comes first.  
+Set to 1 to make all deletes immediate
+
+ | |
+---------- | -------  | -------
+Type | number (max 10)
+Mandatory| False
+Default| `10`
+
+#### deleteWaitMs
+
+The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `2000`
+
+### Polling Options
+
+#### activePollIntervalMs
 
 The number of milliseconds to wait between requesting batches of messages when the queue is not empty,
 and the `maxInFlight` cap has not been hit.  
@@ -243,7 +281,75 @@ Type | number
 Mandatory| False
 Default| `0`
 
-### bodyFormat
+#### idlePollIntervalMs
+
+The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `0`
+
+#### maxInFlight
+
+The number of messages to keep "in-flight", or processing simultaneously. When this cap is reached,
+no more messages will be polled until currently in-flight messages are marked as deleted or handled.  
+Setting this option to 0 will uncap your in flight messages, 
+pulling and delivering messages as long as there are messages to pull.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `100`
+
+#### pollRetryMs
+
+The number of milliseconds to wait before retrying when Squiss's call to retrieve messages from SQS fails.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `2000`
+
+#### receiveBatchSize
+
+The number of messages to receive at one time.
+
+ | |
+---------- | -------  | -------
+Type | number (max 10 or `maxInFlight`)
+Mandatory| False
+Default| `10`
+
+#### minReceiveBatchSize
+
+The minimum number of available message slots that will initiate a call to get the next batch.
+
+ | |
+---------- | -------  | -------
+Type | number (max 10 or `maxInFlight`, whichever is lower)
+Mandatory| False
+Default| `1`
+
+#### receiveWaitTimeSecs
+
+The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available.  
+It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last
+one ends. 
+If this needs to be set low, consider setting `activePollIntervalMs` to space out calls to SQS.
+
+ | |
+---------- | -------  | -------
+Type | number (max 20)
+Mandatory| False
+Default| `20`
+
+### Formatting Options
+
+#### bodyFormat
 
 The format of the incoming message.  
 Set to "json" to automatically call `JSON.parse()` on each incoming message.
@@ -253,6 +359,94 @@ Set to "json" to automatically call `JSON.parse()` on each incoming message.
 Type | 'json' &#124; 'plain' &#124; undefined
 Mandatory| False
 Default| `plain`
+
+#### unwrapSns
+
+Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an
+SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default| `false`
+
+### Attributes Options
+
+#### receiveAttributes
+
+An an array of strings with attribute names (e.g. `myAttribute`) to request along with the `receiveMessage` call.  
+The attributes will be accessible via `message.attributes.<attributeName>`.
+
+ | |
+---------- | -------  | -------
+Type | string[]
+Mandatory| False
+Default| `['All']`
+
+#### receiveSqsAttributes
+
+An an array of strings with attribute names (e.g. `ApproximateReceiveCount`) to request along with
+the `receiveMessage` call.  
+The attributes will be accessible via `message.sqsAttributes.<attributeName>`.
+
+ | |
+---------- | -------  | -------
+Type | string[]
+Mandatory| False
+Default| `['All']`
+
+### Queue Create Options
+
+Are you using Squiss to create your queue as well? Squiss will use `receiveWaitTimeSecs` and 
+`visibilityTimeoutSecs` in the queue create options, but consider setting any of the 
+following options to configure it further. 
+
+<aside class="notice">
+Note that the defaults are the same as Amazon's own defaults.
+</aside>
+
+#### delaySecs
+
+The number of milliseconds by which to delay the delivery of new messages into the queue by default.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `0`
+
+#### maxMessageBytes
+
+he maximum size of a single message, in bytes, that the queue can support.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `262144` (256KB)
+
+#### messageRetentionSecs
+
+The amount of time for which to retain messages in the queue until they expire, in seconds.
+
+ | |
+---------- | -------  | -------
+Type | number (max 1209600 (14 days))
+Mandatory| False
+Default| `345600` (4 days)
+
+#### queuePolicy
+
+f specified, will be set as the access policy of the queue when `createQueue` is called.  
+See [the AWS Policy documentation](http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html) for more
+information.
+
+ | |
+---------- | -------  | -------
+Type | string
+Mandatory| False
+Default| ``
 
 ## Methods
 
