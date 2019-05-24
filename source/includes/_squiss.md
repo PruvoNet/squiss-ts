@@ -31,15 +31,137 @@ Property | Type | Description
 
 ### awsConfig
 
+```typescript
+const awsConfig = {
+  accessKeyId: '<accessKeyId>',
+  secretAccessKey: '<secretAccessKey>',
+  region: '<region>',
+};
+```
 An object mapping to pass to the SQS constructor, configuring the aws-sdk library.  
 This is commonly used to set the AWS region, endpoint, or the user credentials.  
 See the docs on [configuring the aws-sdk](http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html) for details.
 
  | |
 ---------- | -------  | -------
+Type | SQS.Types.ClientConfiguration
+Mandatory| False
+
+### queueName
+
+The name of the queue to be polled.
+
+ | |
+---------- | -------  | -------
+Type | string
+Mandatory| True if `queueUrl` is not specified
+
+### queueUrl
+
+The URL of the queue to be polled.
+
+ | |
+---------- | -------  | -------
+Type | string
+Mandatory| True if `queueName` is not specified
+
+### accountNumber
+
+If `queueName` is specified, the `accountNumber` of the queue owner can optionally be specified to access a queue in
+a different AWS account.
+
+ | |
+---------- | -------  | -------
+Type | string &#124; number
+Mandatory| False
+
+### correctQueueUrl
+
+Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint (see `awsConfig`),
+applicable only if `queueName` is specified.  
+This can be useful for testing against a local SQS service, such as ElasticMQ.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default| `false`
+
+<aside class="notice">
+Squiss's defaults are great out of the box for most use cases, 
+but you can use the below to fine-tune your Squiss experience
+</aside>
+
+### SQS
+
+An instance of the official SQS Client, or an SQS constructor function to use rather than the
+default one provided by AWS.SQS
+
+ | |
+---------- | -------  | -------
+Type | AWS.SQS
+Mandatory| False
+Default| `AWS.SQS`
+
+### S3
+
+An instance of the official S3 Client, or an S3 constructor function to use rather than the
+default one provided by AWS.S3
+
+ | |
+---------- | -------  | -------
+Type | AWS.S3
+Mandatory| False
+Default| `AWS.S3`
+
+### activePollIntervalMs
+
+The number of milliseconds to wait between requesting batches of messages when the queue is not empty,
+and the `maxInFlight` cap has not been hit.  
+For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency
+according to `maxInFlight`.
+
+ | |
+---------- | -------  | -------
 Type | number
 Mandatory| False
-Default| '0'
+Default| `0`
+
+### autoExtendTimeout
+
+If true, Squiss will automatically extend each message's `VisibilityTimeout` in the SQS queue until
+it's handled (by keeping, deleting, or releasing it).  
+It will place the API call to extend the timeout `advancedCallMs` milliseconds in advance of the expiration,
+and will extend it by the number of seconds specified in `visibilityTimeoutSecs`.  
+If `visibilityTimeoutSecs` is not specified, the `VisibilityTimeout` setting on the queue itself will be used.
+
+ | |
+---------- | -------  | -------
+Type | boolean
+Mandatory| False
+Default| `false`
+
+### noExtensionsAfterSecs
+
+If `autoExtendTimeout` is used, Squiss will stop auto-renewing a message's `VisibilityTimeout`
+when it reaches this age. Default is 12 hours, SQS's `VisbilityTimeout` maximum.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `43200`
+
+### advancedCallMs
+
+If `autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the
+`VisibilityTimeout` of the message, before the message is set to expire.
+
+ | |
+---------- | -------  | -------
+Type | number
+Mandatory| False
+Default| `5000`
 
 ## Methods
 

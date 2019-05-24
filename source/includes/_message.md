@@ -14,10 +14,10 @@ SQS message handler
 Property | Type | Description
 ---------- | ------- | -------
 `raw` | SQS.Message | The raw SQS message
-`body` | String &#124; Object | The parsed body of the message
-`subject` | String | The SNS subject
-`topicArn` | String | The SNS topic arn
-`topicName` | String | The SNS topic name
+`body` | string &#124; Object | The parsed body of the message
+`subject` | string | The SNS subject
+`topicArn` | string | The SNS topic arn
+`topicName` | string | The SNS topic name
 `attributes` | Object | The user message attributes
 `sqsAttributes` | Object | The SQS message attributes
 
