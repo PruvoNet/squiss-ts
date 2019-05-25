@@ -726,3 +726,35 @@ squiss.on('autoExtendError', (error: IMessageErrorEventPayload) => {
 ```
 
 Emitted if `autoExtendTimeout` feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
+
+### S3 Events
+
+#### s3Download <`{message: Message, data: {bucket: string, key: string, uploadSize: number}}`>
+
+```typescript
+squiss.on('s3Download', (payload: IMessageS3EventPayload) => {
+  console.log(`downloaded s3 message ${payload.data.key}`);
+});
+```
+
+Emitted if `s3Fallback` feature is enabled, and a message that was received downloaded its message body from S3.
+
+#### s3Delete <`{message: Message, data: {bucket: string, key: string, uploadSize: number}}`>
+
+```typescript
+squiss.on('s3Delete', (payload: IMessageS3EventPayload) => {
+  console.log(`deleted s3 message ${payload.data.key}`);
+});
+```
+
+Emitted if `s3Fallback` feature is enabled, and a message that was received with message body from S3 was deleted.
+
+#### s3Upload <`{bucket: string, key: string, uploadSize: number}`>
+
+```typescript
+squiss.on('s3Delete', (payload: IS3Upload) => {
+  console.log(`uploaded s3 message ${payload.key}`);
+});
+```
+
+Emitted if `s3Fallback` feature is enabled, and a message that was sent uploaded its body to S3.

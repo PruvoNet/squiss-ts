@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Moved documentation to <a href="https://squiss-ts.pruvo.com">here</a>
 - Added issue and PR templates
 - Added a new logo!
+- Added S3 related events [#38](https://github.com/PruvoNet/squiss-ts/issues/38)
 
 ## v3.0.1
 

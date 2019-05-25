@@ -103,7 +103,9 @@ Changes the visibility timeout of the message
 
 ## Events
 
-### delQueued
+### Lifecycle Events
+
+#### delQueued
 
 ```typescript
 message.on('delQueued', () => {
@@ -113,7 +115,7 @@ message.on('delQueued', () => {
 
 Emitted when a message is queued for deletion, even if delete queuing has been turned off.
 
-### handled
+#### handled
 
 ```typescript
 message.on('handled', () => {
@@ -123,7 +125,7 @@ message.on('handled', () => {
 
 Emitted when a message is handled by any means: deleting, releasing, or calling `keep()`.
 
-### released
+#### released
 
 ```typescript
 message.on('released', () => {
@@ -136,38 +138,7 @@ has successfully been changed to `0`.
 The `handled` event will also be fired for released messages, but that will come earlier, 
 when the release function is initially called.
 
-### timeoutReached
-
-```typescript
-message.on('timeoutReached', () => {
-  console.log('message timeout reached');
-});
-```
-
-Emitted when a message reaches it's timeout limit, including any extensions made
-with the `autoExtendTimeout` feature.
-
-### extendingTimeout
-
-```typescript
-message.on('extendingTimeout', () => {
-  console.log('extending message timeout');
-});
-```
-
-Emitted when a message `VisibilityTimeout` is about to be extended with the `autoExtendTimeout` feature.
-
-### timeoutExtended
-
-```typescript
-message.on('timeoutExtended', () => {
-  console.log('message timeout was extended');
-});
-```
-
-Emitted when a message `VisibilityTimeout` was extended with the `autoExtendTimeout` feature.
-
-### keep
+#### keep
 
 ```typescript
 message.on('keep', () => {
@@ -178,7 +149,7 @@ message.on('keep', () => {
 Emitted after `keep()` has been called.  
 This happens when the timeout extender logic has exhausted all of its tries to extend the message visibility.
 
-### delError <`BatchResultErrorEntry`>
+#### delError <`BatchResultErrorEntry`>
 
 ```typescript
 message.on('delError', (error: BatchResultErrorEntry) => {
@@ -189,7 +160,7 @@ message.on('delError', (error: BatchResultErrorEntry) => {
 Emitted when the message failed to get deleted.
 The object handed to you in this event is the AWS failure object described in the <a href="http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#getQueueUrl-property">SQS deleteMessageBatch documentation</a>.
 
-### deleted
+#### deleted
 ``
 ```typescript
 message.on('deleted', () => {
@@ -201,7 +172,40 @@ Emitted when a message is confirmed as being successfully deleted from the queue
 The `handled` and `delQueued` events will also be fired for deleted messages, but that will come earlier,
 when the delete function is initially called.
 
-### autoExtendFail <`AWSError`>
+### Timeout Events
+
+#### timeoutReached
+
+```typescript
+message.on('timeoutReached', () => {
+  console.log('message timeout reached');
+});
+```
+
+Emitted when a message reaches it's timeout limit, including any extensions made
+with the `autoExtendTimeout` feature.
+
+#### extendingTimeout
+
+```typescript
+message.on('extendingTimeout', () => {
+  console.log('extending message timeout');
+});
+```
+
+Emitted when a message `VisibilityTimeout` is about to be extended with the `autoExtendTimeout` feature.
+
+#### timeoutExtended
+
+```typescript
+message.on('timeoutExtended', () => {
+  console.log('message timeout was extended');
+});
+```
+
+Emitted when a message `VisibilityTimeout` was extended with the `autoExtendTimeout` feature.
+
+#### autoExtendFail <`AWSError`>
 
 ```typescript
 message.on('autoExtendFail', (error: AWSError) => {
@@ -212,7 +216,7 @@ message.on('autoExtendFail', (error: AWSError) => {
 Emitted if `autoExtendTimeout` feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
-### autoExtendError <`AWSError`>
+#### autoExtendError <`AWSError`>
 
 ```typescript
 message.on('autoExtendError', (error: AWSError) => {
@@ -221,3 +225,25 @@ message.on('autoExtendError', (error: AWSError) => {
 ```
 
 Emitted if `autoExtendTimeout` feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
+
+### S3 Events
+
+#### s3Download <`{bucket: string, key: string, uploadSize: number}`>
+
+```typescript
+message.on('s3Download', (payload: IS3Upload) => {
+  console.log(`downloaded s3 message ${payload.key}`);
+});
+```
+
+Emitted if `s3Fallback` feature is enabled, and a message that was received downloaded its message body from S3.
+
+#### s3Delete <`{bucket: string, key: string, uploadSize: number}`>
+
+```typescript
+message.on('s3Delete', (payload: IS3Upload) => {
+  console.log(`deleted s3 message ${payload.key}`);
+});
+```
+
+Emitted if `s3Fallback` feature is enabled, and a message that was received with message body from S3 was deleted.
