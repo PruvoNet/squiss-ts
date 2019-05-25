@@ -20,7 +20,7 @@ The library is production ready and is being stress used in a full blown product
 - Easy message lifecycle management
 - Options to auto renew messages visibility timeout for long message processing
 - Option to automatically gzip incoming and outgoing messages (based on message size) to decrease message sizes and save SQS costs
-- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message sizes and save SQS costs
+- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message sizes, save SQS costs and be able to send messages bigger than SQS size limit
 - Full typescript support
 
 ## Quick example
@@ -40,9 +40,9 @@ const squiss = new Squiss({
   maxInFlight: 15
 });
 
-squiss.on('message', (msg: Message) => {
-  console.log('%s says: %s', msg.body.name, JSON.stringify(msg.body.message), msg.attributes.p1);
-  msg.del();
+squiss.on('message', (message: Message) => {
+  console.log(`${message.body.name} says: ${JSON.stringify(message.body.message)} and has attripute p1 with value ${message.attributes.p1}`);
+  message.del();
 });
 
 squiss.start();
@@ -52,13 +52,13 @@ const messageToSend = {
     message: {
         a: 1,
         b: 2,
-    },
+    },;
 }
 
 const propsToSend = {
     p1: 1,
     p2: 2,
-}
+};
 
 squiss.sendMessage(messageToSend, 0, propsToSend);
 ```
