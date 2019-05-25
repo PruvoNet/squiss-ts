@@ -530,7 +530,7 @@ Passing `FIFO_MessageDeduplicationId` and/or `FIFO_MessageGroupId` will be remov
 
 For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
 
-#### sendMessages(messages: Array<Object | string> | Object | string, delay?: number, attributes?: IMessageAttributes |  IMessageAttributes[]): Promise<SQS.Types.SendMessageBatchResult>
+#### sendMessages(messages: {Object | string}[] | Object | string, delay?: number, attributes?: IMessageAttributes | IMessageAttributes[]): Promise<SQS.Types.SendMessageBatchResult>
 
 ```typescript
 squiss.sendMessage([{a:1, b:2}], undefined, {correlationId: 'my correlation id'})
