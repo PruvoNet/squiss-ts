@@ -17,7 +17,7 @@ const squiss = new Squiss({
 });
 ```
 
-Queue message poller.
+Queue message poller (`EventEmitter`)
 
 ## Properties
 
@@ -481,7 +481,7 @@ squiss.start()
   });
 ```
 
-Starts polling SQS for new messages. Each new message is handed off in the [Message](#message-class) event.
+Starts polling SQS for new messages. Each new message is handed off in the [message](#squiss-class-events-message-events-message) event.
 
 #### stop(soft?: boolean, timeout?: number): Promise\<boolean\>
 
@@ -521,12 +521,12 @@ metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5Of
 
 Arguments:
 
-- [Message](#message-class) - The message to push to the queue. If it's a string, great! If it's an Object, 
-Squiss will call JSON.stringify on it.
+- `message` - The message to push to the queue. If it's a string, great! If it's an Object, 
+Squiss will call `JSON.stringify()` on it.
 - `delay` - The amount of time, in seconds, to wait before making the message available in the queue. 
 If not specified, the queue's configured value will be used.
 - `attributes`- An optional attributes mapping to associate with the message 
-(will be converted to SQS format automatically). 
+(will be converted to SQS format automatically).  
 Passing `FIFO_MessageDeduplicationId` and/or `FIFO_MessageGroupId` will be removed and converted to the 
 `MessageDeduplicationId` and `MessageGroupId` message attributes accordingly (needed for FIFO queues). 
 
@@ -551,13 +551,13 @@ squiss.sendMessage([{a:1, b:2}, {c:3, d:4}], undefined, [{correlationId: 'my cor
 Sends an array of any number of messages to the configured SQS queue, breaking them down into appropriate batch 
 requests executed in parallel (or as much as the default HTTP agent allows).  
 It returns a promise that resolves with a response closely aligned to the official AWS SDK's sendMessageBatch, 
-except the results from all batch requests are merged.
-The "Id" supplied in the response will be the index of the message in the original messages array, in string form.  
+except the results from all batch requests are merged.  
+The "Id" property supplied in the response will be the index of the message in the original messages array, in string form.  
 
 Arguments:
 
 - `messages` - The array of messages to push to the queue.
-The messages should be either strings, or Objects that Squiss can pass to JSON.stringify.
+The messages should be either strings, or Objects that Squiss can pass to `JSON.stringify()`.
 - `delay` - The amount of time, in seconds, to wait before making the messages available in the queue.
 If not specified, the queue's configured value will be used.
 - `attributes` - An optional array or single object of attributes mapping to associate with each message
@@ -574,7 +574,7 @@ squiss.changeVisibility(message, 5000)
   });
 ```
 
-Changes the visibility timeout of a message, given either the full Squiss Message object or the receipt handle string.
+Changes the visibility timeout of a message, given either [Message](#message-class) object or the receipt handle string.
 
 #### deleteMessage(message: Message): Promise\<void\>
 
@@ -585,10 +585,13 @@ squiss.deleteMessage(message)
   });
 ```
 
-Deletes a message, given the full Message object sent to the [Message](#message-class) event.  
+Deletes a [Message](#message-class).  
 It's much easier to call [message.del()](#message-class-methods-del-promise-lt-void-gt), but if you need to do it right from the Squiss instance, this is how.  
-Note that the message probably won't be deleted immediately - it'll be queued for a batch delete.  
-See the constructor notes for how to configure the specifics of that.
+
+<aside class="notice">
+The message probably won't be deleted immediately - it'll be queued for a batch delete.  
+See the <a href="#squiss-class-constructor-options-delete-options">constructor notes</a> for how to configure the specifics of that.
+</aside>
 
 #### handledMessage(message: Message): void
 
@@ -624,9 +627,12 @@ squiss.createQueue()
   });
 ```
 
-Creates the configured queue. 
+Creates the configured queue.   
 Returns a promise that resolves with the new queue's URL when it's complete.  
-Note that this can only be called if you set [queueName](#squiss-class-constructor-options-queue-options-queuename) when instantiating Squiss. 
+
+<aside class="notice">
+This can only be called if you set <a href="#squiss-class-constructor-options-queue-options-queuename">queueName</a> when instantiating Squiss. 
+</aside>
 
 #### deleteQueue(): Promise\<void\>
 
@@ -649,7 +655,7 @@ squiss.purgeQueue()
   });
 ```
 
-Deletes all the messages in a queue and init in flight.
+Deletes all the messages in a queue and init the in flight state.
 
 #### getQueueUrl(): Promise\<string\>
 
@@ -661,7 +667,7 @@ squiss.getQueueUrl()
 ```
 
 Returns a Promise that resolves with the URL of the configured queue, even if you only instantiated Squiss with a queueName.  
-The [correctQueueUrl](#squiss-class-constructor-options-queue-options-correctQueueUrl) setting applies to this result, if it was set.
+The [correctQueueUrl](#squiss-class-constructor-options-queue-options-correctqueueurl) setting applies to this result, if it was set.
 
 #### getQueueVisibilityTimeout(): Promise\<number\>
 
@@ -684,8 +690,11 @@ squiss.getQueueMaximumMessageSize()
   });
 ```
 
-Retrieves the max message size (in bytes) set on the target queue.  
+Retrieves the max message size (in bytes) set on the target queue.
+
+<aside class="warning">
 When a message is sent, it will be rejected if it exceeds that size.
+</aside>
 
 ## Events
 
@@ -719,8 +728,8 @@ squiss.on('maxInFlight', () => {
 });
 ```
 
-Emitted when Squiss has hit the maxInFlight cap.  
-At this point, Squiss won't retrieve any more messages until at least [receiveBatchSize](#squiss-class-constructor-options-polling-options-receivebatchsize) in-flight messages have been deleted.
+Emitted when Squiss has hit the [maxInFlight](#squiss-class-constructor-options-polling-options-maxinflight) cap.  
+At this point, Squiss won't retrieve any more messages until at least 1 messages have been handled (e.g. deleted/released/kept).
 
 
 #### error <`Error`>
@@ -731,9 +740,12 @@ squiss.on('error', (error: Error) => {
 });
 ```
 
-If any of the AWS API calls outright fail, [error](#squiss-class-events-queue-events-error-lt-error-gt) is emitted.  
-If you don't have a listener on [error](#squiss-class-events-queue-events-error-lt-error-gt), per Node.js's structure, the error will be treated as uncaught
+Emitted if any of the AWS API calls outright fail.
+
+<aside class="warning">
+If you don't have a listener on `error`, per Node.js's structure, the error will be treated as uncaught
 and will crash your app.
+</aside>
 
 #### aborted <`AWSError`>
 
@@ -799,7 +811,7 @@ squiss.on('timeoutReached', (message: Message) => {
 ```
 
 Emitted when a message reaches it's timeout limit, including any extensions made
-with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
+with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature.
 
 #### extendingTimeout
 
@@ -809,7 +821,7 @@ squiss.on('extendingTimeout', (message: Message) => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` is about to be extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
+Emitted when a message `VisibilityTimeout` is about to be extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature.
 
 #### timeoutExtended
 
@@ -819,7 +831,7 @@ squiss.on('timeoutExtended', (message: Message) => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` was extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
+Emitted when a message `VisibilityTimeout` was extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature.
 
 #### keep
 
@@ -874,7 +886,7 @@ squiss.on('autoExtendFail', (error: IMessageErrorEventPayload) => {
 });
 ```
 
-Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
 #### autoExtendError <`{message: Message, error: AWSError}`>
@@ -885,7 +897,7 @@ squiss.on('autoExtendError', (error: IMessageErrorEventPayload) => {
 });
 ```
 
-Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
 
 ### S3 Events
 
@@ -897,7 +909,7 @@ squiss.on('s3Download', (payload: IMessageS3EventPayload) => {
 });
 ```
 
-Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received downloaded its message body from S3.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options) feature is enabled, and a message that was received downloaded its message body from S3.
 
 #### s3Delete <`{message: Message, data: {bucket: string, key: string, uploadSize: number}}`>
 
@@ -907,7 +919,7 @@ squiss.on('s3Delete', (payload: IMessageS3EventPayload) => {
 });
 ```
 
-Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received with message body from S3 was deleted.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options) feature is enabled, and a message that was received with message body from S3 was deleted.
 
 #### s3Upload <`{bucket: string, key: string, uploadSize: number}`>
 
@@ -917,4 +929,4 @@ squiss.on('s3Delete', (payload: IS3Upload) => {
 });
 ```
 
-Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was sent uploaded its body to S3.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options) feature is enabled, and a message that was sent uploaded its body to S3.

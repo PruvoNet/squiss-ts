@@ -7,7 +7,7 @@ squiss.on('message', (message: Message) => {
 });
 ```
 
-SQS message handler
+SQS message handler (`EventEmitter`)
 
 ## Properties
 
@@ -32,13 +32,13 @@ message.parse()
   });
 ```
 
-Parses the message and store it in [body](#message-class-properties).
+Parses the message and store it in [body](#message-class-properties).  
 If the user requested to parse the message as json, it will be stored (and returned) as such.  
 The main purposes of this method are:  
 
  - Unzip the message, if it was gzipped before it was sent
  - Fetch the message from S3, if it was stored there before it was sent.
-   - Unless otherwise configured, make sure that the message will be delete from S3 once the message is marked as handled
+   - Unless otherwise configured, make sure that the message will be deleted from S3 once the message is deleted
  - If configured, parse the message as json. 
 
 <aside class="notice">
@@ -134,9 +134,9 @@ message.on('released', () => {
 });
 ```
 
-Emitted after [keep()](#message-class-methods-release-promise-lt-void-gt) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise-lt-void-gt) has been called and the `VisibilityTimeout` of a message
+Emitted after [keep()](#message-class-methods-keep-void) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise-lt-void-gt) has been called and the `VisibilityTimeout` of a message
 has successfully been changed to `0`.  
-The [handled()](#message-class-events-lifecycle-events-handled) event will also be fired for released messages, but that will come earlier, 
+The [handled](#message-class-events-lifecycle-events-handled) event will also be fired for released messages, but that will come earlier, 
 when the release function is initially called.
 
 #### keep
@@ -170,7 +170,7 @@ message.on('deleted', () => {
 ```
 
 Emitted when a message is confirmed as being successfully deleted from the queue.  
-The [handled()](#message-class-events-lifecycle-events-handled) and [delQueued()](#message-class-events-lifecycle-events-delqueued) events will also be fired for deleted messages, but that will come earlier,
+The [handled](#message-class-events-lifecycle-events-handled) and [delQueued](#message-class-events-lifecycle-events-delqueued) events will also be fired for deleted messages, but that will come earlier,
 when the delete function is initially called.
 
 ### Timeout Events
@@ -184,7 +184,7 @@ message.on('timeoutReached', () => {
 ```
 
 Emitted when a message reaches it's timeout limit, including any extensions made
-with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
+with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature.
 
 #### extendingTimeout
 
@@ -194,7 +194,7 @@ message.on('extendingTimeout', () => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` is about to be extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
+Emitted when a message `VisibilityTimeout` is about to be extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature.
 
 #### timeoutExtended
 
@@ -204,7 +204,7 @@ message.on('timeoutExtended', () => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` was extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
+Emitted when a message `VisibilityTimeout` was extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature.
 
 #### autoExtendFail <`AWSError`>
 
@@ -214,7 +214,7 @@ message.on('autoExtendFail', (error: AWSError) => {
 });
 ```
 
-Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
 #### autoExtendError <`AWSError`>
@@ -225,7 +225,7 @@ message.on('autoExtendError', (error: AWSError) => {
 });
 ```
 
-Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
 
 ### S3 Events
 
@@ -237,7 +237,7 @@ message.on('s3Download', (payload: IS3Upload) => {
 });
 ```
 
-Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received downloaded its message body from S3.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options) feature is enabled, and a message that was received downloaded its message body from S3.
 
 #### s3Delete <`{bucket: string, key: string, uploadSize: number}`>
 
@@ -247,4 +247,4 @@ message.on('s3Delete', (payload: IS3Upload) => {
 });
 ```
 
-Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received with message body from S3 was deleted.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options) feature is enabled, and a message that was received with message body from S3 was deleted.
