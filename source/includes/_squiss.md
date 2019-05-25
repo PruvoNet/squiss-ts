@@ -267,7 +267,7 @@ Default | ``
 #### deleteBatchSize
 
 The number of messages to delete at one time.  
-Squiss will trigger a batch delete when this limit is reached, or when `deleteWaitMs` 
+Squiss will trigger a batch delete when this limit is reached, or when [deleteWaitMs](#squiss-class-constructor-options-delete-options-deletewaitms) 
 milliseconds have passed since the first queued delete in the batch, whichever comes first.  
 Set to 1 to make all deletes immediate
 
@@ -292,9 +292,9 @@ Default| `2000`
 #### activePollIntervalMs
 
 The number of milliseconds to wait between requesting batches of messages when the queue is not empty,
-and the `maxInFlight` cap has not been hit.  
+and the [maxInFlight](#squiss-class-constructor-options-polling-options-maxinflight) cap has not been hit.  
 For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency
-according to `maxInFlight`.
+according to [maxInFlight](#squiss-class-constructor-options-polling-options-maxinflight).
 
  | |
 ---------- | -------  | -------
@@ -341,7 +341,7 @@ The number of messages to receive at one time.
 
  | |
 ---------- | -------  | -------
-Type | number (max 10 or `maxInFlight`)
+Type | number (max 10 or [maxInFlight](#squiss-class-constructor-options-polling-options-maxinflight))
 Mandatory| False
 Default| `10`
 
@@ -351,7 +351,7 @@ The minimum number of available message slots that will initiate a call to get t
 
  | |
 ---------- | -------  | -------
-Type | number (max 10 or `maxInFlight`, whichever is lower)
+Type | number (max 10 or [maxInFlight](#squiss-class-constructor-options-polling-options-maxinflight), whichever is lower)
 Mandatory| False
 Default| `1`
 
@@ -360,7 +360,7 @@ Default| `1`
 The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available.  
 It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last
 one ends. 
-If this needs to be set low, consider setting `activePollIntervalMs` to space out calls to SQS.
+If this needs to be set low, consider setting [activePollIntervalMs](#squiss-class-constructor-options-polling-options-activepollintervalms) to space out calls to SQS.
 
  | |
 ---------- | -------  | -------
@@ -396,7 +396,7 @@ Default| `false`
 
 #### receiveAttributes
 
-An an array of strings with attribute names (e.g. `myAttribute`) to request along with the `receiveMessage` call.  
+An an array of strings with attribute names (e.g. `myAttribute`) to request along with the `SQS.receiveMessage()` call.  
 The attributes will be accessible via `message.attributes.<attributeName>`.
 
  | |
@@ -408,7 +408,7 @@ Default| `['All']`
 #### receiveSqsAttributes
 
 An an array of strings with attribute names (e.g. `ApproximateReceiveCount`) to request along with
-the `receiveMessage` call.  
+the `SQS.receiveMessage()` call.  
 The attributes will be accessible via `message.sqsAttributes.<attributeName>`.
 
  | |
@@ -419,7 +419,7 @@ Default| `['All']`
 
 ### Queue Create Options
 
-Are you using Squiss to create your queue as well? Squiss will use `receiveWaitTimeSecs` and 
+Are you using Squiss to create your queue as well? Squiss will use [receiveWaitTimeSecs](#squiss-class-constructor-options-polling-options-receivewaittimesecs) and 
 `visibilityTimeoutSecs` in the queue create options, but consider setting any of the 
 following options to configure it further. 
 
@@ -459,7 +459,7 @@ Default| `345600` (4 days)
 
 #### queuePolicy
 
-f specified, will be set as the access policy of the queue when `createQueue` is called.  
+f specified, will be set as the access policy of the queue when [createQueue()](#squiss-class-methods-queue-methods-createqueue-promise) is called.  
 See [the AWS Policy documentation](http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html) for more
 information.
 
@@ -481,7 +481,7 @@ squiss.start()
   });
 ```
 
-Starts polling SQS for new messages. Each new message is handed off in the `message` event.
+Starts polling SQS for new messages. Each new message is handed off in the [Message](#message-class) event.
 
 #### stop(soft?: boolean, timeout?: number): Promise<boolean>
 
@@ -494,7 +494,7 @@ squiss.stop()
 
 Hold on to your hats, this one stops the polling, aborting any in-progress request for new messages.  
 If called with soft=`true` while there's an active request for new messages, the active request will not be 
-aborted and the message event may still be fired up to `opts.receiveWaitTimeSecs` afterward.  
+aborted and the message event may still be fired up to [receiveWaitTimeSecs](#squiss-class-constructor-options-polling-options-receivewaittimesecs) afterward.  
 A Promise will be returned and resolved with `true` when the queue is completely drained (all messages were handled), 
 or `false` if a `timeout` value was sent and it passed before the queue was drained.
 
@@ -520,7 +520,8 @@ Sends an individual message to the configured queue, and returns a promise that 
 metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5OfMessageBody`.  
 
 Arguments:
-- `message` - The message to push to the queue. If it's a string, great! If it's an Object, 
+
+- [Message](#message-class) - The message to push to the queue. If it's a string, great! If it's an Object, 
 Squiss will call JSON.stringify on it.
 - `delay` - The amount of time, in seconds, to wait before making the message available in the queue. 
 If not specified, the queue's configured value will be used.
@@ -554,6 +555,7 @@ except the results from all batch requests are merged.
 The "Id" supplied in the response will be the index of the message in the original messages array, in string form.  
 
 Arguments:
+
 - `messages` - The array of messages to push to the queue.
 The messages should be either strings, or Objects that Squiss can pass to JSON.stringify.
 - `delay` - The amount of time, in seconds, to wait before making the messages available in the queue.
@@ -583,8 +585,8 @@ squiss.deleteMessage(message)
   });
 ```
 
-Deletes a message, given the full Message object sent to the `message` event.  
-It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how.  
+Deletes a message, given the full Message object sent to the [Message](#message-class) event.  
+It's much easier to call [message.del()](#message-class-methods-del-promise), but if you need to do it right from the Squiss instance, this is how.  
 Note that the message probably won't be deleted immediately - it'll be queued for a batch delete.  
 See the constructor notes for how to configure the specifics of that.
 
@@ -597,7 +599,7 @@ squiss.handledMessage(message);
 Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the 
 number of "in-flight" messages.  
 It's good practice to delete every message you process, but this can be useful in case of error.  
-You can also call `message.keep()` on the message itself to invoke this.
+You can also call [message.keep()](#message-class-methods-keep-void) on the message itself to invoke this.
 
 #### releaseMessage(message: Message): Promise<void>
 
@@ -609,7 +611,7 @@ squiss.releaseMessage(message)
 ```
 
 Releases the given Message object back to the queue by setting its `VisibilityTimeout` to `0` and marking the message as
-handled internally. You can also call `message.release()` on the message itself to invoke this.
+handled internally. You can also call `[message.release()](#message-class-methods-release-promise) on the message itself to invoke this.
 
 ### Queue Methods
 
@@ -624,7 +626,7 @@ squiss.createQueue()
 
 Creates the configured queue. 
 Returns a promise that resolves with the new queue's URL when it's complete.  
-Note that this can only be called if you set `opts.queueName` when instantiating Squiss. 
+Note that this can only be called if you set [queueName](#squiss-class-constructor-options-queue-options-queuename) when instantiating Squiss. 
 
 #### deleteQueue(): Promise<void>
 
@@ -659,7 +661,7 @@ squiss.getQueueUrl()
 ```
 
 Returns a Promise that resolves with the URL of the configured queue, even if you only instantiated Squiss with a queueName.  
-The `correctQueueUrl` setting applies to this result, if it was set.
+The [correctQueueUrl](#squiss-class-constructor-options-queue-options-correctQueueUrl) setting applies to this result, if it was set.
 
 #### getQueueVisibilityTimeout(): Promise<number>
 
@@ -718,7 +720,7 @@ squiss.on('maxInFlight', () => {
 ```
 
 Emitted when Squiss has hit the maxInFlight cap.  
-At this point, Squiss won't retrieve any more messages until at least `opts.receiveBatchSize` in-flight messages have been deleted.
+At this point, Squiss won't retrieve any more messages until at least [receiveBatchSize](#squiss-class-constructor-options-polling-options-receivebatchsize) in-flight messages have been deleted.
 
 
 #### error <`Error`>
@@ -729,8 +731,8 @@ squiss.on('error', (error: Error) => {
 });
 ```
 
-If any of the AWS API calls outright fail, `error` is emitted.  
-If you don't have a listener on `error`, per Node.js's structure, the error will be treated as uncaught
+If any of the AWS API calls outright fail, [error](#squiss-class-events-queue-events-error-lt-error-gt) is emitted.  
+If you don't have a listener on [error](#squiss-class-events-queue-events-error-lt-error-gt), per Node.js's structure, the error will be treated as uncaught
 and will crash your app.
 
 #### aborted <`AWSError`>
@@ -741,7 +743,7 @@ squiss.on('aborted', (error: AWSError) => {
 });
 ```
 
-Emitted if a request for new messages was already in progress while performing a hard `stop()` .
+Emitted if a request for new messages was already in progress while performing a hard [stop()](#squiss-class-methods-lifecycle-methods-stop-soft-boolean-timeout-number-promise).
 
 ### Message Events
 
@@ -773,7 +775,7 @@ squiss.on('handled', (message: Message) => {
 });
 ```
 
-Emitted when a message is handled by any means: deleting, releasing, or calling `keep()`.
+Emitted when a message is handled by any means: deleting, releasing, or calling [keep()](#message-class-methods-keep-void).
 
 #### released
 
@@ -783,9 +785,9 @@ squiss.on('released', (message: Message) => {
 });
 ```
 
-Emitted after `release()` or `releaseMessage()` has been called and the `VisibilityTimeout` of a message
+Emitted after [release()](#message-class-methods-release-promise) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise) has been called and the `VisibilityTimeout` of a message
 has successfully been changed to `0`.  
-The `handled` event will also be fired for released messages, but that will come earlier, 
+The [handled](#squiss-class-events-message-events-handled) event will also be fired for released messages, but that will come earlier, 
 when the release function is initially called.
 
 #### timeoutReached
@@ -827,7 +829,7 @@ squiss.on('keep', (message: Message) => {
 });
 ```
 
-Emitted after `keep()` has been called.  
+Emitted after [message.keep()](#message-class-methods-keep-void) has been called.  
 This happens when the timeout extender logic has exhausted all of its tries to extend the message visibility.
 
 #### gotMessages <number>
@@ -850,7 +852,7 @@ squiss.on('deleted', (deletedEvent: IMessageDeletedEventPayload) => {
 ```
 
 Emitted when a message is confirmed as being successfully deleted from the queue.  
-The `handled` and `delQueued` events will also be fired for deleted messages, but that will come earlier,
+The [handled](#squiss-class-events-message-events-handled) and [delQueued](#squiss-class-events-message-events-delqueued) events will also be fired for deleted messages, but that will come earlier,
 when the delete function is initially called.
 
 #### delError <`{message: Message, error: BatchResultErrorEntry}`>

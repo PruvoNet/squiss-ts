@@ -11,7 +11,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- `delError` event on the `squiss` class returns the relevant message handler as well (BREAKING CHANGE)
+- [delError](#message-class-events-lifecycle-events-delerror-lt-batchresulterrorentry-gt) event on the
+[squiss](#squiss-class) class returns the relevant message handler as well (BREAKING CHANGE)
 - Fixed type safety of event handling on all classes
 - Updated npm dependencies
 
@@ -20,7 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Moved documentation to <a href="https://squiss-ts.pruvo.com">here</a>
 - Added issue and PR templates
 - Added a new logo!
-- Added S3 related events [#38](https://github.com/PruvoNet/squiss-ts/issues/38)
+- Added [S3 related events](#message-class-events-s3-events) [#38](https://github.com/PruvoNet/squiss-ts/issues/38)
 
 ## v3.0.1
 
@@ -40,14 +41,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Added missing documentation on the `timeoutReached` event [#24](https://github.com/PruvoNet/squiss-ts/issues/24) (Thanks to [UpGo](https://github.com/upugo-dev) for the PR)
+- Added missing documentation on the [timeoutReached](#message-class-events-timeout-events-timeoutreached) event [#24](https://github.com/PruvoNet/squiss-ts/issues/24) (Thanks to [UpGo](https://github.com/upugo-dev) for the PR)
 - Added contributes list
 - Added typings for all events
-- Emit event on `keep` event - [#27](https://github.com/PruvoNet/squiss-ts/issues/27)
-- `deleted` event payload on `Squiss` class to also contain the message itself - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
-- `deleted` event payload on `Message` class to contain the success id - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
-- send `autoExtendError` event instead of `error` event on `Squiss` class - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
-- `aborted` event payload on `Squiss` class to be the error instance - [#28](https://github.com/PruvoNet/squiss-ts/issues/28)
+- Emit event on [keep](#message-class-events-timeout-events-keep) - [#27](https://github.com/PruvoNet/squiss-ts/issues/27)
+- [deleted](#squiss-class-events-message-events-deleted-lt-message-message-successid-string-gt) event payload on [squiss](#squiss-class) class to also contain the message itself - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
+- [deleted](#message-class-events-timeout-events-deleted) event payload on [Message](#message-class) class to contain the success id - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
+- send [autoExtendError](#message-class-events-timeout-events-autoextenderror-lt-awserror-gt) event instead of [error](#squiss-class-events-queue-events-error-lt-error-gt) event on [squiss](#squiss-class) class - [#28](https://github.com/PruvoNet/squiss-ts/issues/28) (BREAKING CHANGE)
+- [aborted](#squiss-class-events-queue-events-aborted-lt-awserror-gt) event payload on [squiss](#squiss-class) class to be the error instance - [#28](https://github.com/PruvoNet/squiss-ts/issues/28)
 
 ### Fixed
 
@@ -112,7 +113,7 @@ Marking the library as stable after stress usage in a full blown production envi
 ### Added
 
 - Expose method to check if message was handled
-- If message extended time is finished, release the message slot, mark it as handled and emit `timeoutReached` event
+- If message extended time is finished, release the message slot, mark it as handled and emit [timeoutReached](#message-class-events-timeout-events-timeoutreached) event
 - Message is now also event emitter, and all event related to a message will also be emitted on it
 - Expose SQS typings for direct usage of the underlying SQS instance without adding it as a dependency to your project
 - Allow to pass `MessageGroupId` and `MessageDeduplicationId` FIFO related parameters when sending a message
@@ -177,7 +178,7 @@ Marking the library as stable after stress usage in a full blown production envi
 - Move to the newest AWS sdk (v2.418.0)
 - Improve the performance by always filling the handled messages and not waiting for an entire batch size to be fetched
 - Parse the message attributes into a plain object in send and receive of messages
-- Added `purge queue` capability
+- Added [purge queue](#squiss-class-methods-queue-methods-purgequeue-promise) capability
 - Revised the doubly linked list to be used by an external (and lean) library
 - Deleting a message now returns a promise that will be fulfilled upon success.
 - Batch messaging now supports attribute map per message

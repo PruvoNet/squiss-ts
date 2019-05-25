@@ -66,7 +66,7 @@ save SQS costs and be able to send messages bigger than SQS message size limit
 ## How it works
 
 Squiss processes as many messages simultaneously as possible.  
-Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will keep
+Set the [maxInFlight](#squiss-class-constructor-options-polling-options-maxinflight) option to the number of messages your app can handle at one time without choking, and Squiss will keep
 that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion.  
 If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.  
 Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time 

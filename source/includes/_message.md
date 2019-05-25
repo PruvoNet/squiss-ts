@@ -32,9 +32,10 @@ message.parse()
   });
 ```
 
-Parses the message and store it in `body`.
-If the user requested to parse the message as json, it will be stored (and returned) as such.
-The main purposes of this method are:
+Parses the message and store it in [body](#message-class-properties).
+If the user requested to parse the message as json, it will be stored (and returned) as such.  
+The main purposes of this method are:  
+
  - Unzip the message, if it was gzipped before it was sent
  - Fetch the message from S3, if it was stored there before it was sent.
    - Unless otherwise configured, make sure that the message will be delete from S3 once the message is marked as handled
@@ -62,7 +63,7 @@ message.del()
   });
 ```
 
-Marks the message as handled and queue the message for deletion.
+Marks the message as handled and queue the message for deletion.  
 Returns once the message was deleted from the queue.
 
 ### keep(): void
@@ -87,7 +88,7 @@ message.release()
   });
 ```
 
-Marks the message as handled and release the message back to the queue (e.g. changes the visibility timeout of the message to 0)
+Marks the message as handled and release the message back to the queue (e.g. changes the visibility timeout of the message to 0)  
 Returns once the message was released back to the queue.
 
 ### changeVisibility(timeoutInSeconds: number): Promise<void>
@@ -123,7 +124,7 @@ message.on('handled', () => {
 });
 ```
 
-Emitted when a message is handled by any means: deleting, releasing, or calling `keep()`.
+Emitted when a message is handled by any means: deleting, releasing, or calling [keep()](#message-class-methods-keep-void).
 
 #### released
 
@@ -133,9 +134,9 @@ message.on('released', () => {
 });
 ```
 
-Emitted after `release()` or `releaseMessage()` has been called and the `VisibilityTimeout` of a message
+Emitted after [keep()](#message-class-methods-release-promise) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise) has been called and the `VisibilityTimeout` of a message
 has successfully been changed to `0`.  
-The `handled` event will also be fired for released messages, but that will come earlier, 
+The [handled()](#message-class-events-lifecycle-events-handled) event will also be fired for released messages, but that will come earlier, 
 when the release function is initially called.
 
 #### keep
@@ -146,7 +147,7 @@ message.on('keep', () => {
 });
 ```
 
-Emitted after `keep()` has been called.  
+Emitted after [keep()](#message-class-methods-keep-void) has been called.  
 This happens when the timeout extender logic has exhausted all of its tries to extend the message visibility.
 
 #### delError <`BatchResultErrorEntry`>
@@ -169,7 +170,7 @@ message.on('deleted', () => {
 ```
 
 Emitted when a message is confirmed as being successfully deleted from the queue.  
-The `handled` and `delQueued` events will also be fired for deleted messages, but that will come earlier,
+The [handled()](#message-class-events-lifecycle-events-handled) and [delQueued()](#message-class-events-lifecycle-events-delqueued) events will also be fired for deleted messages, but that will come earlier,
 when the delete function is initially called.
 
 ### Timeout Events
