@@ -295,10 +295,14 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return promise;
     }
 
-    public deleteQueue(): Promise<any> {
-        return this.getQueueUrl().then((queueUrl) => {
-            return this.sqs.deleteQueue({QueueUrl: queueUrl}).promise();
-        });
+    public deleteQueue(): Promise<void> {
+        return this.getQueueUrl()
+            .then((queueUrl) => {
+                return this.sqs.deleteQueue({QueueUrl: queueUrl}).promise();
+            })
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 
     public getQueueUrl(): Promise<string> {
@@ -372,7 +376,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         }
     }
 
-    public releaseMessage(msg: Message): Promise<any> {
+    public releaseMessage(msg: Message): Promise<void> {
         this.handledMessage(msg);
         return this.changeMessageVisibility(msg, 0).then((res) => {
             msg.emit('released');
@@ -381,16 +385,17 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public purgeQueue(): Promise<any> {
-        return this.getQueueUrl().then((queueUrl) => {
-            return this.sqs.purgeQueue({QueueUrl: queueUrl}).promise()
-                .then((data) => {
-                    this._inFlight = 0;
-                    this._delQueue = new Map();
-                    this._delTimer = undefined;
-                    return data;
-                });
-        });
+    public purgeQueue(): Promise<void> {
+        return this.getQueueUrl()
+            .then((queueUrl) => {
+                return this.sqs.purgeQueue({QueueUrl: queueUrl}).promise();
+            })
+            .then(() => {
+                this._inFlight = 0;
+                this._delQueue = new Map();
+                this._delTimer = undefined;
+                return Promise.resolve();
+            });
     }
 
     public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)

@@ -899,8 +899,7 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'deleteQueue');
-      return inst!.deleteQueue().then((res: object) => {
-        res.should.be.an('object');
+      return inst!.deleteQueue().then(() => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith({QueueUrl: 'foo'});
       });
