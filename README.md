@@ -77,7 +77,7 @@ Squiss can also handle renewing the visibility timeout for your messages until y
 (set up by you) has passed (see [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout)).  
 Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
 
-# Documentation
+## Documentation
 
 Please see full documentation <a href="https://squiss-ts.pruvo.com">here</a>
 
