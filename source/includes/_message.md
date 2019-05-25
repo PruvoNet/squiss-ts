@@ -23,7 +23,7 @@ Property | Type | Description
 
 ## Methods
 
-### parse(): Promise<string | any>
+### parse(): Promise\<string | any\>
 
 ```typescript
 message.parse()
@@ -53,7 +53,7 @@ console.log(`message handled? ${message.isHandled()}`);
 
 Returns `true` if the message was already handled (e.g. deleted/released/kept)
 
-### del(): Promise<void>
+### del(): Promise\<void\>
 
 
 ```typescript
@@ -79,7 +79,7 @@ while not performing any queue operation on it.
 Notice that you can't release or delete the message afterwards!
 </aside>
 
-### release(): Promise<void>
+### release(): Promise\<void\>
 
 ```typescript
 message.release()
@@ -91,7 +91,7 @@ message.release()
 Marks the message as handled and release the message back to the queue (e.g. changes the visibility timeout of the message to 0)  
 Returns once the message was released back to the queue.
 
-### changeVisibility(timeoutInSeconds: number): Promise<void>
+### changeVisibility(timeoutInSeconds: number): Promise\<void\>
 
 ```typescript
 message.changeVisibility(5000)
@@ -134,7 +134,7 @@ message.on('released', () => {
 });
 ```
 
-Emitted after [keep()](#message-class-methods-release-promise) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise) has been called and the `VisibilityTimeout` of a message
+Emitted after [keep()](#message-class-methods-release-promise-lt-void-gt) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise-lt-void-gt) has been called and the `VisibilityTimeout` of a message
 has successfully been changed to `0`.  
 The [handled()](#message-class-events-lifecycle-events-handled) event will also be fired for released messages, but that will come earlier, 
 when the release function is initially called.
@@ -162,7 +162,7 @@ Emitted when the message failed to get deleted.
 The object handed to you in this event is the AWS failure object described in the <a href="http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#getQueueUrl-property">SQS deleteMessageBatch documentation</a>.
 
 #### deleted
-``
+
 ```typescript
 message.on('deleted', () => {
   console.log('message deleted');

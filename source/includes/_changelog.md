@@ -178,7 +178,7 @@ Marking the library as stable after stress usage in a full blown production envi
 - Move to the newest AWS sdk (v2.418.0)
 - Improve the performance by always filling the handled messages and not waiting for an entire batch size to be fetched
 - Parse the message attributes into a plain object in send and receive of messages
-- Added [purge queue](#squiss-class-methods-queue-methods-purgequeue-promise) capability
+- Added [purge queue](#squiss-class-methods-queue-methods-purgequeue-promise-lt-void-gt) capability
 - Revised the doubly linked list to be used by an external (and lean) library
 - Deleting a message now returns a promise that will be fulfilled upon success.
 - Batch messaging now supports attribute map per message

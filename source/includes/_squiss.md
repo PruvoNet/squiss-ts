@@ -127,7 +127,7 @@ being deleted.
 ---------- | -------  | -------
 Type | number
 Mandatory| False
-Default| queue setting on read, or 30 seconds for [createQueue()](#squiss-class-methods-queue-methods-createqueue-promise)
+Default| queue setting on read, or 30 seconds for [createQueue()](#squiss-class-methods-queue-methods-createqueue-promise-lt-string-gt)
 
 ### Auto Extend Options
 
@@ -459,7 +459,7 @@ Default| `345600` (4 days)
 
 #### queuePolicy
 
-f specified, will be set as the access policy of the queue when [createQueue()](#squiss-class-methods-queue-methods-createqueue-promise) is called.  
+f specified, will be set as the access policy of the queue when [createQueue()](#squiss-class-methods-queue-methods-createqueue-promise-lt-string-gt) is called.  
 See [the AWS Policy documentation](http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html) for more
 information.
 
@@ -472,7 +472,7 @@ Mandatory| False
 
 ### Lifecycle Methods
 
-#### start(): Promise<void>
+#### start(): Promise\<void\>
 
 ```typescript
 squiss.start()
@@ -483,7 +483,7 @@ squiss.start()
 
 Starts polling SQS for new messages. Each new message is handed off in the [Message](#message-class) event.
 
-#### stop(soft?: boolean, timeout?: number): Promise<boolean>
+#### stop(soft?: boolean, timeout?: number): Promise\<boolean\>
 
 ```typescript
 squiss.stop()
@@ -500,7 +500,7 @@ or `false` if a `timeout` value was sent and it passed before the queue was drai
 
 ### Message Methods
 
-#### sendMessage(message: Object | string, delay?: number, attributes?: IMessageAttributes): Promise<SQS.Types.SendMessageResult>
+#### sendMessage(message: Object | string, delay?: number, attributes?: IMessageAttributes): Promise\<SQS.Types.SendMessageResult\>
 
 ```typescript
 squiss.sendMessage({a:1, b:2}, undefined, {correlationId: 'my correlation id'})
@@ -532,7 +532,7 @@ Passing `FIFO_MessageDeduplicationId` and/or `FIFO_MessageGroupId` will be remov
 
 For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
 
-#### sendMessages(messages: {Object | string}[] | Object | string, delay?: number, attributes?: IMessageAttributes | IMessageAttributes[]): Promise<SQS.Types.SendMessageBatchResult>
+#### sendMessages(messages: {Object | string}[] | Object | string, delay?: number, attributes?: IMessageAttributes | IMessageAttributes[]): Promise\<SQS.Types.SendMessageBatchResult\>
 
 ```typescript
 squiss.sendMessage([{a:1, b:2}], undefined, {correlationId: 'my correlation id'})
@@ -565,7 +565,7 @@ If not specified, the queue's configured value will be used.
 
 For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
 
-#### changeMessageVisibility(message: Message | string,timeoutInSeconds: number): Promise<void>
+#### changeMessageVisibility(message: Message | string,timeoutInSeconds: number): Promise\<void\>
 
 ```typescript
 squiss.changeVisibility(message, 5000)
@@ -576,7 +576,7 @@ squiss.changeVisibility(message, 5000)
 
 Changes the visibility timeout of a message, given either the full Squiss Message object or the receipt handle string.
 
-#### deleteMessage(message: Message): Promise<void>
+#### deleteMessage(message: Message): Promise\<void\>
 
 ```typescript
 squiss.deleteMessage(message)
@@ -586,7 +586,7 @@ squiss.deleteMessage(message)
 ```
 
 Deletes a message, given the full Message object sent to the [Message](#message-class) event.  
-It's much easier to call [message.del()](#message-class-methods-del-promise), but if you need to do it right from the Squiss instance, this is how.  
+It's much easier to call [message.del()](#message-class-methods-del-promise-lt-void-gt), but if you need to do it right from the Squiss instance, this is how.  
 Note that the message probably won't be deleted immediately - it'll be queued for a batch delete.  
 See the constructor notes for how to configure the specifics of that.
 
@@ -601,7 +601,7 @@ number of "in-flight" messages.
 It's good practice to delete every message you process, but this can be useful in case of error.  
 You can also call [message.keep()](#message-class-methods-keep-void) on the message itself to invoke this.
 
-#### releaseMessage(message: Message): Promise<void>
+#### releaseMessage(message: Message): Promise\<void\>
 
 ```typescript
 squiss.releaseMessage(message)
@@ -611,11 +611,11 @@ squiss.releaseMessage(message)
 ```
 
 Releases the given Message object back to the queue by setting its `VisibilityTimeout` to `0` and marking the message as
-handled internally. You can also call `[message.release()](#message-class-methods-release-promise) on the message itself to invoke this.
+handled internally. You can also call `[message.release()](#message-class-methods-release-promise-lt-void-gt) on the message itself to invoke this.
 
 ### Queue Methods
 
-#### createQueue(): Promise<string>
+#### createQueue(): Promise\<string\>
 
 ```typescript
 squiss.createQueue()
@@ -628,7 +628,7 @@ Creates the configured queue.
 Returns a promise that resolves with the new queue's URL when it's complete.  
 Note that this can only be called if you set [queueName](#squiss-class-constructor-options-queue-options-queuename) when instantiating Squiss. 
 
-#### deleteQueue(): Promise<void>
+#### deleteQueue(): Promise\<void\>
 
 ```typescript
 squiss.deleteQueue()
@@ -640,7 +640,7 @@ squiss.deleteQueue()
 Deletes the configured queue, returning a promise that resolves on complete.  
 Squiss lets you do this, even though it makes Squiss useless. Squiss is so selfless.
 
-#### purgeQueue(): Promise<void>
+#### purgeQueue(): Promise\<void\>
 
 ```typescript
 squiss.purgeQueue()
@@ -651,7 +651,7 @@ squiss.purgeQueue()
 
 Deletes all the messages in a queue and init in flight.
 
-#### getQueueUrl(): Promise<string>
+#### getQueueUrl(): Promise\<string\>
 
 ```typescript
 squiss.getQueueUrl()
@@ -663,7 +663,7 @@ squiss.getQueueUrl()
 Returns a Promise that resolves with the URL of the configured queue, even if you only instantiated Squiss with a queueName.  
 The [correctQueueUrl](#squiss-class-constructor-options-queue-options-correctQueueUrl) setting applies to this result, if it was set.
 
-#### getQueueVisibilityTimeout(): Promise<number>
+#### getQueueVisibilityTimeout(): Promise\<number\>
 
 ```typescript
 squiss.getQueueVisibilityTimeout()
@@ -675,7 +675,7 @@ squiss.getQueueVisibilityTimeout()
 Retrieves the `VisibilityTimeout` (in seconds) set on the target queue.  
 When a message is received, it has this many seconds to be deleted before it will become available to be received again.
 
-#### getQueueMaximumMessageSize(): Promise<number>
+#### getQueueMaximumMessageSize(): Promise\<number\>
 
 ```typescript
 squiss.getQueueMaximumMessageSize()
@@ -743,7 +743,7 @@ squiss.on('aborted', (error: AWSError) => {
 });
 ```
 
-Emitted if a request for new messages was already in progress while performing a hard [stop()](#squiss-class-methods-lifecycle-methods-stop-soft-boolean-timeout-number-promise).
+Emitted if a request for new messages was already in progress while performing a hard [stop()](#squiss-class-methods-lifecycle-methods-stop-soft-boolean-timeout-number-promise-lt-boolean-gt).
 
 ### Message Events
 
@@ -785,7 +785,7 @@ squiss.on('released', (message: Message) => {
 });
 ```
 
-Emitted after [release()](#message-class-methods-release-promise) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise) has been called and the `VisibilityTimeout` of a message
+Emitted after [release()](#message-class-methods-release-promise-lt-void-gt) or [releaseMessage()](#squiss-class-methods-message-methods-releasemessage-message-message-promise-lt-void-gt) has been called and the `VisibilityTimeout` of a message
 has successfully been changed to `0`.  
 The [handled](#squiss-class-events-message-events-handled) event will also be fired for released messages, but that will come earlier, 
 when the release function is initially called.
@@ -832,7 +832,7 @@ squiss.on('keep', (message: Message) => {
 Emitted after [message.keep()](#message-class-methods-keep-void) has been called.  
 This happens when the timeout extender logic has exhausted all of its tries to extend the message visibility.
 
-#### gotMessages <number>
+#### gotMessages \<number\>
 
 ```typescript
 squiss.on('gotMessages', (numOfMessages: number) => {
