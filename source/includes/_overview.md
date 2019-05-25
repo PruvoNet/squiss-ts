@@ -59,7 +59,7 @@ squiss.sendMessage(messageToSend, 0, propsToSend);
 - Easy message lifecycle management
 - Options to auto renew messages visibility timeout for long message processing
 - Option to automatically gzip incoming and outgoing messages (based on message size) to decrease message sizes and save SQS costs
-- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message sizes and save SQS costs
+- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message sizes, save SQS costs and be able to send messages bigger than SQS size limit
 - Full typescript support
 
 ## How it works
