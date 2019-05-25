@@ -38,6 +38,7 @@ tslint.json
 .prettierrc
 .gitlab-ci.yml
 tsconfig.json
+.github
 
 # nyc test coverage
 .nyc_output

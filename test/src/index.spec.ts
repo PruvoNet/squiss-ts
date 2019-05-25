@@ -690,16 +690,18 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       inst!.on('delError', spy);
-      inst!.deleteMessage(new MessagePatched({
+      const msg = new MessagePatched({
         msg: {
           MessageId: 'foo',
           ReceiptHandle: 'bar',
           Body: 'baz',
         },
-      } as IMessageOpts));
+      } as IMessageOpts);
+      inst!.deleteMessage(msg);
       return wait().then(() => {
         spy.should.be.calledOnce();
-        spy.should.be.calledWith({Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true});
+        spy.should.be.calledWith(
+            {message: msg, error: {Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true}});
       });
     });
     it('emits error when delete call fails', () => {
@@ -897,8 +899,7 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'deleteQueue');
-      return inst!.deleteQueue().then((res: object) => {
-        res.should.be.an('object');
+      return inst!.deleteQueue().then(() => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith({QueueUrl: 'foo'});
       });

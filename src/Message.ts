@@ -7,14 +7,9 @@ import {EventEmitter} from 'events';
 import {GZIP_MARKER, decompressMessage} from './gzipUtils';
 import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './s3Utils';
 import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
-import {EventEmitterOverride} from './EventEmitterTypesHelper';
+import {StrictEventEmitter} from './EventEmitterTypesHelper';
 
 const EMPTY_BODY = '{}';
-
-/**
- * The message class is a wrapper for Amazon SQS messages that provides the raw and parsed message body,
- * optionally removed SNS wrappers, and provides convenience functions to delete or keep a given message.
- */
 
 export interface IMessageOpts {
     msg: SQS.Message;
@@ -45,26 +40,20 @@ interface IMessageEvents {
     autoExtendError: AWSError;
 }
 
-export class Message extends EventEmitter implements EventEmitterOverride<IMessageEvents> {
+type MessageEmitter = StrictEventEmitter<EventEmitter, IMessageEvents>;
 
-    /**
-     * Parses a message according to the given format.
-     * @param {string} msg The message to be parsed
-     * @param {string} format The format of the message. Currently supports "json".
-     * @returns {Object|string} The parsed message, or the original message string if the format type is unknown.
-     * @private
-     */
+export class Message extends (EventEmitter as new() => MessageEmitter) {
+
     private static formatMessage(msg: string | undefined, format: BodyFormat) {
-        switch (format) {
-            case 'json':
-                return JSON.parse(msg || EMPTY_BODY);
-            default:
-                return msg;
+        if (format === 'json') {
+            return JSON.parse(msg || EMPTY_BODY);
+        } else {
+            return msg;
         }
     }
 
     public raw: SQS.Message;
-    public body?: string;
+    public body?: string | any;
     public subject?: string;
     public topicArn?: string;
     public topicName?: string;
@@ -77,18 +66,6 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
     private _s3Retriever: () => S3;
     private _s3Retain: boolean;
 
-    /**
-     * Creates a new Message.
-     * @param {Object} opts A mapping of message-creation options
-     * @param {Object} opts.msg A parsed SQS response as returned from the official aws-sdk
-     * @param {boolean} [opts.unwrapSns=false] Set to `true` to denote that each message should be treated as though
-     *    it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS
-     *    metadata wrapper.
-     * @param {string} opts.bodyFormat "plain" to not parse the message body, or "json" to pass it through JSON.parse
-     *    on creation
-     * @param {Squiss} opts.squiss The squiss instance responsible for retrieving this message. This will be used to
-     *    delete the message and update inFlight count tracking.
-     */
     constructor(opts: IMessageOpts) {
         super();
         this._opts = opts;
@@ -111,7 +88,7 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
         this._s3Retain = opts.s3Retain;
     }
 
-    public parse() {
+    public parse(): Promise<string | any> {
         if (this.body === undefined || this.body === null) {
             return Promise.resolve();
         }
@@ -151,9 +128,6 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
         return this._handled;
     }
 
-    /**
-     * Queues this message for deletion.
-     */
     public del(): Promise<void> {
         if (!this._handled) {
             this._handled = true;
@@ -175,9 +149,6 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
         }
     }
 
-    /**
-     * Keeps this message, but releases its inFlight slot in Squiss.
-     */
     public keep(): void {
         if (!this._handled) {
             this._squiss.handledMessage(this);
@@ -185,9 +156,6 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
         }
     }
 
-    /**
-     * Changes the visibility timeout of the message to 0.
-     */
     public release(): Promise<void> {
         if (!this._handled) {
             this._handled = true;
@@ -199,10 +167,7 @@ export class Message extends EventEmitter implements EventEmitterOverride<IMessa
         return Promise.resolve();
     }
 
-    /**
-     * Changes the visibility timeout of the message.
-     */
-    public changeVisibility(timeoutInSeconds: number): Promise<any> {
+    public changeVisibility(timeoutInSeconds: number): Promise<void> {
         return this._squiss.changeMessageVisibility(this, timeoutInSeconds);
     }
 

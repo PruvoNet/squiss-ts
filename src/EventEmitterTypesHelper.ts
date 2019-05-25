@@ -1,18 +1,123 @@
 'use strict';
 
-export type MatchingKeys<TRecord, TMatch, K extends keyof TRecord = keyof TRecord> =
-    K extends (TRecord[K] extends TMatch ? K : never) ? K : never;
+// https://github.com/bterlson/strict-event-emitter-types
 
-export type VoidKeys<Record> = MatchingKeys<Record, void>;
+declare const assignmentCompatibilityHack: unique symbol;
 
-export interface EventEmitterOverride<TEventRecord,
-    TEmitRecord = TEventRecord,
-    EventVK extends VoidKeys<TEventRecord> = VoidKeys<TEventRecord>,
-    EventNVK extends Exclude<keyof TEventRecord, EventVK> = Exclude<keyof TEventRecord, EventVK>,
-    EmitVK extends VoidKeys<TEmitRecord> = VoidKeys<TEmitRecord>,
-    EmitNVK extends Exclude<keyof TEmitRecord, EmitVK> = Exclude<keyof TEmitRecord, EmitVK>> {
-    on<P extends EventNVK>(event: P, listener: (m: TEventRecord[P]) => void): this;
-    on<P extends EventVK>(event: P, listener: () => void): this;
-    emit<P extends EmitNVK>(event: P, payload: TEmitRecord[P]): boolean;
-    emit<P extends EmitVK>(event: P): boolean;
+interface TypeRecord<T, U, V> {
+    ' _emitterType'?: T;
+    ' _eventsType'?: U;
+    ' _emitType'?: V;
 }
+
+type InnerEEMethodReturnType<T, TValue, FValue> = T extends (
+    ...args: any[]
+    ) => any
+    ? ReturnType<T> extends void | undefined ? FValue : TValue
+    : FValue;
+
+type EEMethodReturnType<
+    T,
+    S extends string,
+    TValue,
+    FValue = void
+    > = S extends keyof T ? InnerEEMethodReturnType<T[S], TValue, FValue> : FValue;
+
+type ListenerType<T> = [T] extends [(...args: infer U) => any]
+    ? U
+    : [T] extends [void] ? [] : [T];
+
+interface OverriddenMethods<
+    TEmitter,
+    TEventRecord,
+    TEmitRecord = TEventRecord
+    > {
+    on<P extends keyof TEventRecord, T>(
+        this: T,
+        event: P,
+        listener: (...args: ListenerType<TEventRecord[P]>) => void
+    ): EEMethodReturnType<TEmitter, 'on', T>;
+    on(
+        event: typeof assignmentCompatibilityHack,
+        listener: (...args: any[]) => any
+    ): void;
+
+    addListener<P extends keyof TEventRecord, T>(
+        this: T,
+        event: P,
+        listener: (...args: ListenerType<TEventRecord[P]>) => void
+    ): EEMethodReturnType<TEmitter, 'addListener', T>;
+    addListener(
+        event: typeof assignmentCompatibilityHack,
+        listener: (...args: any[]) => any
+    ): void;
+
+    addEventListener<P extends keyof TEventRecord, T>(
+        this: T,
+        event: P,
+        listener: (...args: ListenerType<TEventRecord[P]>) => void
+    ): EEMethodReturnType<TEmitter, 'addEventListener', T>;
+    addEventListener(
+        event: typeof assignmentCompatibilityHack,
+        listener: (...args: any[]) => any
+    ): void;
+
+    removeListener<P extends keyof TEventRecord, T>(
+        this: T,
+        event: P,
+        listener: (...args: any[]) => any
+    ): EEMethodReturnType<TEmitter, 'removeListener', T>;
+    removeListener(
+        event: typeof assignmentCompatibilityHack,
+        listener: (...args: any[]) => any
+    ): void;
+
+    removeEventListener<P extends keyof TEventRecord, T>(
+        this: T,
+        event: P,
+        listener: (...args: any[]) => any
+    ): EEMethodReturnType<TEmitter, 'removeEventListener', T>;
+    removeEventListener(
+        event: typeof assignmentCompatibilityHack,
+        listener: (...args: any[]) => any
+    ): void;
+
+    once<P extends keyof TEventRecord, T>(
+        this: T,
+        event: P,
+        listener: (...args: ListenerType<TEventRecord[P]>) => void
+    ): EEMethodReturnType<TEmitter, 'once', T>;
+    once(
+        event: typeof assignmentCompatibilityHack,
+        listener: (...args: any[]) => any
+    ): void;
+
+    emit<P extends keyof TEmitRecord, T>(
+        this: T,
+        event: P,
+        ...args: ListenerType<TEmitRecord[P]>
+    ): EEMethodReturnType<TEmitter, 'emit', T>;
+    emit(event: typeof assignmentCompatibilityHack, ...args: any[]): void;
+}
+
+type OverriddenKeys = keyof OverriddenMethods<any, any, any>;
+
+export type StrictEventEmitter<
+    TEmitterType,
+    TEventRecord,
+    TEmitRecord = TEventRecord,
+    UnneededMethods extends Exclude<OverriddenKeys, keyof TEmitterType> = Exclude<
+        OverriddenKeys,
+        keyof TEmitterType
+        >,
+    NeededMethods extends Exclude<OverriddenKeys, UnneededMethods> = Exclude<
+        OverriddenKeys,
+        UnneededMethods
+        >
+    > =
+    TypeRecord<TEmitterType, TEventRecord, TEmitRecord> &
+    Pick<TEmitterType, Exclude<keyof TEmitterType, OverriddenKeys>> &
+    Pick<
+        OverriddenMethods<TEmitterType, TEventRecord, TEmitRecord>,
+        NeededMethods
+        >;

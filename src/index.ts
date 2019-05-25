@@ -13,14 +13,10 @@ import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
 import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {AWSError} from 'aws-sdk';
-import {EventEmitterOverride} from './EventEmitterTypesHelper';
+import {StrictEventEmitter} from './EventEmitterTypesHelper';
 
 export {SQS, S3} from 'aws-sdk';
 
-/**
- * The maximum number of messages that can be sent in an SQS sendMessageBatch request.
- * @type {number}
- */
 const AWS_MAX_SEND_BATCH = 10;
 
 export interface IObject {
@@ -92,10 +88,6 @@ export interface ISendMessageRequest {
     MessageGroupId?: string;
 }
 
-/**
- * Option defaults.
- * @type {Object}
- */
 const optDefaults: ISquissOptions = {
     receiveBatchSize: 10,
     receiveAttributes: ['All'],
@@ -132,6 +124,11 @@ export interface IMessageErrorEventPayload {
     error: AWSError;
 }
 
+export interface IMessageDeleteErrorEventPayload {
+    message: Message;
+    error: BatchResultErrorEntry;
+}
+
 interface ISquissEvents {
     delQueued: Message;
     handled: Message;
@@ -148,29 +145,20 @@ interface ISquissEvents {
     gotMessages: number;
     error: Error;
     aborted: AWSError;
-    delError: BatchResultErrorEntry;
+    delError: IMessageDeleteErrorEventPayload;
     autoExtendFail: IMessageErrorEventPayload;
     autoExtendError: IMessageErrorEventPayload;
 }
 
-/**
- * Squiss is a high-volume-capable Amazon SQS polling class. See README for usage details.
- */
-export class Squiss extends EventEmitter implements EventEmitterOverride<ISquissEvents> {
+type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
 
-    /**
-     * Getter for the number of messages currently in flight.
-     * @returns {number}
-     */
-    get inFlight(): number {
+export class Squiss extends (EventEmitter as new() => SquissEmitter) {
+
+    public get inFlight(): number {
         return this._inFlight;
     }
 
-    /**
-     * Getter to determine whether Squiss is currently polling or not.
-     * @returns {boolean}
-     */
-    get running(): boolean {
+    public get running(): boolean {
         return this._running;
     }
 
@@ -187,92 +175,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
     private _delQueue: Map<string, IDeleteQueueItem>;
     private _delTimer: number | undefined;
     private _activeReq: AWS.Request<SQS.Types.ReceiveMessageResult, AWS.AWSError> | undefined;
-
-    /**
-     * Creates a new Squiss object.
-     * @param {Object} opts A map of options to configure this instance
-     * @param {Function} [opts.SQS] An instance of the official SQS Client, or an SQS constructor function to use
-     *    rather than the default one provided by SQS
-     * @param {Function} [opts.S3] An instance of the official S3 Client, or an S3 constructor function to use
-     *    rather than the default one provided by S3
-     * @param {Object} [opts.awsConfig] An object mapping to pass to the SQS constructor, configuring the
-     *    aws-sdk library. This is commonly used to set the AWS region, or the user credentials. See
-     *    http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
-     * @param {string} [opts.queueUrl] The URL of the queue to be polled. If not specified, opts.queueName is
-     *    required.
-     * @param {string} [opts.queueName] The name of the queue to be polled. Used only if opts.queueUrl is not
-     *    specified.
-     * @param {string} [opts.accountNumber] If a queueName is specified, the accountNumber of the queue
-     *    owner can optionally be specified to access a queue in a different AWS account.
-     * @param {boolean} [opts.correctQueueUrl=false] Changes the protocol, host, and port of the queue URL to match the
-     *    configured SQS endpoint, applicable only if opts.queueName is specified. This can be useful for testing
-     *     against a stubbed SQS service, such as ElasticMQ.
-     * @param {boolean} [opts.gzip=false] Auto gzip messages to reduce message size.
-     * @param {number} [opts.minGzipSize=0] The min message size to gzip (in bytes) when `gzip` is set to `true`.
-     * @param {boolean} [opts.s3Fallback=false] Upload messages bigger than `minS3Size` or queue default to s3,
-     *    and retrieve it from there when message is received.
-     * @param {string} [opts.s3Bucket] if `s3Fallback` is true, upload message to this s3 bucket.
-     * @param {boolean} [opts.s3Retain=false] if `s3Fallback` is true, do not delete blob on message delete.
-     * @param {string} [opts.s3Prefix] if `s3Fallback` is true, set this prefix to uploaded s3 blobs.
-     * @param {number} [opts.minS3Size=queueMaxMessageSize] The min message size to send to S3 (in bytes) when
-     * `s3Fallback` is set to `true`.
-     * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
-     *    batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued
-     *    delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
-     * @param {number} [opts.deleteWaitMs=2000] The number of milliseconds to wait after the first queued message
-     *    deletion before deleting the message(s) from SQS
-     * @param {number} [opts.maxInFlight=100] The number of messages to keep "in-flight", or processing simultaneously.
-     *    When this cap is reached, no more messages will be polled until currently in-flight messages are marked as
-     *    deleted or handled. Setting this to 0 will uncap your inFlight messages, pulling and delivering messages
-     *    as long as there are messages to pull.
-     * @param {number} [opts.receiveBatchSize=10] The number of messages to receive at one time. Maximum 10 or
-     *    maxInFlight, whichever is lower.
-     * @param {number} [opts.minReceiveBatchSize=1] The minimum number of available message slots that will initiate a
-     *    call to get the next batch. Maximum 10 or maxInFlight, whichever is lower.
-     * @param {number} [opts.receiveWaitTimeSecs=20] The number of seconds for which to hold open the SQS call to
-     *    receive messages, when no message is currently available. It is recommended to set this high, as Squiss will
-     *    re-open the receiveMessage HTTP request as soon as the last one ends. Maximum 20.
-     * @param {boolean} [opts.unwrapSns=false] Set to `true` to denote that Squiss should treat each message as though
-     *    it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS
-     *    metadata wrapper.
-     * @param {string} [opts.bodyFormat="plain"] The format of the incoming message. Set to "json" to automatically call
-     *    `JSON.parse()` on each incoming message.
-     * @param {number} [opts.visibilityTimeoutSecs] The SQS VisibilityTimeout to apply to each message. This is the
-     *    number of seconds that each received message should be made inaccessible to other receive calls, so that a
-     *    message will not be received more than once before it is processed and deleted. If not specified, the default
-     *    for the SQS queue will be used when receiving messages, and the SQS default (30) will be used when creating a
-     *    queue.
-     * @param {number} [opts.pollRetryMs=2000] The number of milliseconds to wait before retrying when Squiss's call to
-     *    retrieve messages from SQS fails.
-     * @param {number} [opts.activePollIntervalMs=0] The number of milliseconds to wait between requesting batches of
-     *    messages when the queue is not empty, and the maxInFlight cap has not been hit.
-     * @param {number} [opts.idlePollIntervalMs=0] The number of milliseconds to wait before requesting a batch of
-     *    messages when the queue was empty on the prior request.
-     * @param {number} [opts.delaySecs=0] The number of milliseconds by which to delay the delivery of new messages into
-     *    the queue by default. This is only used when calling {@link #createQueue}.
-     * @param {number} [opts.maxMessageBytes=262144] The maximum size of a single message, in bytes, that the queue can
-     *    support. This is only used when calling {@link #createQueue}. Default is the maximum, 256KB.
-     * @param {number} [opts.messageRetentionSecs=345600] The amount of time for which to retain messages in the queue
-     *    until they expire, in seconds. This is only used when calling {@link #createQueue}. Default is equivalent to
-     *    4 days, maximum is 1209600 (14 days).
-     * @param {boolean} [opts.autoExtendTimeout=false] If true, the VisibilityTimeout for all in-flight messages will
-     *    be automatically extended when there are 5 seconds remaining before the VisibilityTimeout would normally
-     *    expire. It will be extended by the VisibilityTimeout. The VisibilityTimeout used will be the one specified
-     *    in opts.visibilityTimeoutSecs, or the queue's configured VisibilityTimeout if that option is not set.
-     * @param {number} [opts.noExtensionsAfterSecs=43200] The age, in seconds, at which a message will no longer have
-     *    its VisibilityTimeout automatically extended if opts.autoExtendTimeout is true.
-     * @param {number} [opts.advancedCallMs=5000] The number of milliseconds before a message expires to send the API
-     *    call to extend its VisibilityTimeout. Applicable only if opts.autoExtendTimeout is true.
-     * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
-     *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
-     *    more information.
-     * @param {Object} [opts.receiveAttributes] An array of strings with attribute names (e.g. `myAttribute`)
-     *    to request along with the `receiveMessage` call. The attributes will be accessible via
-     *    `message.attributes.<attribute>`.
-     * @param {Object} [opts.receiveSqsAttributes] An array of strings with attribute names
-     *    (e.g. `ApproximateReceiveCount`) to request along with the `receiveMessage` call.
-     *    The attributes will be accessible via `message.sqsAttributes.<attribute>`.
-     */
 
     constructor(opts?: ISquissOptions | undefined) {
         super();
@@ -307,13 +209,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         this._timeoutExtender = undefined;
     }
 
-    /**
-     * Changes the visibility timeout of a message.
-     * @param {Message|string} msg The Message object or ReceiptHandle for which to change the VisibilityTimeout.
-     * @param {number} timeoutInSeconds Visibility timeout in seconds.
-     * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
-     */
-    public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<any> {
+    public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void> {
         let receiptHandle: string;
         if (msg instanceof Message) {
             receiptHandle = msg.raw.ReceiptHandle!;
@@ -328,15 +224,12 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
                         VisibilityTimeout: timeoutInSeconds,
                     }).promise();
                 }
-            );
+            )
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 
-    /**
-     * Creates the configured queue in Amazon SQS and retrieves its queue URL. Note that this method can only be called
-     * if Squiss was instantiated with the queueName property.
-     * @returns {Promise.<string>} Resolves with the URL of the created queue, rejects with the official AWS SDK's
-     *    error object.
-     */
     public createQueue(): Promise<string> {
         if (!this._opts.queueName) {
             return Promise.reject(new Error('Squiss was not instantiated with a queueName'));
@@ -362,11 +255,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Queues the given message for deletion. The message will actually be deleted from SQS per the settings
-     * supplied to the constructor.
-     * @param {Message} msg The message object to be deleted
-     */
     public deleteMessage(msg: Message): Promise<void> {
         if (!msg.raw) {
             return Promise.reject(new Error('Squiss.deleteMessage requires a Message object'));
@@ -407,22 +295,16 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         return promise;
     }
 
-    /**
-     * Deletes the configured queue.
-     * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
-     */
-    public deleteQueue(): Promise<any> {
-        return this.getQueueUrl().then((queueUrl) => {
-            return this.sqs.deleteQueue({QueueUrl: queueUrl}).promise();
-        });
+    public deleteQueue(): Promise<void> {
+        return this.getQueueUrl()
+            .then((queueUrl) => {
+                return this.sqs.deleteQueue({QueueUrl: queueUrl}).promise();
+            })
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 
-    /**
-     * Gets the queueUrl for the configured queue and sets this instance up to use it. Any calls to
-     * {@link #start} will wait until this function completes to begin polling.
-     * @returns {Promise.<string>} Resolves with the queue URL
-     * @private
-     */
     public getQueueUrl(): Promise<string> {
         if (this._queueUrl) {
             return Promise.resolve(this._queueUrl);
@@ -443,11 +325,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Retrieves the VisibilityTimeout set on the target queue. When a message is received, it has this many
-     * seconds to be deleted before it will become available to be received again.
-     * @returns {Promise.<number>} The VisibilityTimeout setting of the target queue, in seconds
-     */
     public getQueueVisibilityTimeout(): Promise<number> {
         if (this._queueVisibilityTimeout) {
             return Promise.resolve(this._queueVisibilityTimeout);
@@ -486,11 +363,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Informs Squiss that a message has been handled. This allows Squiss to decrement the number of in-flight
-     * messages without deleting one, which may be necessary in the event of an error.
-     * @param {Message} msg The message to be handled
-     */
     public handledMessage(msg: Message): void {
         this._inFlight--;
         if (this._paused && this._slotsAvailable()) {
@@ -504,16 +376,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         }
     }
 
-    /**
-     * Releases a message back into the queue by changing its VisibilityTimeout to 0 and calling
-     * {@link #handledMessage}. Note that if this is used when the poller is running, the message will be
-     * immediately picked up and processed again (by this or any other application instance polling the same
-     * queue).
-     * @param {Message} msg The Message object for which to change the VisibilityTimeout.
-     * @returns {Promise} Resolves when the VisibilityTimeout has been changed. Rejects with the official AWS SDK's
-     * error object.
-     */
-    public releaseMessage(msg: Message): Promise<any> {
+    public releaseMessage(msg: Message): Promise<void> {
         this.handledMessage(msg);
         return this.changeMessageVisibility(msg, 0).then((res) => {
             msg.emit('released');
@@ -522,32 +385,19 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Deletes all the messages in a queue and init in flight.
-     * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
-     */
-    public purgeQueue(): Promise<any> {
-        return this.getQueueUrl().then((queueUrl) => {
-            return this.sqs.purgeQueue({QueueUrl: queueUrl}).promise()
-                .then((data) => {
-                    this._inFlight = 0;
-                    this._delQueue = new Map();
-                    this._delTimer = undefined;
-                    return data;
-                });
-        });
+    public purgeQueue(): Promise<void> {
+        return this.getQueueUrl()
+            .then((queueUrl) => {
+                return this.sqs.purgeQueue({QueueUrl: queueUrl}).promise();
+            })
+            .then(() => {
+                this._inFlight = 0;
+                this._delQueue = new Map();
+                this._delTimer = undefined;
+                return Promise.resolve();
+            });
     }
 
-    /**
-     * Sends an individual message to the configured queue.
-     * @param {string|Object} message The message to be sent. Objects will be JSON.stringified.
-     * @param {number} [delay] The number of seconds by which to delay the delivery of the message, max 900. If not
-     *    specified, the queue default will be used.
-     * @param {Object} [attributes] An optional attributes mapping to associate with the message. For more information,
-     *    see http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property.
-     * @returns {Promise.<{MessageId: string, MD5OfMessageAttributes: string, MD5OfMessageBody: string}>} Resolves with
-     *    the official AWS SDK sendMessage response, rejects with the official error object.
-     */
     public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
         : Promise<SQS.Types.SendMessageResult> {
         return Promise.all([
@@ -565,34 +415,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
             });
     }
 
-    /**
-     * Sends an array of any number of messages to the configured SQS queue, breaking them down into appropriate batch
-     * requests executed in parallel (or as much as the default HTTP agent allows). The response is closely aligned to
-     * the official AWS SDK's sendMessageBatch response, except the results from all batch requests are merged. Expect
-     * a result similar to:
-     *
-     * {
-     *   Successful: [
-     *     {Id: string, MessageId: string, MD5OfMessageAttributes: string, MD5OfMessageBody: string}
-     *   ],
-     *   Failed: [
-     *     {Id: string, SenderFault: boolean, Code: string, Message: string}
-     *   ]
-     * }
-     *
-     * See http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessageBatch-property for full details.
-     * The "Id" supplied in the response will be the index of the message in the original messages array, in string
-     * form.
-     * @param {string|Object||Array<string|Object>} messages An array of messages to be sent. Objects will be
-     *    JSON.stringified.
-     * @param {number} [delay] The number of seconds by which to delay the delivery of the messages, max 900. If not
-     *    specified, the queue default will be used.
-     * @param {Object} [attributes] An optional attributes mapping to associate with all messages. For more information,
-     *    see http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessageBatch-property.
-     * @returns {Promise.<{Successful: Array<{Id: string, MessageId: string, MD5OfMessageAttributes: string,
-     *    MD5OfMessageBody: string}>, Failed: Array<{Id: string, SenderFault: boolean, Code: string,
-     *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
-     */
     public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
                         attributes?: IMessageAttributes | IMessageAttributes[])
         : Promise<SQS.Types.SendMessageBatchResult> {
@@ -642,10 +464,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
             });
     }
 
-    /**
-     * Starts the poller, if it's not already running.
-     * @returns {Promise} Resolves when the poller has been started; resolves instantly if the poller is already running
-     */
     public start(): Promise<void> {
         if (this._running) {
             return Promise.resolve();
@@ -654,14 +472,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         return this._startPoller();
     }
 
-    /**
-     * Stops the poller.
-     * @param {boolean} [soft=false] If a soft stop is performed, any active SQS request for new messages will be left
-     *    open until it terminates naturally. Note that if this is the case, the message event may still be fired after
-     *    this function has been called.
-     * @param {timeout} [timeout=undefined] Timeout in milliseconds to wait for the queue to drain before resolving.
-     * @returns {Promise} Will be resolved when the queue is drained (true value) or timeout passed (false value).
-     */
     public stop(soft?: boolean, timeout?: number): Promise<boolean> {
         if (!soft && this._activeReq) {
             this._activeReq.abort();
@@ -694,14 +504,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Deletes a batch of messages (maximum 10) from Amazon SQS.  If there is an error making the call to SQS, the
-     * `error` event will be emitted with an Error object. If SQS reports any issue deleting any of the messages,
-     * the `delError` event will be emitted with the failure object passed back by the AWS SDK.
-     * @param {Array<{Id: string, ReceiptHandle: string}>} batch The batch of messages to be deleted, in the format
-     *    required for sqs.deleteMessageBatch's Entries parameter.
-     * @private8
-     */
     public _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
         const itemById: IDeleteQueueItemById = batch.reduce((prevByValue, item) => {
             prevByValue[item.Id] = item;
@@ -720,7 +522,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         }).then((data) => {
             if (data.Failed && data.Failed.length) {
                 data.Failed.forEach((fail) => {
-                    this.emit('delError', fail);
+                    this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
                     itemById[fail.Id].msg.emit('delError', fail);
                     itemById[fail.Id].reject(fail);
                 });
@@ -739,12 +541,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Given an array of message bodies from SQS, this method will construct Message objects for each and emit them
-     * in separate `message` events.
-     * @param {Array<Object>} messages An array of SQS message objects, as returned from the aws sdk
-     * @private
-     */
     public _emitMessages(messages: SQS.MessageList): void {
         messages.forEach((msg) => {
             const message = new Message({
@@ -763,11 +559,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Gets a new batch of messages from Amazon SQS. A `message` event will be emitted for each new message, with
-     * the provided object being an instance of Squiss' Message class.
-     * @private
-     */
     public _getBatch(queueUrl: string): void {
         if (this._activeReq || !this._running) {
             return;
@@ -823,12 +614,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Initializes the TimeoutExtender and associates it with this Squiss instance, if and only if the options passed
-     * to the constructor dictate that a TimeoutExtender is required.
-     * @returns {Promise} Resolves when the TimeoutExtender has been initialized
-     * @private
-     */
     public _initTimeoutExtender(): Promise<void> {
         if (!this._opts.autoExtendTimeout || this._timeoutExtender) {
             return Promise.resolve();
@@ -850,20 +635,6 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Sends a batch of a maximum of 10 messages to Amazon SQS. The Id generated for each will be the stringified
-     * index of each message in the array, plus the startIndex
-     * @param {Array<string|Object>} messages An array of messages to be sent. Objects will be JSON.stringified.
-     * @param {number} [delay] The number of seconds by which to delay the delivery of the messages, max 900. If not
-     *    specified, the queue default will be used.
-     * @param {Object} [attributes] An optional attributes mapping to associate with all messages. For more information,
-     *    see http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessageBatch-property.
-     * @param {number} [startIndex=0] The index at which to start numbering the messages.
-     * @returns {Promise.<{Successful: Array<{Id: string, MessageId: string, MD5OfMessageAttributes: string,
-     *    MD5OfMessageBody: string}>, Failed: Array<{Id: string, SenderFault: boolean, Code: string,
-     *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
-     * @private
-     */
     public _sendMessageBatch(messages: ISendMessageRequest[], delay: number | undefined, startIndex: number):
         Promise<SQS.Types.SendMessageBatchResult> {
         const start = startIndex || 0;
@@ -887,21 +658,10 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         });
     }
 
-    /**
-     * Determines if there are enough available slots to receive another batch of messages from Amazon SQS without going
-     * over the maxInFlight limit set in the constructor options.
-     * @returns {boolean}
-     * @private
-     */
     public _slotsAvailable(): boolean {
         return !this._opts.maxInFlight || this._inFlight < this._opts.maxInFlight;
     }
 
-    /**
-     * Starts the polling process, regardless of the status of the this._running or this._paused flags.
-     * @returns {Promise} Resolves when the poller has started
-     * @private
-     */
     public _startPoller(): Promise<void> {
         return this._initTimeoutExtender()
             .then(() => this.getQueueUrl())
