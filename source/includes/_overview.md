@@ -70,7 +70,7 @@ Set the [maxInFlight](#squiss-class-constructor-options-polling-options-maxinfli
 that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion.  
 If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.  
 Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time 
-(set up by you) has passed (see [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout)).  
+(set up by you) has passed (see [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options)).  
 Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
 
 ## Versioning

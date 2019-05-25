@@ -160,8 +160,8 @@ Default| `43200`
 
 #### advancedCallMs
 
-If [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) is used, this is the number of milliseconds that Squiss will make the call to extend the
-`VisibilityTimeout` of the message, before the message is set to expire.
+If [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) is used, this is the number
+of milliseconds that Squiss will make the call to extend the `VisibilityTimeout` of the message, before the message is set to expire.
 
  | |
 ---------- | -------  | -------
@@ -173,7 +173,7 @@ Default| `5000`
 
 You can gzip the messages, which will reduce the message size, thus enabling you to send large messages, 
 and also reduce the cost of those message.  
-You can optionally gzip only if a message size certain criteria is met ([minGzipSize](#squiss-class-constructor-options-gzip-options-mingzipsize)), to reduce compute overhead.
+You can optionally gzip only if a min message size criteria is met ([minGzipSize](#squiss-class-constructor-options-gzip-options-mingzipsize)), to reduce compute overhead.
 
 #### gzip
 
@@ -260,7 +260,7 @@ if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) is set 
 ---------- | -------  | -------
 Type | string
 Mandatory| False
-Default | ``
+Default | ""
 
 ### Delete options
 
@@ -268,8 +268,8 @@ Default | ``
 
 The number of messages to delete at one time.  
 Squiss will trigger a batch delete when this limit is reached, or when [deleteWaitMs](#squiss-class-constructor-options-delete-options-deletewaitms) 
-milliseconds have passed since the first queued delete in the batch, whichever comes first.  
-Set to 1 to make all deletes immediate
+milliseconds have passed since the first queued delete, whichever comes first.  
+Set to 1 to make all deletes immediate.
 
  | |
 ---------- | -------  | -------
@@ -304,7 +304,7 @@ Default| `0`
 
 #### idlePollIntervalMs
 
-The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.
+The number of milliseconds to wait before requesting a batch of messages when the queue was empty in the prior request.
 
  | |
 ---------- | -------  | -------
@@ -314,8 +314,8 @@ Default| `0`
 
 #### maxInFlight
 
-The number of messages to keep "in-flight", or processing simultaneously. When this cap is reached,
-no more messages will be polled until currently in-flight messages are marked as deleted or handled.  
+The number of messages to keep "in-flight", or processing simultaneously.  
+When this cap is reached, no more messages will be polled until currently in-flight messages are marked as deleted or handled.  
 Setting this option to 0 will uncap your in flight messages, 
 pulling and delivering messages as long as there are messages to pull.
 
@@ -377,7 +377,7 @@ Set to "json" to automatically call `JSON.parse()` on each incoming message.
 
  | |
 ---------- | -------  | -------
-Type | 'json' &#124; 'plain' &#124
+Type | 'json' &#124; 'plain'
 Mandatory| False
 Default| `plain`
 
@@ -420,7 +420,7 @@ Default| `['All']`
 ### Queue Create Options
 
 Are you using Squiss to create your queue as well? Squiss will use [receiveWaitTimeSecs](#squiss-class-constructor-options-polling-options-receivewaittimesecs) and 
-`visibilityTimeoutSecs` in the queue create options, but consider setting any of the 
+[visibilityTimeoutSecs](#squiss-class-constructor-options-visibilitytimeoutsecs) in the queue create options, but consider setting any of the 
 following options to configure it further. 
 
 <aside class="notice">
@@ -439,7 +439,7 @@ Default| `0`
 
 #### maxMessageBytes
 
-he maximum size of a single message, in bytes, that the queue can support.
+The maximum size of a single message, in bytes, that the queue can support.
 
  | |
 ---------- | -------  | -------
