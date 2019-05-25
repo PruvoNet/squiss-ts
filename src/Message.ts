@@ -38,6 +38,8 @@ interface IMessageEvents {
     deleted: string;
     autoExtendFail: AWSError;
     autoExtendError: AWSError;
+    s3Download: IS3Upload;
+    s3Delete: IS3Upload;
 }
 
 type MessageEmitter = StrictEventEmitter<EventEmitter, IMessageEvents>;
@@ -99,9 +101,15 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
             const s3 = this._s3Retriever();
             promise = getBlob(s3, uploadData)
                 .then((resolvedBody) => {
+                    this.emit('s3Download', uploadData);
+                    this._squiss.emit('s3Download', {data: uploadData, message: this});
                     if (!this._s3Retain) {
                         this._deleteCallback = () => {
-                            return deleteBlob(s3, uploadData);
+                            return deleteBlob(s3, uploadData)
+                                .then(() => {
+                                    this.emit('s3Delete', uploadData);
+                                    this._squiss.emit('s3Delete', {data: uploadData, message: this});
+                                });
                         };
                     }
                     return Promise.resolve(resolvedBody);
