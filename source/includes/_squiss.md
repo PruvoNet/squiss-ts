@@ -529,10 +529,20 @@ Changes the visibility timeout of the message
 
 ## Events
 
+### message
+
+```typescript
+squiss.on('message', (message: Message) => {
+  console.log('message queued for deletion');
+});
+```
+
+Emitted every time Squiss pulls a new message from the queue.
+
 ### delQueued
 
 ```typescript
-message.on('delQueued', () => {
+squiss.on('delQueued', (message: Message) => {
   console.log('message queued for deletion');
 });
 ```
@@ -542,7 +552,7 @@ Emitted when a message is queued for deletion, even if delete queuing has been t
 ### handled
 
 ```typescript
-message.on('handled', () => {
+squiss.on('handled', (message: Message) => {
   console.log('message was handled');
 });
 ```
@@ -552,7 +562,7 @@ Emitted when a message is handled by any means: deleting, releasing, or calling 
 ### released
 
 ```typescript
-message.on('released', () => {
+squiss.on('released', (message: Message) => {
   console.log('message released');
 });
 ```
@@ -565,7 +575,7 @@ when the release function is initially called.
 ### timeoutReached
 
 ```typescript
-message.on('timeoutReached', () => {
+squiss.on('timeoutReached', (message: Message) => {
   console.log('message timeout reached');
 });
 ```
@@ -576,7 +586,7 @@ with the `autoExtendTimeout` feature.
 ### extendingTimeout
 
 ```typescript
-message.on('extendingTimeout', () => {
+squiss.on('extendingTimeout', (message: Message) => {
   console.log('extending message timeout');
 });
 ```
@@ -586,7 +596,7 @@ Emitted when a message `VisibilityTimeout` is about to be extended with the `aut
 ### timeoutExtended
 
 ```typescript
-message.on('timeoutExtended', () => {
+squiss.on('timeoutExtended', (message: Message) => {
   console.log('message timeout was extended');
 });
 ```
@@ -596,7 +606,7 @@ Emitted when a message `VisibilityTimeout` was extended with the `autoExtendTime
 ### keep
 
 ```typescript
-message.on('keep', () => {
+squiss.on('keep', (message: Message) => {
   console.log('message kept');
 });
 ```
@@ -604,21 +614,52 @@ message.on('keep', () => {
 Emitted after `keep()` has been called.  
 This happens when the timeout extender logic has exhausted all of its tries to extend the message visibility.
 
-### delError <`BatchResultErrorEntry`>
+### drained
 
 ```typescript
-message.on('delError', (error: BatchResultErrorEntry) => {
+squiss.on('drained', () => {
+  console.log('message kept');
+});
+```
+
+Emitted when the last in-flight message has been handled, and there are no more messages currently in flight.
+
+### queueEmpty
+
+```typescript
+squiss.on('queueEmpty', () => {
+  console.log('message kept');
+});
+```
+
+Emitted when Squiss asks SQS for new messages, and doesn't get any.
+
+### maxInFlight
+
+```typescript
+squiss.on('maxInFlight', () => {
+  console.log('message kept');
+});
+```
+
+Emitted when Squiss has hit the maxInFlight cap.  
+At this point, Squiss won't retrieve any more messages until at least `opts.receiveBatchSize` in-flight messages have been deleted.
+
+### gotMessages <number>
+
+```typescript
+squiss.on('gotMessages', (numOfMessages: number) => {
   console.log(`failed to delete message ${error}`);
 });
 ```
 
-Emitted when the message failed to get deleted.
-The object handed to you in this event is the AWS failure object described in the <a href="http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#getQueueUrl-property">SQS deleteMessageBatch documentation</a>.
+Emitted when Squiss asks SQS for a new batch of messages, and gets some (or one).  
+Supplies the number of retrieved messages.
 
-### deleted
+### deleted <`{message: Message, successId: string}`>
 
 ```typescript
-message.on('deleted', () => {
+squiss.on('deleted', (deletedEvent: IMessageDeletedEventPayload) => {
   console.log('message deleted');
 });
 ```
@@ -627,10 +668,21 @@ Emitted when a message is confirmed as being successfully deleted from the queue
 The `handled` and `delQueued` events will also be fired for deleted messages, but that will come earlier,
 when the delete function is initially called.
 
-### autoExtendFail <`AWSError`>
+### delError <`BatchResultErrorEntry`>
 
 ```typescript
-message.on('autoExtendFail', (error: AWSError) => {
+squiss.on('delError', (error: BatchResultErrorEntry) => {
+  console.log(`failed to delete message ${error}`);
+});
+```
+
+Emitted when the message failed to get deleted.
+The object handed to you in this event is the AWS failure object described in the <a href="http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#getQueueUrl-property">SQS deleteMessageBatch documentation</a>.
+
+### autoExtendFail <`{message: Message, error: AWSError}`>
+
+```typescript
+squiss.on('autoExtendFail', (error: IMessageErrorEventPayload) => {
   console.log(`failed to extend message ${error}`);
 });
 ```
@@ -638,10 +690,10 @@ message.on('autoExtendFail', (error: AWSError) => {
 Emitted if `autoExtendTimeout` feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
-### autoExtendError <`AWSError`>
+### autoExtendError <`{message: Message, error: AWSError}`>
 
 ```typescript
-message.on('autoExtendError', (error: AWSError) => {
+squiss.on('autoExtendError', (error: IMessageErrorEventPayload) => {
   console.log(`failed to extend message ${error}`);
 });
 ```

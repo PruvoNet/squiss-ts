@@ -190,7 +190,7 @@ Emitted when the message failed to get deleted.
 The object handed to you in this event is the AWS failure object described in the <a href="http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#getQueueUrl-property">SQS deleteMessageBatch documentation</a>.
 
 ### deleted
-
+``
 ```typescript
 message.on('deleted', () => {
   console.log('message deleted');
