@@ -469,83 +469,220 @@ Mandatory| False
 
 ## Methods
 
-### changeMessageVisibility(message: Message | string,timeoutInSeconds: number): Promise<void>
+### Lifecycle Methods
+
+#### start(): Promise<void>
 
 ```typescript
-message.changeVisibility(5000)
+squiss.start()
+  .then(() => {
+    console.log(`polling started`);
+  });
+```
+
+Starts polling SQS for new messages. Each new message is handed off in the `message` event.
+
+#### stop(soft?: boolean, timeout?: number): Promise<boolean>
+
+```typescript
+squiss.stop()
+  .then(() => {
+    console.log(`polling stopped`);
+  });
+```
+
+Hold on to your hats, this one stops the polling, aborting any in-progress request for new messages.  
+If called with soft=`true` while there's an active request for new messages, the active request will not be 
+aborted and the message event may still be fired up to `opts.receiveWaitTimeSecs` afterward.  
+A Promise will be returned and resolved with `true` when the queue is completely drained (all messages were handled), 
+or `false` if a `timeout` value was sent and it passed before the queue was drained.
+
+### Message Methods
+
+#### sendMessage(message: Object | string, delay?: number, attributes?: IMessageAttributes): Promise<SQS.Types.SendMessageResult>
+
+```typescript
+squiss.sendMessage({a:1, b:2}, undefined, {correlationId: 'my correlation id'})
+  .then((result) => {
+    console.log(`message sent with id ${result.MessageId}`);
+  });
+```
+
+```typescript
+squiss.sendMessage('my message data', 5000)
+  .then((result) => {
+    console.log(`message sent with id ${result.MessageId}`);
+  });
+```
+
+Sends an individual message to the configured queue, and returns a promise that resolves with AWS's official message
+metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5OfMessageBody`.  
+
+Arguments:
+- `message` - The message to push to the queue. If it's a string, great! If it's an Object, 
+Squiss will call JSON.stringify on it.
+- `delay` - The amount of time, in seconds, to wait before making the message available in the queue. 
+If not specified, the queue's configured value will be used.
+- `attributes`- An optional attributes mapping to associate with the message 
+(will be converted to SQS format automatically). 
+Passing `FIFO_MessageDeduplicationId` and/or `FIFO_MessageGroupId` will be removed and converted to the 
+`MessageDeduplicationId` and `MessageGroupId` message attributes accordingly (needed for FIFO queues). 
+
+For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
+
+#### sendMessages(messages: Array<Object | string> | Object | string, delay?: number, attributes?: IMessageAttributes |  IMessageAttributes[]): Promise<SQS.Types.SendMessageBatchResult>
+
+```typescript
+squiss.sendMessage([{a:1, b:2}], undefined, {correlationId: 'my correlation id'})
+  .then((result) => {
+    console.log(`message ${result.Successful[0].Id} sent with MessageId ${result.Successful[0].MessageId}`);
+  });
+```
+
+```typescript
+squiss.sendMessage([{a:1, b:2}, {c:3, d:4}], undefined, [{correlationId: 'my correlation id'}, {correlationId: 'my correlation id2'}])
+  .then((result) => {
+    console.log(`message ${result.Successful[0].Id} sent with MessageId ${result.Successful[0].MessageId}`);
+  });
+```
+
+Sends an array of any number of messages to the configured SQS queue, breaking them down into appropriate batch 
+requests executed in parallel (or as much as the default HTTP agent allows).  
+It returns a promise that resolves with a response closely aligned to the official AWS SDK's sendMessageBatch, 
+except the results from all batch requests are merged.
+The "Id" supplied in the response will be the index of the message in the original messages array, in string form.  
+
+Arguments:
+- `messages` - The array of messages to push to the queue.
+The messages should be either strings, or Objects that Squiss can pass to JSON.stringify.
+- `delay` - The amount of time, in seconds, to wait before making the messages available in the queue.
+If not specified, the queue's configured value will be used.
+- `attributes` - An optional array or single object of attributes mapping to associate with each message
+(will be converted to SQS format automatically). 
+
+For more information, see [the official AWS documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property).
+
+#### changeMessageVisibility(message: Message | string,timeoutInSeconds: number): Promise<void>
+
+```typescript
+squiss.changeVisibility(message, 5000)
   .then(() => {
     console.log('message visibility changed');
   });
 ```
 
-### parse(): Promise<string | any>
+Changes the visibility timeout of a message, given either the full Squiss Message object or the receipt handle string.
+
+#### deleteMessage(message: Message): Promise<void>
 
 ```typescript
-message.parse()
-  .then((body) => {
-    console.log(body);
-  });
-```
-
-Parses the message and store it in `body`.
-If the user requested to parse the message as json, it will be stored (and returned) as such.
-The main purposes of this method are:
- - Unzip the message, if it was gzipped before it was sent
- - Fetch the message from S3, if it was stored there before it was sent.
-   - Unless otherwise configured, make sure that the message will be delete from S3 once the message is marked as handled
- - If configured, parse the message as json. 
-
-<aside class="notice">
-You must call this method before handling the message, as the raw message might not be readable yet (e.g. zipped or stored on S3).
-</aside>
-
-### isHandled(): boolean
-
-```typescript
-console.log(`message handled? ${message.isHandled()}`);
-```
-
-Returns `true` if the message was already handled (e.g. deleted/released/kept)
-
-### del(): Promise<void>
-
-
-```typescript
-message.del()
+squiss.deleteMessage(message)
   .then(() => {
     console.log('message deleted');
   });
 ```
 
-Marks the message as handled and queue the message for deletion.
-Returns once the message was deleted from the queue.
+Deletes a message, given the full Message object sent to the `message` event.  
+It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how.  
+Note that the message probably won't be deleted immediately - it'll be queued for a batch delete.  
+See the constructor notes for how to configure the specifics of that.
 
-### keep(): void
+#### handledMessage(message: Message): void
 
 ```typescript
-message.keep();
+squiss.handledMessage(message);
 ```
 
-Marks the message as handled and release the message slot in Squiss (to allow another message to be fetched instead)
-while not performing any queue operation on it.
+Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the 
+number of "in-flight" messages.  
+It's good practice to delete every message you process, but this can be useful in case of error.  
+You can also call `message.keep()` on the message itself to invoke this.
 
-<aside class="warning">
-Notice that you can't release or delete the message afterwards!
-</aside>
-
-### release(): Promise<void>
+#### releaseMessage(message: Message): Promise<void>
 
 ```typescript
-message.release()
+squiss.releaseMessage(message)
   .then(() => {
     console.log('message released');
   });
 ```
 
-Marks the message as handled and release the message back to the queue (e.g. changes the visibility timeout of the message to 0)
-Returns once the message was released back to the queue.
+Releases the given Message object back to the queue by setting its `VisibilityTimeout` to `0` and marking the message as
+handled internally. You can also call `message.release()` on the message itself to invoke this.
 
-Changes the visibility timeout of the message
+### Queue Methods
+
+#### createQueue(): Promise<string>
+
+```typescript
+squiss.createQueue()
+  .then((queueUrl: string) => {
+    console.log(`created queue ${queueUrl}`);
+  });
+```
+
+Creates the configured queue. 
+Returns a promise that resolves with the new queue's URL when it's complete.  
+Note that this can only be called if you set `opts.queueName` when instantiating Squiss. 
+
+#### deleteQueue(): Promise<void>
+
+```typescript
+squiss.deleteQueue()
+  .then(() => {
+    console.log('queue deleted');
+  });
+```
+
+Deletes the configured queue, returning a promise that resolves on complete.  
+Squiss lets you do this, even though it makes Squiss useless. Squiss is so selfless.
+
+#### purgeQueue(): Promise<void>
+
+```typescript
+squiss.purgeQueue()
+  .then(() => {
+    console.log('queue purged');
+  });
+```
+
+Deletes all the messages in a queue and init in flight.
+
+#### getQueueUrl(): Promise<string>
+
+```typescript
+squiss.getQueueUrl()
+  .then((queueUrl: string) => {
+    console.log(`queue url is ${queueUrl}`);
+  });
+```
+
+Returns a Promise that resolves with the URL of the configured queue, even if you only instantiated Squiss with a queueName.  
+The `correctQueueUrl` setting applies to this result, if it was set.
+
+#### getQueueVisibilityTimeout(): Promise<number>
+
+```typescript
+squiss.getQueueVisibilityTimeout()
+  .then((visibilityTimeout: number) => {
+    console.log(`queue visibility timeout in seconds is ${visibilityTimeout}`);
+  });
+```
+
+Retrieves the `VisibilityTimeout` (in seconds) set on the target queue.  
+When a message is received, it has this many seconds to be deleted before it will become available to be received again.
+
+#### getQueueMaximumMessageSize(): Promise<number>
+
+```typescript
+squiss.getQueueMaximumMessageSize()
+  .then((maxSize: number) => {
+    console.log(`queue max message size is ${maxSize}`);
+  });
+```
+
+Retrieves the max message size (in bytes) set on the target queue.  
+When a message is sent, it will be rejected if it exceeds that size.
 
 ## Events
 
