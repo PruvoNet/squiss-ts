@@ -131,13 +131,15 @@ Default| queue setting on read, or 30 seconds for `createQueue()`
 
 ### Auto Extend Options
 
-#### autoExtendTimeout
-
-If true, Squiss will automatically extend each message's `VisibilityTimeout` in the SQS queue until
+Squiss can automatically extend each message's `VisibilityTimeout` in the SQS queue until
 it's handled (by keeping, deleting, or releasing it).  
 It will place the API call to extend the timeout `advancedCallMs` milliseconds in advance of the expiration,
 and will extend it by the number of seconds specified in `visibilityTimeoutSecs`.  
 If `visibilityTimeoutSecs` is not specified, the `VisibilityTimeout` setting on the queue itself will be used.
+
+#### autoExtendTimeout
+
+Enable the message auto extend feature
 
  | |
 ---------- | -------  | -------
@@ -169,6 +171,10 @@ Default| `5000`
 
 ### Gzip Options
 
+You can gzip the messages, which will reduce the message size, thus enabling you to send large messages, 
+and also reduce the cost of those message.  
+You can optionally gzip only if a message size certain criteria is met (`minGzipSize`), to reduce compute overhead.
+
 #### gzip
 
 Auto gzip messages to reduce message size.
@@ -190,6 +196,20 @@ Mandatory| False
 Default| `0`
 
 ### S3 Options
+
+```typescript
+const s3Options = {
+  s3Fallback: true,
+  s3Bucket: 'squiss-bucket',
+  s3Retain: false,
+  s3Prefix: `${queueName}`,
+  minS3Size: 64000,
+};
+```
+
+you can upload the messages body to S3 and replace the message with just the reference to the created blob.  
+This will reduce the message size, thus enabling you to send large messages, 
+and also reduce the cost of those message.  
 
 #### s3Fallback
 
