@@ -24,7 +24,7 @@ Queue message poller.
 Property | Type | Description
 ---------- | ------- | -------
 `inFlight` | number | The number of messages currently in flight
-`running` | number | Whether Squiss is currently polling or not
+`running` | boolean | Whether Squiss is currently polling or not
 `sqs` | SQS | The SQS model used
 
 ## Constructor Options
@@ -85,7 +85,7 @@ The name of the queue to be polled.
  | |
 ---------- | -------  | -------
 Type | string
-Mandatory| True if `queueUrl` is not specified
+Mandatory| True if [queueUrl](#squiss-class-constructor-options-queue-options-queueurl) is not specified
 
 #### queueUrl
 
@@ -94,12 +94,12 @@ The URL of the queue to be polled.
  | |
 ---------- | -------  | -------
 Type | string
-Mandatory| True if `queueName` is not specified
+Mandatory| True if [queueName](#squiss-class-constructor-options-queue-options-queuename) is not specified
 
 #### accountNumber
 
-If `queueName` is specified, the `accountNumber` of the queue owner can optionally be specified to access a queue in
-a different AWS account.
+If [queueName](#squiss-class-constructor-options-queue-options-queuename) is specified, the `accountNumber` of the 
+queue owner can optionally be specified to access a queue in a different AWS account.
 
  | |
 ---------- | -------  | -------
@@ -108,8 +108,8 @@ Mandatory| False
 
 #### correctQueueUrl
 
-Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint (see `awsConfig`),
-applicable only if `queueName` is specified.  
+Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint (see [awsConfig](#squiss-class-constructor-options-aws-options-awsconfig)),
+applicable only if [queueName](#squiss-class-constructor-options-queue-options-queuename) is specified.  
 This can be useful for testing against a local SQS service, such as ElasticMQ.
 
  | |
@@ -127,15 +127,15 @@ being deleted.
 ---------- | -------  | -------
 Type | number
 Mandatory| False
-Default| queue setting on read, or 30 seconds for `createQueue()`
+Default| queue setting on read, or 30 seconds for [createQueue()](#squiss-class-methods-queue-methods-createqueue-promise)
 
 ### Auto Extend Options
 
 Squiss can automatically extend each message's `VisibilityTimeout` in the SQS queue until
 it's handled (by keeping, deleting, or releasing it).  
-It will place the API call to extend the timeout `advancedCallMs` milliseconds in advance of the expiration,
-and will extend it by the number of seconds specified in `visibilityTimeoutSecs`.  
-If `visibilityTimeoutSecs` is not specified, the `VisibilityTimeout` setting on the queue itself will be used.
+It will place the API call to extend the timeout [advancedCallMs](#squiss-class-constructor-options-auto-extend-options-advancedcallms) milliseconds in advance of the expiration,
+and will extend it by the number of seconds specified in [visibilityTimeoutSecs](#squiss-class-constructor-options-visibilitytimeoutsecs).  
+If  [visibilityTimeoutSecs](#squiss-class-constructor-options-visibilitytimeoutsecs) is not specified, the `VisibilityTimeout` setting on the queue itself will be used.
 
 #### autoExtendTimeout
 
@@ -149,8 +149,8 @@ Default| `false`
 
 #### noExtensionsAfterSecs
 
-If `autoExtendTimeout` is used, Squiss will stop auto-renewing a message's `VisibilityTimeout`
-when it reaches this age. Default is 12 hours, SQS's `VisbilityTimeout` maximum.
+If [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) is used, Squiss will
+stop auto-renewing a message's `VisibilityTimeout` when it reaches this age. Default is 12 hours - SQS's `VisbilityTimeout` maximum.
 
  | |
 ---------- | -------  | -------
@@ -160,7 +160,7 @@ Default| `43200`
 
 #### advancedCallMs
 
-If `autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the
+If [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) is used, this is the number of milliseconds that Squiss will make the call to extend the
 `VisibilityTimeout` of the message, before the message is set to expire.
 
  | |
@@ -173,7 +173,7 @@ Default| `5000`
 
 You can gzip the messages, which will reduce the message size, thus enabling you to send large messages, 
 and also reduce the cost of those message.  
-You can optionally gzip only if a message size certain criteria is met (`minGzipSize`), to reduce compute overhead.
+You can optionally gzip only if a message size certain criteria is met ([minGzipSize](#squiss-class-constructor-options-gzip-options-mingzipsize)), to reduce compute overhead.
 
 #### gzip
 
@@ -187,7 +187,7 @@ Default| `false`
 
 #### minGzipSize
 
-The min message size to gzip (in bytes) when `gzip` is set to `true`.
+The min message size to gzip (in bytes) when [gzip](#squiss-class-constructor-options-gzip-options-gzip) is set to `true`.
 
  | |
 ---------- | -------  | -------
@@ -209,11 +209,12 @@ const s3Options = {
 
 you can upload the messages body to S3 and replace the message with just the reference to the created blob.  
 This will reduce the message size, thus enabling you to send large messages, 
-and also reduce the cost of those message.  
+and also reduce the cost of those messages.  
 
 #### s3Fallback
 
-Upload messages bigger than `minS3Size` or queue default `maxMessageBytes` to S3,
+Upload messages bigger than [minS3Size](#squiss-class-constructor-options-s3-options-mins3size) or queue default
+[maxMessageBytes](#squiss-class-constructor-options-queue-create-options-maxmessagebytes) to S3,
 and retrieve it from there when message is received.
 
  | |
@@ -224,16 +225,16 @@ Default| `false`
 
 #### s3Bucket
 
-if `s3Fallback` is set to `true`, upload message to this S3 bucket.
+if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) is set to `true`, upload message to this S3 bucket.
 
  | |
 ---------- | -------  | -------
 Type | string
-Mandatory| True if `s3Fallback` is set to `true`
+Mandatory| True if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) is set to `true`
 
 #### s3Retain
 
-if `s3Fallback` is true, do not delete blob on message delete.
+if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) is true, do not delete blob on message delete.
 
  | |
 ---------- | -------  | -------
@@ -243,7 +244,7 @@ Default | `false`
 
 #### minS3Size
 
-The min message size to send to S3 (in bytes) when `s3Fallback` is set to `true`.
+The min message size to send to S3 (in bytes) when [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) is set to `true`.
 
  | |
 ---------- | -------  | -------
@@ -253,7 +254,7 @@ Default | queue max message size
 
 #### s3Prefix
 
-if `s3Fallback` is set to `true`, set this prefix to uploaded S3 blobs.
+if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) is set to `true`, set this prefix to uploaded S3 blobs.
 
  | |
 ---------- | -------  | -------
@@ -796,7 +797,7 @@ squiss.on('timeoutReached', (message: Message) => {
 ```
 
 Emitted when a message reaches it's timeout limit, including any extensions made
-with the `autoExtendTimeout` feature.
+with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
 
 #### extendingTimeout
 
@@ -806,7 +807,7 @@ squiss.on('extendingTimeout', (message: Message) => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` is about to be extended with the `autoExtendTimeout` feature.
+Emitted when a message `VisibilityTimeout` is about to be extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
 
 #### timeoutExtended
 
@@ -816,7 +817,7 @@ squiss.on('timeoutExtended', (message: Message) => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` was extended with the `autoExtendTimeout` feature.
+Emitted when a message `VisibilityTimeout` was extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
 
 #### keep
 
@@ -871,7 +872,7 @@ squiss.on('autoExtendFail', (error: IMessageErrorEventPayload) => {
 });
 ```
 
-Emitted if `autoExtendTimeout` feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
 #### autoExtendError <`{message: Message, error: AWSError}`>
@@ -882,7 +883,7 @@ squiss.on('autoExtendError', (error: IMessageErrorEventPayload) => {
 });
 ```
 
-Emitted if `autoExtendTimeout` feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
 
 ### S3 Events
 
@@ -894,7 +895,7 @@ squiss.on('s3Download', (payload: IMessageS3EventPayload) => {
 });
 ```
 
-Emitted if `s3Fallback` feature is enabled, and a message that was received downloaded its message body from S3.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received downloaded its message body from S3.
 
 #### s3Delete <`{message: Message, data: {bucket: string, key: string, uploadSize: number}}`>
 
@@ -904,7 +905,7 @@ squiss.on('s3Delete', (payload: IMessageS3EventPayload) => {
 });
 ```
 
-Emitted if `s3Fallback` feature is enabled, and a message that was received with message body from S3 was deleted.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received with message body from S3 was deleted.
 
 #### s3Upload <`{bucket: string, key: string, uploadSize: number}`>
 
@@ -914,4 +915,4 @@ squiss.on('s3Delete', (payload: IS3Upload) => {
 });
 ```
 
-Emitted if `s3Fallback` feature is enabled, and a message that was sent uploaded its body to S3.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was sent uploaded its body to S3.

@@ -59,15 +59,18 @@ squiss.sendMessage(messageToSend, 0, propsToSend);
 - Easy message lifecycle management
 - Options to auto renew messages visibility timeout for long message processing
 - Option to automatically gzip incoming and outgoing messages (based on message size) to decrease message sizes and save SQS costs
-- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message sizes, save SQS costs and be able to send messages bigger than SQS size limit
+- Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message size,
+save SQS costs and be able to send messages bigger than SQS message size limit
 - Full typescript support
 
 ## How it works
 
-Squiss processes as many messages simultaneously as possible.
-Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion.
-If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.
-Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time (set up by you) has passed (see `autoExtendTimeout`).  
+Squiss processes as many messages simultaneously as possible.  
+Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will keep
+that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion.  
+If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.  
+Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time 
+(set up by you) has passed (see [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout)).  
 Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
 
 ## Versioning

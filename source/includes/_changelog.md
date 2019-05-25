@@ -32,7 +32,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Added `minS3Size` option to set the min size that will cause upload to S3 [#33](https://github.com/PruvoNet/squiss-ts/issues/33)
+- Added [minS3Size](#squiss-class-constructor-options-s3-options-mins3size) option to set the min size that will cause upload to S3 [#33](https://github.com/PruvoNet/squiss-ts/issues/33)
 
 ## v3.0.0
 

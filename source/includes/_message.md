@@ -183,7 +183,7 @@ message.on('timeoutReached', () => {
 ```
 
 Emitted when a message reaches it's timeout limit, including any extensions made
-with the `autoExtendTimeout` feature.
+with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
 
 #### extendingTimeout
 
@@ -193,7 +193,7 @@ message.on('extendingTimeout', () => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` is about to be extended with the `autoExtendTimeout` feature.
+Emitted when a message `VisibilityTimeout` is about to be extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
 
 #### timeoutExtended
 
@@ -203,7 +203,7 @@ message.on('timeoutExtended', () => {
 });
 ```
 
-Emitted when a message `VisibilityTimeout` was extended with the `autoExtendTimeout` feature.
+Emitted when a message `VisibilityTimeout` was extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature.
 
 #### autoExtendFail <`AWSError`>
 
@@ -213,7 +213,7 @@ message.on('autoExtendFail', (error: AWSError) => {
 });
 ```
 
-Emitted if `autoExtendTimeout` feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
 #### autoExtendError <`AWSError`>
@@ -224,7 +224,7 @@ message.on('autoExtendError', (error: AWSError) => {
 });
 ```
 
-Emitted if `autoExtendTimeout` feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
+Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout) feature is enabled, and Squiss failed to extend the message `VisibilityTimeout`.
 
 ### S3 Events
 
@@ -236,7 +236,7 @@ message.on('s3Download', (payload: IS3Upload) => {
 });
 ```
 
-Emitted if `s3Fallback` feature is enabled, and a message that was received downloaded its message body from S3.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received downloaded its message body from S3.
 
 #### s3Delete <`{bucket: string, key: string, uploadSize: number}`>
 
@@ -246,4 +246,4 @@ message.on('s3Delete', (payload: IS3Upload) => {
 });
 ```
 
-Emitted if `s3Fallback` feature is enabled, and a message that was received with message body from S3 was deleted.
+Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options-s3fallback) feature is enabled, and a message that was received with message body from S3 was deleted.
