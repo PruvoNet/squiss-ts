@@ -247,29 +247,56 @@ describe('Message', () => {
   it('removes S3 on delete', (done) => {
     const bucket = 'my_bucket';
     const key = 'my_key';
+    const uploadSize = 50;
     const blobs: Blobs = {};
     blobs[bucket] = {};
     blobs[bucket][key] = '{"i": 1}';
-    const rawMsg = getSQSMsg(JSON.stringify({bucket, key}));
+    const rawMsg = getSQSMsg(JSON.stringify({bucket, key, uploadSize}));
     rawMsg.MessageAttributes!.__SQS_S3__ = {
       DataType: 'Number',
       StringValue: '1',
     };
+    let squissS3DeleteEventEmitted = false;
+    let squissS3DownloadEventEmitted = false;
+    let msgS3DeleteEventEmitted = false;
+    let msgS3DownloadEventEmitted = false;
     const msg = new Message({
       squiss: {
         deleteMessage: (toDel: Message) => {
           blobs[bucket].should.not.have.property(key);
           toDel.should.equal(msg);
+          squissS3DeleteEventEmitted.should.eql(true);
+          msgS3DeleteEventEmitted.should.eql(true);
+          squissS3DownloadEventEmitted.should.eql(true);
+          msgS3DownloadEventEmitted.should.eql(true);
           done();
         },
         emit: (event: string, data: any) => {
-
+          console.log(event);
+          data.data.bucket.should.eql(bucket);
+          data.data.key.should.eql(key);
+          data.data.uploadSize.should.eql(uploadSize);
+          data.message.should.eql(msg);
+          squissS3DeleteEventEmitted = squissS3DeleteEventEmitted || event === 's3Delete';
+          squissS3DownloadEventEmitted = squissS3DownloadEventEmitted || event === 's3Download';
         },
       } as any as Squiss,
       msg: rawMsg,
       bodyFormat: 'json',
       s3Retriever: getS3Stub(blobs),
       s3Retain: false,
+    });
+    msg.on('s3Delete', (data) => {
+      data.bucket.should.eql(bucket);
+      data.key.should.eql(key);
+      data.uploadSize.should.eql(uploadSize);
+      msgS3DeleteEventEmitted = true;
+    });
+    msg.on('s3Download', (data) => {
+      data.bucket.should.eql(bucket);
+      data.key.should.eql(key);
+      data.uploadSize.should.eql(uploadSize);
+      msgS3DownloadEventEmitted = true;
     });
     msg.parse()
       .then(() => {
@@ -290,21 +317,36 @@ describe('Message', () => {
       DataType: 'Number',
       StringValue: '1',
     };
+    let squissS3DeleteEventEmitted = false;
+    let squissS3DownloadEventEmitted = false;
+    let msgS3DeleteEventEmitted = false;
+    let msgS3DownloadEventEmitted = false;
     const msg = new Message({
       squiss: {
         deleteMessage: (toDel: Message) => {
           blobs[bucket].should.have.property(key);
           toDel.should.equal(msg);
+          squissS3DeleteEventEmitted.should.eql(false);
+          msgS3DeleteEventEmitted.should.eql(false);
+          squissS3DownloadEventEmitted.should.eql(true);
+          msgS3DownloadEventEmitted.should.eql(true);
           done();
         },
         emit: (event: string, data: any) => {
-
+          squissS3DeleteEventEmitted = squissS3DeleteEventEmitted || event === 's3Delete';
+          squissS3DownloadEventEmitted = squissS3DownloadEventEmitted || event === 's3Download';
         },
       } as any as Squiss,
       msg: rawMsg,
       bodyFormat: 'json',
       s3Retriever: getS3Stub(blobs),
       s3Retain: true,
+    });
+    msg.on('s3Delete', () => {
+      msgS3DeleteEventEmitted = true;
+    });
+    msg.on('s3Download', () => {
+      msgS3DownloadEventEmitted = true;
     });
     msg.parse()
       .then(() => {

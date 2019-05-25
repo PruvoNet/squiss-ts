@@ -1137,11 +1137,19 @@ describe('index', () => {
     it('sends a S3 message with a delay and attributes', () => {
       const blobs: Blobs = {};
       const s3Stub = getS3Stub(blobs);
-      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket'});
+      const bucket = 'my_bucket';
+      inst = new SquissPatched({S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket:  bucket});
       inst!.sqs = new SQSStub() as any as SQS;
       const buffer = Buffer.from('s');
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
       const largeMessage = generateLargeMessage(300);
+      let squissS3UploadEventEmitted = false;
+      inst!.on('s3Upload', (data) => {
+        data.bucket.should.eql(bucket);
+        data.key.should.eql('my_uuid');
+        data.uploadSize.should.eql(300);
+        squissS3UploadEventEmitted = true;
+      });
       return inst!.sendMessage(largeMessage, 10, {
         baz: 'fizz',
         num: 1,
@@ -1150,6 +1158,7 @@ describe('index', () => {
         bin: buffer,
         empty: undefined,
       }).then(() => {
+        squissS3UploadEventEmitted.should.eql(true);
         blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
         spy.should.be.calledWith({
           QueueUrl: 'foo',
