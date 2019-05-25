@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - `delError` event on the `squiss` class returns the relevant message handler as well (BREAKING CHANGE)
 - Fixed type safety of event handling on all classes
+- Updated npm dependencies
 ### Added
 - Moved documentation to <a href="https://squiss-ts.pruvo.com">here</a>
 - Added issue and PR templates
