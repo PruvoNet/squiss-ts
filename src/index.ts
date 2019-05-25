@@ -13,7 +13,7 @@ import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
 import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {AWSError} from 'aws-sdk';
-import {EventEmitterOverride} from './EventEmitterTypesHelper';
+import {StrictEventEmitter} from './EventEmitterTypesHelper';
 
 export {SQS, S3} from 'aws-sdk';
 
@@ -124,6 +124,11 @@ export interface IMessageErrorEventPayload {
     error: AWSError;
 }
 
+export interface IMessageDeleteErrorEventPayload {
+    message: Message;
+    error: BatchResultErrorEntry;
+}
+
 interface ISquissEvents {
     delQueued: Message;
     handled: Message;
@@ -140,12 +145,14 @@ interface ISquissEvents {
     gotMessages: number;
     error: Error;
     aborted: AWSError;
-    delError: BatchResultErrorEntry;
+    delError: IMessageDeleteErrorEventPayload;
     autoExtendFail: IMessageErrorEventPayload;
     autoExtendError: IMessageErrorEventPayload;
 }
 
-export class Squiss extends EventEmitter implements EventEmitterOverride<ISquissEvents> {
+type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
+
+export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
     public get inFlight(): number {
         return this._inFlight;
@@ -510,7 +517,7 @@ export class Squiss extends EventEmitter implements EventEmitterOverride<ISquiss
         }).then((data) => {
             if (data.Failed && data.Failed.length) {
                 data.Failed.forEach((fail) => {
-                    this.emit('delError', fail);
+                    this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
                     itemById[fail.Id].msg.emit('delError', fail);
                     itemById[fail.Id].reject(fail);
                 });

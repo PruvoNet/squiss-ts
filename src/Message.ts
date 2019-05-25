@@ -7,7 +7,7 @@ import {EventEmitter} from 'events';
 import {GZIP_MARKER, decompressMessage} from './gzipUtils';
 import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './s3Utils';
 import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
-import {EventEmitterOverride} from './EventEmitterTypesHelper';
+import {StrictEventEmitter} from './EventEmitterTypesHelper';
 
 const EMPTY_BODY = '{}';
 
@@ -40,7 +40,9 @@ interface IMessageEvents {
     autoExtendError: AWSError;
 }
 
-export class Message extends EventEmitter implements EventEmitterOverride<IMessageEvents> {
+type MessageEmitter = StrictEventEmitter<EventEmitter, IMessageEvents>;
+
+export class Message extends (EventEmitter as new() => MessageEmitter) {
 
     private static formatMessage(msg: string | undefined, format: BodyFormat) {
         if (format === 'json') {
