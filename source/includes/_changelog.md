@@ -5,6 +5,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.0.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v3.0.1...v4.0.0)
+
+### Fixed
+- `delError` event on the `squiss` class returns the relevant message handler as well (BREAKING CHANGE)
+- Fixed type safety of event handling on all classes
+### Added
+- Moved documentation to <a href="https://squiss-ts.pruvo.com">here</a>
+- Added issue and PR templates
+- Added a new logo!
+
 ## v3.0.1
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v3.0.0...v3.0.1)
