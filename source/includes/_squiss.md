@@ -469,6 +469,15 @@ Mandatory| False
 
 ## Methods
 
+### changeMessageVisibility(message: Message | string,timeoutInSeconds: number): Promise<void>
+
+```typescript
+message.changeVisibility(5000)
+  .then(() => {
+    console.log('message visibility changed');
+  });
+```
+
 ### parse(): Promise<string | any>
 
 ```typescript
@@ -535,15 +544,6 @@ message.release()
 
 Marks the message as handled and release the message back to the queue (e.g. changes the visibility timeout of the message to 0)
 Returns once the message was released back to the queue.
-
-### changeVisibility(timeoutInSeconds: number): Promise<void>
-
-```typescript
-message.changeVisibility(5000)
-  .then(() => {
-    console.log('message visibility changed');
-  });
-```
 
 Changes the visibility timeout of the message
 
