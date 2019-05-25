@@ -262,6 +262,9 @@ describe('Message', () => {
           toDel.should.equal(msg);
           done();
         },
+        emit: (event: string, data: any) => {
+
+        },
       } as any as Squiss,
       msg: rawMsg,
       bodyFormat: 'json',
@@ -293,6 +296,9 @@ describe('Message', () => {
           blobs[bucket].should.have.property(key);
           toDel.should.equal(msg);
           done();
+        },
+        emit: (event: string, data: any) => {
+
         },
       } as any as Squiss,
       msg: rawMsg,

@@ -9,7 +9,7 @@ import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
 import {SQS, S3} from 'aws-sdk';
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
-import {S3_MARKER, uploadBlob} from './s3Utils';
+import {IS3Upload, S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
 import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {AWSError} from 'aws-sdk';
@@ -129,6 +129,11 @@ export interface IMessageDeleteErrorEventPayload {
     error: BatchResultErrorEntry;
 }
 
+export interface IMessageS3EventPayload {
+    message: Message;
+    data: IS3Upload;
+}
+
 interface ISquissEvents {
     delQueued: Message;
     handled: Message;
@@ -148,6 +153,9 @@ interface ISquissEvents {
     delError: IMessageDeleteErrorEventPayload;
     autoExtendFail: IMessageErrorEventPayload;
     autoExtendError: IMessageErrorEventPayload;
+    s3Download: IMessageS3EventPayload;
+    s3Delete: IMessageS3EventPayload;
+    s3Upload: IS3Upload;
 }
 
 type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
@@ -755,6 +763,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                         }
                         return uploadBlob(this.getS3(), this._opts.s3Bucket!, finalMessage, this._opts.s3Prefix || '')
                             .then((uploadData) => {
+                                this.emit('s3Upload', uploadData);
                                 params.MessageBody = JSON.stringify(uploadData);
                                 params.MessageAttributes = params.MessageAttributes || {};
                                 params.MessageAttributes[S3_MARKER] = {
