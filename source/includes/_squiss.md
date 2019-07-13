@@ -924,7 +924,7 @@ Emitted if [s3Fallback](#squiss-class-constructor-options-s3-options) feature is
 #### s3Upload <`{bucket: string, key: string, uploadSize: number}`>
 
 ```typescript
-squiss.on('s3Delete', (payload: IS3Upload) => {
+squiss.on('s3Upload', (payload: IS3Upload) => {
   console.log(`uploaded s3 message ${payload.key}`);
 });
 ```
