@@ -18,8 +18,6 @@ const getS3Stub = () => {
   return new S3Stub() as any as S3;
 };
 
-const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
-
 let inst = null;
 let clock: any = null;
 const msgSquissStub = getSquissStub();
@@ -164,7 +162,7 @@ describe('TimeoutExtender', () => {
     clock.tick(15000);
     spy.should.be.calledThrice();
   });
-  it('renews only until the configured age limit', (done) => {
+  it('renews only until the configured age limit', () => {
     const keepSpyMessage = sinon.spy();
     const keepSpySquiss = sinon.spy();
     const timeoutSpyMessage = sinon.spy();
@@ -183,15 +181,12 @@ describe('TimeoutExtender', () => {
     clock.tick(20000);
     spy.should.be.calledOnce();
     fooMsg.isHandled().should.eql(true);
-    wait().then(() => {
-      keepSpyMessage.should.be.calledOnce();
-      keepSpySquiss.should.be.calledOnce();
-      keepSpySquiss.should.be.calledWith(fooMsg);
-      timeoutSpyMessage.should.be.calledOnce();
-      timeoutSpySquiss.should.be.calledOnce();
-      timeoutSpySquiss.should.be.calledWith(fooMsg);
-      done();
-    });
+    keepSpyMessage.should.be.calledOnce();
+    keepSpySquiss.should.be.calledOnce();
+    keepSpySquiss.should.be.calledWith(fooMsg);
+    timeoutSpyMessage.should.be.calledOnce();
+    timeoutSpySquiss.should.be.calledOnce();
+    timeoutSpySquiss.should.be.calledWith(fooMsg);
   });
   it('emits error on the parent Squiss object in case of issue', (done) => {
     clock = sinon.useFakeTimers(100000);
