@@ -7,7 +7,7 @@
 [![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev)
 
 <p align="center">
-  <img src="https://github.com/PruvoNet/squiss-ts/blob/docs/source/images/logo.png?raw=true" />
+  <a href="https://squiss-ts.pruvo.com"><img src="https://github.com/PruvoNet/squiss-ts/blob/docs/source/images/logo.png?raw=true" /></a>
 </p>
 
 # Squiss-TS 
@@ -22,6 +22,10 @@ The library is production ready and is being stress used in a full blown product
 - Option to automatically gzip incoming and outgoing messages (based on message size) to decrease message sizes and save SQS costs
 - Option to auto upload large messages to s3 and retrieve the message from s3 upon receive, in order to decrease message sizes, save SQS costs and be able to send messages bigger than SQS size limit
 - Full typescript support
+
+## Documentation
+
+Please see full documentation <a href="https://squiss-ts.pruvo.com">here</a>
 
 ## Quick example
 ```typescript
@@ -76,10 +80,6 @@ If the queue is empty, Squiss will maintain an open connection to SQS, waiting f
 Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time 
 (set up by you) has passed (see [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout)).  
 Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
-
-## Documentation
-
-Please see full documentation <a href="https://squiss-ts.pruvo.com">here</a>
 
 ## Versions
 Squiss supports Node 6 LTS and higher.
