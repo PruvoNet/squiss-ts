@@ -18,8 +18,6 @@ const getS3Stub = () => {
   return new S3Stub() as any as S3;
 };
 
-const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
-
 let inst = null;
 let clock: any = null;
 const msgSquissStub = getSquissStub();
@@ -183,14 +181,12 @@ describe('TimeoutExtender', () => {
     clock.tick(20000);
     spy.should.be.calledOnce();
     fooMsg.isHandled().should.eql(true);
-    return wait().then(() => {
-      keepSpyMessage.should.be.calledOnce();
-      keepSpySquiss.should.be.calledOnce();
-      keepSpySquiss.should.be.calledWith(fooMsg);
-      timeoutSpyMessage.should.be.calledOnce();
-      timeoutSpySquiss.should.be.calledOnce();
-      timeoutSpySquiss.should.be.calledWith(fooMsg);
-    });
+    keepSpyMessage.should.be.calledOnce();
+    keepSpySquiss.should.be.calledOnce();
+    keepSpySquiss.should.be.calledWith(fooMsg);
+    timeoutSpyMessage.should.be.calledOnce();
+    timeoutSpySquiss.should.be.calledOnce();
+    timeoutSpySquiss.should.be.calledWith(fooMsg);
   });
   it('emits error on the parent Squiss object in case of issue', (done) => {
     clock = sinon.useFakeTimers(100000);
