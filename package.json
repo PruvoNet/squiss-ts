@@ -21,7 +21,8 @@
     "url": "git+https://github.com/PruvoNet/squiss-ts.git"
   },
   "files": [
-    "dist"
+    "/dist/*.d.ts",
+    "/dist/*.js"
   ],
   "keywords": [
     "aws",

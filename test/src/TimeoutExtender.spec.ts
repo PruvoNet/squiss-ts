@@ -164,7 +164,7 @@ describe('TimeoutExtender', () => {
     clock.tick(15000);
     spy.should.be.calledThrice();
   });
-  it('renews only until the configured age limit', () => {
+  it('renews only until the configured age limit', (done) => {
     const keepSpyMessage = sinon.spy();
     const keepSpySquiss = sinon.spy();
     const timeoutSpyMessage = sinon.spy();
@@ -183,13 +183,14 @@ describe('TimeoutExtender', () => {
     clock.tick(20000);
     spy.should.be.calledOnce();
     fooMsg.isHandled().should.eql(true);
-    return wait().then(() => {
+    wait().then(() => {
       keepSpyMessage.should.be.calledOnce();
       keepSpySquiss.should.be.calledOnce();
       keepSpySquiss.should.be.calledWith(fooMsg);
       timeoutSpyMessage.should.be.calledOnce();
       timeoutSpySquiss.should.be.calledOnce();
       timeoutSpySquiss.should.be.calledWith(fooMsg);
+      done();
     });
   });
   it('emits error on the parent Squiss object in case of issue', (done) => {
