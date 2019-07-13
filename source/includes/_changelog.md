@@ -5,6 +5,20 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.0.1
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.0...v4.0.1)
+
+### Fixed
+
+- Fixed failed test in node 6
+- Removed map files from npm package
+- Updated npm dependencies
+
+### Added
+
+- CI tests for node 12
+
 ## v4.0.0
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v3.0.1...v4.0.0)
