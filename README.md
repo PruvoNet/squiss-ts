@@ -1,4 +1,4 @@
-# Api docs for Pruvo
+# Api docs for Squiss-TS
 
 See <a href="https://squiss-ts.pruvo.com">https://squiss-ts.pruvo.com<a/> for the published version
 
@@ -34,4 +34,12 @@ You're going to need:
 
 ```shell
 bundle install
+```
+
+## Updating contributes list
+
+Clone [github-contributors-list](https://github.com/mgechev/github-contributors-list) and run:
+
+```bash
+./bin/githubcontrib --owner PruvoNet --repo squiss-ts --cols 6 --sortBy login --showlogin true > cont.md
 ```
