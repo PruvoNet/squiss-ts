@@ -43,3 +43,7 @@ Clone [github-contributors-list](https://github.com/mgechev/github-contributors-
 ```bash
 ./bin/githubcontrib --owner PruvoNet --repo squiss-ts --cols 6 --sortBy login --showlogin true > cont.md
 ```
+
+## Framework
+
+[slate](https://github.com/lord/slate)
