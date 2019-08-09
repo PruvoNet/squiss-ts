@@ -479,10 +479,6 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     public _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
-        const itemById: IDeleteQueueItemById = batch.reduce((prevByValue, item) => {
-            prevByValue[item.Id] = item;
-            return prevByValue;
-        }, {} as IDeleteQueueItemById);
         return this.getQueueUrl().then((queueUrl) => {
             return this.sqs.deleteMessageBatch({
                 QueueUrl: queueUrl,
@@ -493,23 +489,8 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                     };
                 }),
             }).promise();
-        }).then((data) => {
-            if (data.Failed && data.Failed.length) {
-                data.Failed.forEach((fail) => {
-                    this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
-                    itemById[fail.Id].msg.emit('delError', fail);
-                    itemById[fail.Id].reject(fail);
-                });
-            }
-            if (data.Successful && data.Successful.length) {
-                data.Successful.forEach((success) => {
-                    const msg = itemById[success.Id].msg;
-                    this.emit('deleted', {msg, successId: success.Id});
-                    msg.emit('deleted', success.Id);
-                    itemById[success.Id].resolve();
-                });
-            }
-        }).catch((err: Error) => {
+        }).then(this._handleBatchDeleteResults(batch))
+            .catch((err: Error) => {
             this.emit('error', err);
             return Promise.reject(err);
         });
@@ -761,5 +742,29 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         } else {
             return new SQS(this._opts.awsConfig);
         }
+    }
+
+    private _handleBatchDeleteResults(batch: IDeleteQueueItem[]) {
+        const itemById: IDeleteQueueItemById = batch.reduce((prevByValue, item) => {
+            prevByValue[item.Id] = item;
+            return prevByValue;
+        }, {} as IDeleteQueueItemById);
+        return (data: SQS.DeleteMessageBatchResult) => {
+            if (data.Failed && data.Failed.length) {
+                data.Failed.forEach((fail) => {
+                    this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
+                    itemById[fail.Id].msg.emit('delError', fail);
+                    itemById[fail.Id].reject(fail);
+                });
+            }
+            if (data.Successful && data.Successful.length) {
+                data.Successful.forEach((success) => {
+                    const msg = itemById[success.Id].msg;
+                    this.emit('deleted', {msg, successId: success.Id});
+                    msg.emit('deleted', success.Id);
+                    itemById[success.Id].resolve();
+                });
+            }
+        };
     }
 }
