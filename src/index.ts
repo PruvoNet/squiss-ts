@@ -174,47 +174,31 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public _timeoutExtender: TimeoutExtender | undefined;
     public _opts: ISquissOptions;
     private _s3?: S3;
-    private _running: boolean;
-    private _paused: boolean;
-    private _inFlight: number;
-    private _queueVisibilityTimeout: number;
-    private _queueMaximumMessageSize: number;
+    private _running = false;
+    private _paused = true;
+    private _inFlight = 0;
+    private _queueVisibilityTimeout = 0;
+    private _queueMaximumMessageSize = 0;
     private _queueUrl: string;
-    private _delQueue: Map<string, IDeleteQueueItem>;
+    private _delQueue = new Map<string, IDeleteQueueItem>();
     private _delTimer: number | undefined;
     private _activeReq: AWS.Request<SQS.Types.ReceiveMessageResult, AWS.AWSError> | undefined;
 
     constructor(opts?: ISquissOptions | undefined) {
         super();
         this._opts = Object.assign({}, optDefaults, opts || {});
-        if (this._opts.SQS) {
-            if (typeof this._opts.SQS === 'function') {
-                this.sqs = new this._opts.SQS(this._opts.awsConfig);
-            } else {
-                this.sqs = this._opts.SQS;
-            }
-        } else {
-            this.sqs = new SQS(this._opts.awsConfig);
-        }
         this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, 10);
         this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize!,
             this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : 10, 10);
         this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
-        this._running = false;
-        this._inFlight = 0;
-        this._delQueue = new Map();
-        this._paused = true;
-        this._delTimer = undefined;
         this._queueUrl = this._opts.queueUrl || '';
-        this._queueVisibilityTimeout = 0;
-        this._queueMaximumMessageSize = 0;
         if (!this._opts.queueUrl && !this._opts.queueName) {
             throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
         }
         if (this._opts.s3Fallback && !this._opts.s3Bucket) {
             throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
         }
-        this._timeoutExtender = undefined;
+        this.sqs = this._initSqs();
     }
 
     public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void> {
@@ -765,5 +749,17 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 });
                 return params;
             });
+    }
+
+    private _initSqs() {
+        if (this._opts.SQS) {
+            if (typeof this._opts.SQS === 'function') {
+                return new this._opts.SQS(this._opts.awsConfig);
+            } else {
+                return this._opts.SQS;
+            }
+        } else {
+            return new SQS(this._opts.awsConfig);
+        }
     }
 }
