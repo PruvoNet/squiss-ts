@@ -20,6 +20,7 @@ import {
     IMessageS3EventPayload, IMessageToSend, ISendMessageRequest,
     ISquissOptions
 } from './Types';
+import {removeEmptyKeys} from './Utils';
 
 const AWS_MAX_SEND_BATCH = 10;
 
@@ -418,52 +419,26 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (this._activeReq || !this._running) {
             return;
         }
-        const next = this._getBatch.bind(this, queueUrl);
-        const maxMessagesToGet = !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
-            Math.min(this._opts.maxInFlight! - this._inFlight, this._opts.receiveBatchSize!);
+        const maxMessagesToGet = this._getMaxMessagesToGet();
         if (maxMessagesToGet < this._opts.minReceiveBatchSize!) {
             this._paused = true;
             return;
         }
-        const params: SQS.Types.ReceiveMessageRequest = {
+        const params: SQS.Types.ReceiveMessageRequest = removeEmptyKeys({
             QueueUrl: queueUrl,
             MaxNumberOfMessages: maxMessagesToGet,
             WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
-        };
-        params.MessageAttributeNames = this._opts.receiveAttributes;
-        params.AttributeNames = this._opts.receiveSqsAttributes;
-        if (this._opts.visibilityTimeoutSecs !== undefined) {
-            params.VisibilityTimeout = this._opts.visibilityTimeoutSecs;
-        }
+            MessageAttributeNames: this._opts.receiveAttributes,
+            AttributeNames: this._opts.receiveSqsAttributes,
+            VisibilityTimeout: this._opts.visibilityTimeoutSecs,
+        });
         this._activeReq = this.sqs.receiveMessage(params);
-        this._activeReq.promise().then((data) => {
-            let gotMessages = true;
-            this._activeReq = undefined;
-            if (data && data.Messages) {
-                this.emit('gotMessages', data.Messages.length);
-                this._emitMessages(data.Messages);
-            } else {
-                this.emit('queueEmpty');
-                gotMessages = false;
-            }
-            if (this._slotsAvailable()) {
-                if (gotMessages && this._opts.activePollIntervalMs) {
-                    setTimeout(next, this._opts.activePollIntervalMs);
-                } else if (!gotMessages && this._opts.idlePollIntervalMs) {
-                    setTimeout(next, this._opts.idlePollIntervalMs);
-                } else {
-                    next();
-                }
-            } else {
-                this._paused = true;
-                this.emit('maxInFlight');
-            }
-        }).catch((err: AWSError) => {
+        this._activeReq.promise().then(this._handleGetBatchResult(queueUrl)).catch((err: AWSError) => {
             this._activeReq = undefined;
             if (err.code && err.code === 'RequestAbortedError') {
                 this.emit('aborted', err);
             } else {
-                setTimeout(next, this._opts.pollRetryMs);
+                setTimeout(this._getBatch.bind(this, queueUrl), this._opts.pollRetryMs);
                 this.emit('error', err);
             }
         });
@@ -621,10 +596,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return this._prepareMessageParams(message, delay, attributes)
             .then(this._handleLargeMessagePrepare.bind(this))
             .then((params) => {
-                (Object.keys(params) as Array<keyof typeof params>).forEach((key) => {
-                    return params[key] === undefined ? delete params[key] : '';
-                });
-                return params;
+                return removeEmptyKeys(params);
             });
     }
 
@@ -668,7 +640,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                                    delay?: number, attributes?: IMessageAttributes | IMessageAttributes[]) {
         const msgs: IMessageToSend[] = Array.isArray(messages) ? messages : [messages];
         const defaultAttributes = (attributes && !Array.isArray(attributes)) ? attributes : undefined;
-        const arrayAttributes =  (attributes && Array.isArray(attributes)) ? attributes : [];
+        const arrayAttributes = (attributes && Array.isArray(attributes)) ? attributes : [];
         const promises = msgs.map((msg, i) => {
             return this._prepareMessageRequest(msg, delay, defaultAttributes || arrayAttributes[i]);
         });
@@ -690,5 +662,37 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 });
                 return batches;
             });
+    }
+
+    private _handleGetBatchResult(queueUrl: string) {
+        return (data: SQS.Types.ReceiveMessageResult) => {
+            let gotMessages = true;
+            this._activeReq = undefined;
+            if (data && data.Messages) {
+                this.emit('gotMessages', data.Messages.length);
+                this._emitMessages(data.Messages);
+            } else {
+                this.emit('queueEmpty');
+                gotMessages = false;
+            }
+            if (this._slotsAvailable()) {
+                const next = this._getBatch.bind(this, queueUrl);
+                if (gotMessages && this._opts.activePollIntervalMs) {
+                    setTimeout(next, this._opts.activePollIntervalMs);
+                } else if (!gotMessages && this._opts.idlePollIntervalMs) {
+                    setTimeout(next, this._opts.idlePollIntervalMs);
+                } else {
+                    next();
+                }
+            } else {
+                this._paused = true;
+                this.emit('maxInFlight');
+            }
+        };
+    }
+
+    private _getMaxMessagesToGet() {
+        return  !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
+            Math.min(this._opts.maxInFlight! - this._inFlight, this._opts.receiveBatchSize!);
     }
 }
