@@ -470,16 +470,14 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (!soft && this._activeReq) {
             this._activeReq.abort();
         }
-        this._running = false;
-        this._paused = false;
+        this._running = this._paused = false;
         if (!this._inFlight) {
             return Promise.resolve(true);
         }
-        const scope = this;
+        let resolved = false;
+        let timer: NodeJS.Timeout | undefined;
         return new Promise((resolve) => {
-            let resolved = false;
-            let timer: NodeJS.Timeout | undefined;
-            scope.on('drained', () => {
+            this.on('drained', () => {
                 if (!resolved) {
                     resolved = true;
                     if (timer) {
@@ -489,12 +487,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                     resolve(true);
                 }
             });
-            if (timeout) {
-                timer = setTimeout(() => {
-                    resolved = true;
-                    resolve(false);
-                }, timeout);
-            }
+            timer = timeout ? setTimeout(() => {
+                resolved = true;
+                resolve(false);
+            }, timeout) : undefined;
         });
     }
 
