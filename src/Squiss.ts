@@ -13,11 +13,10 @@ import { S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
 import {AWSError} from 'aws-sdk';
 import {
- IMessageToSend, ISendMessageRequest,
-    ISquissOptions
+    IMessageToSend, ISendMessageRequest,
+    IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter, ISquissOptions
 } from './Types';
 import {removeEmptyKeys} from './Utils';
-import {IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter} from './InternalTypes';
 
 const AWS_MAX_SEND_BATCH = 10;
 
