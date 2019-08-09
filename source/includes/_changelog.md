@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.0.3
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.3...v4.0.3)
+
+### Fixed
+
+- Fixed codeclimate issues
+
 ## v4.0.2
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.1...v4.0.2)
