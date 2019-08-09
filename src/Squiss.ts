@@ -9,7 +9,7 @@ import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
 import {SQS, S3} from 'aws-sdk';
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
-import { S3_MARKER, uploadBlob} from './s3Utils';
+import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
 import {AWSError} from 'aws-sdk';
 import {
@@ -47,17 +47,8 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     constructor(opts?: ISquissOptions | undefined) {
         super();
         this._opts = Object.assign({}, optDefaults, opts || {});
-        this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, 10);
-        this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize!,
-            this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : 10, 10);
-        this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
+        this._initOpts();
         this._queueUrl = this._opts.queueUrl || '';
-        if (!this._opts.queueUrl && !this._opts.queueName) {
-            throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
-        }
-        if (this._opts.s3Fallback && !this._opts.s3Bucket) {
-            throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
-        }
         this.sqs = this._initSqs();
     }
 
@@ -313,17 +304,34 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
     public getS3(): S3 {
         if (!this._s3) {
-            if (this._opts.S3) {
-                if (typeof this._opts.S3 === 'function') {
-                    this._s3 = new this._opts.S3(this._opts.awsConfig);
-                } else {
-                    this._s3 = this._opts.S3;
-                }
-            } else {
-                this._s3 = new S3(this._opts.awsConfig);
-            }
+            this._s3 = this._initS3();
         }
         return this._s3;
+    }
+
+    private _initS3() {
+        if (this._opts.S3) {
+            if (typeof this._opts.S3 === 'function') {
+                return new this._opts.S3(this._opts.awsConfig);
+            } else {
+                return this._opts.S3;
+            }
+        } else {
+            return new S3(this._opts.awsConfig);
+        }
+    }
+
+    private _initOpts() {
+        if (!this._opts.queueUrl && !this._opts.queueName) {
+            throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
+        }
+        if (this._opts.s3Fallback && !this._opts.s3Bucket) {
+            throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
+        }
+        this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, 10);
+        this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize!,
+            this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : 10, 10);
+        this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
     }
 
     private _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
@@ -372,8 +380,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             return;
         }
         const params: SQS.Types.ReceiveMessageRequest = removeEmptyKeys({
-            QueueUrl: queueUrl,
-            MaxNumberOfMessages: maxMessagesToGet,
+            QueueUrl: queueUrl, MaxNumberOfMessages: maxMessagesToGet,
             WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
             MessageAttributeNames: this._opts.receiveAttributes,
             AttributeNames: this._opts.receiveSqsAttributes,
@@ -624,7 +631,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     private _getMaxMessagesToGet() {
-        return  !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
+        return !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
             Math.min(this._opts.maxInFlight! - this._inFlight, this._opts.receiveBatchSize!);
     }
 }
