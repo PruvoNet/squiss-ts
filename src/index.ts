@@ -491,9 +491,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             }).promise();
         }).then(this._handleBatchDeleteResults(batch))
             .catch((err: Error) => {
-            this.emit('error', err);
-            return Promise.reject(err);
-        });
+                this.emit('error', err);
+                return Promise.reject(err);
+            });
     }
 
     public _emitMessages(messages: SQS.MessageList): void {
@@ -673,17 +673,13 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         delete attributes.FIFO_MessageDeduplicationId;
         params.MessageAttributes = createMessageAttributes(attributes);
         let getMessagePromise = Promise.resolve(messageStr);
-        if (this._opts.gzip) {
-            if (this._opts.minGzipSize && getMessageSize(params) < this._opts.minGzipSize) {
-                getMessagePromise = Promise.resolve(messageStr);
-            } else {
-                getMessagePromise = compressMessage(messageStr);
-                params.MessageAttributes = params.MessageAttributes || {};
-                params.MessageAttributes[GZIP_MARKER] = {
-                    StringValue: `1`,
-                    DataType: 'Number',
-                };
-            }
+        if (this._opts.gzip && (!this._opts.minGzipSize || getMessageSize(params) >= this._opts.minGzipSize)) {
+            getMessagePromise = compressMessage(messageStr);
+            params.MessageAttributes = params.MessageAttributes || {};
+            params.MessageAttributes[GZIP_MARKER] = {
+                StringValue: `1`,
+                DataType: 'Number',
+            };
         }
         return getMessagePromise.then((finalMessage) => {
             params.MessageBody = finalMessage;
