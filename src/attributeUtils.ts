@@ -42,7 +42,11 @@ const parseAttributeValue = (unparsedAttribute: SQS.MessageAttributeValue): IMes
 };
 
 export const createMessageAttributes = (messageAttributes: IMessageAttributes)
-  : SQS.MessageBodyAttributeMap => {
+  : SQS.MessageBodyAttributeMap | undefined => {
+  const keys = Object.keys(messageAttributes);
+  if (keys.length === 0) {
+    return ;
+  }
   return Object.keys(messageAttributes).reduce((parsedAttributes: SQS.MessageBodyAttributeMap, name: string) => {
     parsedAttributes[name] = createAttributeValue(messageAttributes[name]);
     return parsedAttributes;

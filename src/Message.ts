@@ -94,28 +94,10 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
         if (this.body === undefined || this.body === null) {
             return Promise.resolve();
         }
-        let promise: Promise<string>;
+        let promise = Promise.resolve(this.body);
         if (this.attributes[S3_MARKER]) {
             delete this.attributes[S3_MARKER];
-            const uploadData: IS3Upload = JSON.parse(this.body);
-            const s3 = this._s3Retriever();
-            promise = getBlob(s3, uploadData)
-                .then((resolvedBody) => {
-                    this.emit('s3Download', uploadData);
-                    this._squiss.emit('s3Download', {data: uploadData, message: this});
-                    if (!this._s3Retain) {
-                        this._deleteCallback = () => {
-                            return deleteBlob(s3, uploadData)
-                                .then(() => {
-                                    this.emit('s3Delete', uploadData);
-                                    this._squiss.emit('s3Delete', {data: uploadData, message: this});
-                                });
-                        };
-                    }
-                    return Promise.resolve(resolvedBody);
-                });
-        } else {
-            promise = Promise.resolve(this.body);
+            promise = this._getBlobMessage();
         }
         promise = promise
             .then((resolvedBody) => {
@@ -177,6 +159,26 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
 
     public changeVisibility(timeoutInSeconds: number): Promise<void> {
         return this._squiss.changeMessageVisibility(this, timeoutInSeconds);
+    }
+
+    private _getBlobMessage() {
+        const uploadData: IS3Upload = JSON.parse(this.body);
+        const s3 = this._s3Retriever();
+        return getBlob(s3, uploadData)
+            .then((resolvedBody) => {
+                this.emit('s3Download', uploadData);
+                this._squiss.emit('s3Download', {data: uploadData, message: this});
+                if (!this._s3Retain) {
+                    this._deleteCallback = () => {
+                        return deleteBlob(s3, uploadData)
+                            .then(() => {
+                                this.emit('s3Delete', uploadData);
+                                this._squiss.emit('s3Delete', {data: uploadData, message: this});
+                            });
+                    };
+                }
+                return Promise.resolve(resolvedBody);
+            });
     }
 
 }

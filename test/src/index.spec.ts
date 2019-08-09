@@ -145,6 +145,7 @@ describe('index', () => {
   describe('Receiving', () => {
     it('reports the appropriate "running" status', () => {
       inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
+      // @ts-ignore
       inst!._getBatch = () => {
       };
       inst!.running.should.eq(false);
@@ -153,6 +154,7 @@ describe('index', () => {
     });
     it('treats start() as idempotent', () => {
       inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
+      // @ts-ignore
       inst!._getBatch = () => {
       };
       inst!.running.should.eq(false);
