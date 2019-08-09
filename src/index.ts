@@ -409,7 +409,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
         : Promise<SQS.Types.SendMessageResult> {
         return Promise.all([
-            this.perpareMessageRequest(message, delay, attributes),
+            this.prepareMessageRequest(message, delay, attributes),
             this.getQueueUrl(),
         ])
             .then((data) => {
@@ -438,7 +438,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                     currentAttributes = attributes[i];
                 }
             }
-            promises.push(this.perpareMessageRequest(msg, delay, currentAttributes));
+            promises.push(this.prepareMessageRequest(msg, delay, currentAttributes));
         });
         return Promise.all([this.getQueueMaximumMessageSize(), Promise.all(promises)])
             .then((results) => {
@@ -706,7 +706,58 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    private perpareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    private prepareMessageParams(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes) {
+        const messageStr = isString(message) ? message : JSON.stringify(message);
+        const params: ISendMessageRequest = {MessageBody: messageStr, DelaySeconds: delay};
+        attributes = Object.assign({}, attributes);
+        params.MessageGroupId = attributes.FIFO_MessageGroupId;
+        delete attributes.FIFO_MessageGroupId;
+        params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
+        delete attributes.FIFO_MessageDeduplicationId;
+        params.MessageAttributes = createMessageAttributes(attributes);
+        let getMessagePromise = Promise.resolve(messageStr);
+        if (this._opts.gzip) {
+            if (this._opts.minGzipSize && getMessageSize(params) < this._opts.minGzipSize) {
+                getMessagePromise = Promise.resolve(messageStr);
+            } else {
+                getMessagePromise = compressMessage(messageStr);
+                params.MessageAttributes = params.MessageAttributes || {};
+                params.MessageAttributes[GZIP_MARKER] = {
+                    StringValue: `1`,
+                    DataType: 'Number',
+                };
+            }
+        }
+        return getMessagePromise.then((finalMessage) => {
+            params.MessageBody = finalMessage;
+            return {finalMessage, params};
+        });
+    }
+
+    private handleLargeMessagePrepare({finalMessage, params}: { finalMessage: string, params: ISendMessageRequest }) {
+        if (!this._opts.s3Fallback) {
+            return Promise.resolve(params);
+        }
+        return this.isLargeMessage(params, this._opts.minS3Size)
+            .then((isLarge) => {
+                if (!isLarge) {
+                    return Promise.resolve(params);
+                }
+                return uploadBlob(this.getS3(), this._opts.s3Bucket!, finalMessage, this._opts.s3Prefix || '')
+                    .then((uploadData) => {
+                        this.emit('s3Upload', uploadData);
+                        params.MessageBody = JSON.stringify(uploadData);
+                        params.MessageAttributes = params.MessageAttributes || {};
+                        params.MessageAttributes[S3_MARKER] = {
+                            StringValue: `${uploadData.uploadSize}`,
+                            DataType: 'Number',
+                        };
+                        return Promise.resolve(params);
+                    });
+            });
+    }
+
+    private prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
         : Promise<ISendMessageRequest> {
         if (attributes && attributes[GZIP_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`));
@@ -714,65 +765,13 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (attributes && attributes[S3_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${S3_MARKER} is not allowed`));
         }
-        const messageStr = isString(message) ? message : JSON.stringify(message);
-        const params: ISendMessageRequest = {
-            MessageBody: messageStr,
-        };
-        if (delay) {
-            params.DelaySeconds = delay;
-        }
-        if (attributes) {
-            attributes = Object.assign({}, attributes);
-        }
-        if (attributes) {
-            if (attributes.FIFO_MessageGroupId) {
-                params.MessageGroupId = attributes.FIFO_MessageGroupId;
-                delete attributes.FIFO_MessageGroupId;
-            }
-            if (attributes.FIFO_MessageDeduplicationId) {
-                params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
-                delete attributes.FIFO_MessageDeduplicationId;
-            }
-            params.MessageAttributes = createMessageAttributes(attributes);
-        }
-        let promise: Promise<string>;
-        if (this._opts.gzip) {
-            if (this._opts.minGzipSize && getMessageSize(params) < this._opts.minGzipSize) {
-                promise = Promise.resolve(messageStr);
-            } else {
-                promise = compressMessage(messageStr);
-                params.MessageAttributes = params.MessageAttributes || {};
-                params.MessageAttributes[GZIP_MARKER] = {
-                    StringValue: `1`,
-                    DataType: 'Number',
-                };
-            }
-        } else {
-            promise = Promise.resolve(messageStr);
-        }
-        return promise
-            .then((finalMessage) => {
-                params.MessageBody = finalMessage;
-                if (!this._opts.s3Fallback) {
-                    return Promise.resolve(params);
-                }
-                return this.isLargeMessage(params, this._opts.minS3Size)
-                    .then((isLarge) => {
-                        if (!isLarge) {
-                            return Promise.resolve(params);
-                        }
-                        return uploadBlob(this.getS3(), this._opts.s3Bucket!, finalMessage, this._opts.s3Prefix || '')
-                            .then((uploadData) => {
-                                this.emit('s3Upload', uploadData);
-                                params.MessageBody = JSON.stringify(uploadData);
-                                params.MessageAttributes = params.MessageAttributes || {};
-                                params.MessageAttributes[S3_MARKER] = {
-                                    StringValue: `${uploadData.uploadSize}`,
-                                    DataType: 'Number',
-                                };
-                                return Promise.resolve(params);
-                            });
-                    });
+        return this.prepareMessageParams(message, delay, attributes)
+            .then(this.handleLargeMessagePrepare.bind(this))
+            .then((params) => {
+                (Object.keys(params) as Array<keyof typeof params>).forEach((key) => {
+                    return params[key] === undefined ? delete params[key] : '';
+                });
+                return params;
             });
     }
 }
