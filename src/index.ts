@@ -279,25 +279,11 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 clearTimeout(this._delTimer);
                 this._delTimer = undefined;
             }
-            const delQueue = this._delQueue;
-            const iterator = delQueue.entries();
-            const delBatch = Array.from({length: this._opts.deleteBatchSize!}, function(this: typeof iterator) {
-                const element = this.next().value;
-                delQueue.delete(element[0]);
-                return element[1];
-            }, iterator);
-            this._deleteMessages(delBatch);
+            this._deleteXMessages(this._opts.deleteBatchSize);
         } else if (!this._delTimer) {
             this._delTimer = setTimeout(() => {
                 this._delTimer = undefined;
-                const delQueue = this._delQueue;
-                const iterator = delQueue.entries();
-                const delBatch = Array.from({length: delQueue.size}, function(this: typeof iterator) {
-                    const element = this.next().value;
-                    delQueue.delete(element[0]);
-                    return element[1];
-                }, iterator);
-                this._deleteMessages(delBatch);
+                this._deleteXMessages();
             }, this._opts.deleteWaitMs);
         }
         return promise;
@@ -692,6 +678,17 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             }
         }
         return this._s3;
+    }
+
+    private _deleteXMessages(x?: number) {
+        const delQueue = this._delQueue;
+        const iterator = delQueue.entries();
+        const delBatch = Array.from({length: x || delQueue.size}, function(this: typeof iterator) {
+            const element = this.next().value;
+            delQueue.delete(element[0]);
+            return element[1];
+        }, iterator);
+        this._deleteMessages(delBatch);
     }
 
     private _isLargeMessage(message: ISendMessageRequest, minSize?: number): Promise<boolean> {
