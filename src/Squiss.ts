@@ -379,7 +379,22 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
+    public getS3(): S3 {
+        if (!this._s3) {
+            if (this._opts.S3) {
+                if (typeof this._opts.S3 === 'function') {
+                    this._s3 = new this._opts.S3(this._opts.awsConfig);
+                } else {
+                    this._s3 = this._opts.S3;
+                }
+            } else {
+                this._s3 = new S3(this._opts.awsConfig);
+            }
+        }
+        return this._s3;
+    }
+
+    private _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
         return this.getQueueUrl().then((queueUrl) => {
             return this.sqs.deleteMessageBatch({
                 QueueUrl: queueUrl,
@@ -397,7 +412,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    public _emitMessages(messages: SQS.MessageList): void {
+    private _emitMessages(messages: SQS.MessageList): void {
         messages.forEach((msg) => {
             const message = new Message({
                 squiss: this,
@@ -415,7 +430,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public _getBatch(queueUrl: string): void {
+    private _getBatch(queueUrl: string): void {
         if (this._activeReq || !this._running) {
             return;
         }
@@ -444,7 +459,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public _initTimeoutExtender(): Promise<void> {
+    private _initTimeoutExtender(): Promise<void> {
         if (!this._opts.autoExtendTimeout || this._timeoutExtender) {
             return Promise.resolve();
         }
@@ -465,7 +480,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public _sendMessageBatch(messages: ISendMessageRequest[], delay: number | undefined, startIndex: number):
+    private _sendMessageBatch(messages: ISendMessageRequest[], delay: number | undefined, startIndex: number):
         Promise<SQS.Types.SendMessageBatchResult> {
         const start = startIndex || 0;
         return this.getQueueUrl().then((queueUrl) => {
@@ -488,32 +503,17 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public _slotsAvailable(): boolean {
+    private _slotsAvailable(): boolean {
         return !this._opts.maxInFlight || this._inFlight < this._opts.maxInFlight;
     }
 
-    public _startPoller(): Promise<void> {
+    private _startPoller(): Promise<void> {
         return this._initTimeoutExtender()
             .then(() => this.getQueueUrl())
             .then((queueUrl) => this._getBatch(queueUrl))
             .catch((e: Error) => {
                 this.emit('error', e);
             });
-    }
-
-    public getS3(): S3 {
-        if (!this._s3) {
-            if (this._opts.S3) {
-                if (typeof this._opts.S3 === 'function') {
-                    this._s3 = new this._opts.S3(this._opts.awsConfig);
-                } else {
-                    this._s3 = this._opts.S3;
-                }
-            } else {
-                this._s3 = new S3(this._opts.awsConfig);
-            }
-        }
-        return this._s3;
     }
 
     private _deleteXMessages(x?: number) {
