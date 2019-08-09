@@ -323,38 +323,11 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
                         attributes?: IMessageAttributes | IMessageAttributes[])
         : Promise<SQS.Types.SendMessageBatchResult> {
-        const batches: ISendMessageRequest[][] = [];
-        const msgs: IMessageToSend[] = Array.isArray(messages) ? messages : [messages];
-        const promises: Array<Promise<ISendMessageRequest>> = [];
-        msgs.forEach((msg, i) => {
-            let currentAttributes: IMessageAttributes | undefined;
-            if (attributes) {
-                if (!Array.isArray(attributes)) {
-                    currentAttributes = attributes;
-                } else {
-                    currentAttributes = attributes[i];
-                }
-            }
-            promises.push(this._prepareMessageRequest(msg, delay, currentAttributes));
-        });
-        return Promise.all([this.getQueueMaximumMessageSize(), Promise.all(promises)])
-            .then((results) => {
-                const queueMaximumMessageSize = results[0];
-                const messageRequests = results[1];
-                let currentBatchSize = 0;
-                let currentBatchLength = 0;
-                messageRequests.forEach((message) => {
-                    const messageSize = getMessageSize(message);
-                    if (currentBatchLength % AWS_MAX_SEND_BATCH === 0 ||
-                        currentBatchSize + messageSize >= queueMaximumMessageSize) {
-                        currentBatchLength = 0;
-                        currentBatchSize = 0;
-                        batches.push([]);
-                    }
-                    currentBatchSize += messageSize;
-                    currentBatchLength++;
-                    batches[batches.length - 1].push(message);
-                });
+        return this.getQueueMaximumMessageSize()
+            .then((queueMaximumMessageSize) => {
+                return this._prepareMessagesToSend(messages, queueMaximumMessageSize, delay, attributes);
+            })
+            .then((batches) => {
                 return Promise.all(batches.map((batch, idx) => {
                     return this._sendMessageBatch(batch, delay, idx * AWS_MAX_SEND_BATCH);
                 }));
@@ -689,5 +662,33 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 });
             }
         };
+    }
+
+    private _prepareMessagesToSend(messages: IMessageToSend[] | IMessageToSend, queueMaximumMessageSize: number,
+                                   delay?: number, attributes?: IMessageAttributes | IMessageAttributes[]) {
+        const msgs: IMessageToSend[] = Array.isArray(messages) ? messages : [messages];
+        const defaultAttributes = (attributes && !Array.isArray(attributes)) ? attributes : undefined;
+        const arrayAttributes =  (attributes && Array.isArray(attributes)) ? attributes : [];
+        const promises = msgs.map((msg, i) => {
+            return this._prepareMessageRequest(msg, delay, defaultAttributes || arrayAttributes[i]);
+        });
+        return Promise.all(promises)
+            .then((requests) => {
+                const batches: ISendMessageRequest[][] = [];
+                let currentBatchSize = 0;
+                let currentBatchLength = 0;
+                requests.forEach((message) => {
+                    const messageSize = getMessageSize(message);
+                    if (currentBatchLength % AWS_MAX_SEND_BATCH === 0 ||
+                        currentBatchSize + messageSize >= queueMaximumMessageSize) {
+                        currentBatchLength = currentBatchSize = 0;
+                        batches.push([]);
+                    }
+                    currentBatchSize += messageSize;
+                    currentBatchLength++;
+                    batches[batches.length - 1].push(message);
+                });
+                return batches;
+            });
     }
 }
