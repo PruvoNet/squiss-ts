@@ -9,84 +9,17 @@ import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
 import {SQS, S3} from 'aws-sdk';
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
-import {IS3Upload, S3_MARKER, uploadBlob} from './s3Utils';
+import { S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
 import {AWSError} from 'aws-sdk';
-import {StrictEventEmitter} from './EventEmitterTypesHelper';
 import {
-    IMessageDeletedEventPayload,
-    IMessageDeleteErrorEventPayload,
-    IMessageErrorEventPayload,
-    IMessageS3EventPayload, IMessageToSend, ISendMessageRequest,
+ IMessageToSend, ISendMessageRequest,
     ISquissOptions
 } from './Types';
 import {removeEmptyKeys} from './Utils';
+import {IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter} from './InternalTypes';
 
 const AWS_MAX_SEND_BATCH = 10;
-
-interface IDeleteQueueItem {
-    msg: Message;
-    Id: string;
-    ReceiptHandle: string;
-    resolve: () => void;
-    reject: (reason?: any) => void;
-}
-
-interface IDeleteQueueItemById {
-    [k: string]: IDeleteQueueItem;
-}
-
-const optDefaults: ISquissOptions = {
-    receiveBatchSize: 10,
-    receiveAttributes: ['All'],
-    receiveSqsAttributes: ['All'],
-    minReceiveBatchSize: 1,
-    receiveWaitTimeSecs: 20,
-    deleteBatchSize: 10,
-    deleteWaitMs: 2000,
-    maxInFlight: 100,
-    unwrapSns: false,
-    bodyFormat: 'plain',
-    correctQueueUrl: false,
-    pollRetryMs: 2000,
-    activePollIntervalMs: 0,
-    idlePollIntervalMs: 0,
-    delaySecs: 0,
-    gzip: false,
-    minGzipSize: 0,
-    s3Fallback: false,
-    s3Retain: false,
-    s3Prefix: '',
-    maxMessageBytes: 262144,
-    messageRetentionSecs: 345600,
-    autoExtendTimeout: false,
-};
-
-interface ISquissEvents {
-    delQueued: Message;
-    handled: Message;
-    released: Message;
-    timeoutReached: Message;
-    extendingTimeout: Message;
-    timeoutExtended: Message;
-    message: Message;
-    keep: Message;
-    drained: void;
-    queueEmpty: void;
-    maxInFlight: void;
-    deleted: IMessageDeletedEventPayload;
-    gotMessages: number;
-    error: Error;
-    aborted: AWSError;
-    delError: IMessageDeleteErrorEventPayload;
-    autoExtendFail: IMessageErrorEventPayload;
-    autoExtendError: IMessageErrorEventPayload;
-    s3Download: IMessageS3EventPayload;
-    s3Delete: IMessageS3EventPayload;
-    s3Upload: IS3Upload;
-}
-
-type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
 
 export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
