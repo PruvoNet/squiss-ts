@@ -409,7 +409,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
         : Promise<SQS.Types.SendMessageResult> {
         return Promise.all([
-            this.prepareMessageRequest(message, delay, attributes),
+            this._prepareMessageRequest(message, delay, attributes),
             this.getQueueUrl(),
         ])
             .then((data) => {
@@ -438,7 +438,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                     currentAttributes = attributes[i];
                 }
             }
-            promises.push(this.prepareMessageRequest(msg, delay, currentAttributes));
+            promises.push(this._prepareMessageRequest(msg, delay, currentAttributes));
         });
         return Promise.all([this.getQueueMaximumMessageSize(), Promise.all(promises)])
             .then((results) => {
@@ -680,22 +680,21 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     public getS3(): S3 {
-        if (this._s3) {
-            return this._s3;
-        }
-        if (this._opts.S3) {
-            if (typeof this._opts.S3 === 'function') {
-                this._s3 = new this._opts.S3(this._opts.awsConfig);
+        if (!this._s3) {
+            if (this._opts.S3) {
+                if (typeof this._opts.S3 === 'function') {
+                    this._s3 = new this._opts.S3(this._opts.awsConfig);
+                } else {
+                    this._s3 = this._opts.S3;
+                }
             } else {
-                this._s3 = this._opts.S3;
+                this._s3 = new S3(this._opts.awsConfig);
             }
-        } else {
-            this._s3 = new S3(this._opts.awsConfig);
         }
         return this._s3;
     }
 
-    private isLargeMessage(message: ISendMessageRequest, minSize?: number): Promise<boolean> {
+    private _isLargeMessage(message: ISendMessageRequest, minSize?: number): Promise<boolean> {
         const messageSize = getMessageSize(message);
         if (minSize) {
             return Promise.resolve(messageSize > minSize);
@@ -706,7 +705,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    private prepareMessageParams(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes) {
+    private _prepareMessageParams(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes) {
         const messageStr = isString(message) ? message : JSON.stringify(message);
         const params: ISendMessageRequest = {MessageBody: messageStr, DelaySeconds: delay};
         attributes = Object.assign({}, attributes);
@@ -734,11 +733,11 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    private handleLargeMessagePrepare({finalMessage, params}: { finalMessage: string, params: ISendMessageRequest }) {
+    private _handleLargeMessagePrepare({finalMessage, params}: { finalMessage: string, params: ISendMessageRequest }) {
         if (!this._opts.s3Fallback) {
             return Promise.resolve(params);
         }
-        return this.isLargeMessage(params, this._opts.minS3Size)
+        return this._isLargeMessage(params, this._opts.minS3Size)
             .then((isLarge) => {
                 if (!isLarge) {
                     return Promise.resolve(params);
@@ -757,7 +756,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    private prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    private _prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
         : Promise<ISendMessageRequest> {
         if (attributes && attributes[GZIP_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`));
@@ -765,8 +764,8 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (attributes && attributes[S3_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${S3_MARKER} is not allowed`));
         }
-        return this.prepareMessageParams(message, delay, attributes)
-            .then(this.handleLargeMessagePrepare.bind(this))
+        return this._prepareMessageParams(message, delay, attributes)
+            .then(this._handleLargeMessagePrepare.bind(this))
             .then((params) => {
                 (Object.keys(params) as Array<keyof typeof params>).forEach((key) => {
                     return params[key] === undefined ? delete params[key] : '';
