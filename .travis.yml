@@ -18,7 +18,6 @@ script:
   - npm run build && npm run cover
 
 after_script:
-  -  cat coverage/lcov.info | node_modules/coveralls/bin/coveralls.js
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
 
 jobs:
