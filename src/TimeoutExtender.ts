@@ -36,7 +36,7 @@ export class TimeoutExtender {
   public _linkedList: LinkedList<Node>;
   public _opts: ITimeoutExtenderOptions;
   private _squiss: Squiss;
-  private _timer: NodeJS.Timeout | undefined;
+  private _timer: any;
   private readonly _visTimeout: number;
   private readonly _stopAfter: number;
   private readonly _apiLeadMs: number;

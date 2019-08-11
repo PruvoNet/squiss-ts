@@ -10,13 +10,13 @@ const stubs = {
   'uuid/v4': uuidStub,
 };
 // tslint:disable-next-line
-const {Squiss: SquissPatched, Message: MessagePatched} = proxyquire('../../dist/', stubs);
+const {Squiss: SquissPatched, Message: MessagePatched} = proxyquire('../../', stubs);
 
 import * as AWS from 'aws-sdk';
-import {ISquissOptions, Squiss} from '../../dist/';
+import {ISquissOptions, Squiss} from '../../';
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';
-import {IMessageOpts, Message } from '../../dist/Message';
+import {IMessageOpts, Message } from '../../Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';

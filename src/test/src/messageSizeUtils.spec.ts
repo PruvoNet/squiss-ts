@@ -1,6 +1,6 @@
 'use strict';
 
-import {getMessageSize} from '../../dist/messageSizeUtils';
+import {getMessageSize} from '../../messageSizeUtils';
 
 describe('message size utils', () => {
 

@@ -1,6 +1,6 @@
 'use strict';
 
-import {decompressMessage, compressMessage} from '../../dist/gzipUtils';
+import {decompressMessage, compressMessage} from '../../gzipUtils';
 
 describe('gzip utils', () => {
 

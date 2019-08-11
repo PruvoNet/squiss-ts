@@ -23,6 +23,8 @@ coverage
 src
 test
 scripts
+src/test/
+CHANGELOG.md
 
 # source maps
 
@@ -39,9 +41,12 @@ tslint.json
 .gitlab-ci.yml
 tsconfig.json
 .github
-
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+CONTRIBUTORS.md
 # nyc test coverage
 .nyc_output
+.nycrc
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt

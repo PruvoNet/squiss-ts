@@ -1,8 +1,7 @@
 'use strict';
 
-import {Message} from '../../dist';
+import {Message, Squiss} from '../../';
 import {SquissStub} from '../stubs/SquissStub';
-import {Squiss} from '../../dist';
 import {SQS, S3} from 'aws-sdk';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';

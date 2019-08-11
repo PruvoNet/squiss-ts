@@ -1,10 +1,9 @@
 'use strict';
 
-import {Message} from '../../dist';
-import {TimeoutExtender} from '../../dist/TimeoutExtender';
+import {Message, Squiss} from '../../';
+import {TimeoutExtender} from '../../TimeoutExtender';
 import {SquissStub} from '../stubs/SquissStub';
 import delay from 'delay';
-import {Squiss} from '../../dist';
 // @ts-ignore
 import * as sinon from 'sinon';
 import {S3Stub} from '../stubs/S3Stub';

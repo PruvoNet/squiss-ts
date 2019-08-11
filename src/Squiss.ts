@@ -283,7 +283,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             return Promise.resolve(true);
         }
         let resolved = false;
-        let timer: NodeJS.Timeout | undefined;
+        let timer: any;
         return new Promise((resolve) => {
             this.on('drained', () => {
                 if (!resolved) {
