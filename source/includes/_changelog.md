@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.0.5
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.4...v4.0.5)
+
+### Fixed
+
+- Removed bad `error` event on `Message` class
+
 ## v4.0.4
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.3...v4.0.4)
