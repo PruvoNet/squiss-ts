@@ -27,7 +27,6 @@ interface SNSBody {
 }
 
 interface IMessageEvents {
-    error: Error;
     delQueued: void;
     handled: void;
     released: void;
@@ -153,7 +152,6 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
             return this._squiss.releaseMessage(this)
                 .catch((e) => {
                     this._handled = false;
-                    this.emit('error', e);
                 });
         }
         return Promise.resolve();

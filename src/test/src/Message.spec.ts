@@ -5,8 +5,6 @@ import {SquissStub} from '../stubs/SquissStub';
 import {SQS, S3} from 'aws-sdk';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
-// @ts-ignore
-import * as sinon from 'sinon';
 
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
@@ -395,21 +393,15 @@ describe('Message', () => {
       bodyFormat: 'json',
       squiss: {
         releaseMessage: (toDel: Message) => {
-          return Promise.reject(new Error('failed to release'));
+          return Promise.reject();
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
       s3Retain: false,
     });
-    const errorSpy = sinon.spy();
-    msg.on('error', errorSpy);
     return msg.release()
       .then(() => {
         msg.isHandled().should.eql(false);
-        return wait().then(() => {
-          errorSpy.should.be.calledOnce();
-          errorSpy.should.be.calledWith(sinon.match.instanceOf(Error));
-        });
       });
   });
   it('calls Squiss.handledMessage on keep', (done) => {
