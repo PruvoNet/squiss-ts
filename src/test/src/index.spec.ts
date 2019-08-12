@@ -330,6 +330,22 @@ describe('index', () => {
         ]);
       });
     });
+    it('emits error on message parse error', () => {
+      const msgSpy = sinon.spy();
+      const errorSpy = sinon.spy();
+      inst = new SquissPatched({bodyFormat: 'json', queueUrl: 'foo', maxInFlight: 15,
+        receiveBatchSize: 10} as ISquissOptions);
+      inst!.sqs = new SQSStub(0, 0) as any as SQS;
+      inst!.on('message', msgSpy);
+      inst!.on('error', errorSpy);
+      inst!.start();
+      inst!.sendMessage('{sdfsdf');
+      return wait().then(() => {
+        msgSpy.should.not.be.called();
+        errorSpy.should.be.calledOnce();
+        errorSpy.should.be.calledWith(sinon.match.instanceOf(Error));
+      });
+    });
     it('emits queueEmpty event with no messages', () => {
       const msgSpy = sinon.spy();
       const qeSpy = sinon.spy();

@@ -207,11 +207,12 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
     public releaseMessage(msg: Message): Promise<void> {
         this.handledMessage(msg);
-        return this.changeMessageVisibility(msg, 0).then((res) => {
-            msg.emit('released');
-            this.emit('released', msg);
-            return res;
-        });
+        return this.changeMessageVisibility(msg, 0)
+            .then((res) => {
+                msg.emit('released');
+                this.emit('released', msg);
+                return res;
+            });
     }
 
     public purgeQueue(): Promise<void> {
@@ -366,6 +367,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             message.parse()
                 .then(() => {
                     this.emit('message', message);
+                })
+                .catch((e: Error) => {
+                    this.emit('error', e);
+                    message.release();
                 });
         });
     }
