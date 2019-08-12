@@ -5,9 +5,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.0.4
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.3...v4.0.4)
+
+### Fixed
+
+- Fixed ailed parse messages is not handled [#48](https://github.com/PruvoNet/squiss-ts/issues/48)
+
 ## v4.0.3
 
-[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.3...v4.0.3)
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.2...v4.0.3)
 
 ### Fixed
 

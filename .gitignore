@@ -16,7 +16,7 @@ build/
 .cache
 .vagrant
 .sass-cache
-
+.nyc_output
 # YARD artifacts
 .yardoc
 _yardoc
