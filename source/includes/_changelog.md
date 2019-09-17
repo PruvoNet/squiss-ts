@@ -5,7 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
-## v4.0.5=6
+## v4.0.7
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.6...v4.0.7)
+
+### Fixed
+
+- UnhandledPromiseRejection when call to SQS deleteMessageBatch rejects [#50](https://github.com/PruvoNet/squiss-ts/issues/50)
+
+## v4.0.6
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.5...v4.0.6)
 
