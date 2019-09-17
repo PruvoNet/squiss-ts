@@ -349,7 +349,6 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         }).then(this._handleBatchDeleteResults(batch))
             .catch((err: Error) => {
                 this.emit('error', err);
-                return Promise.reject(err);
             });
     }
 

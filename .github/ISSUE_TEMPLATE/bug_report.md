@@ -7,9 +7,9 @@ assignees: regevbr
 
 ---
 
-Your issue may already be reported!
+<!-- Your issue may already be reported!
 Please search on the [issue tracker](../) before creating one.
-
+-->
 ## Expected Behavior
 <!--- If you're describing a bug, tell us what should happen -->
 <!--- If you're suggesting a change/improvement, tell us how it should work -->
