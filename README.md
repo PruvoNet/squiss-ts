@@ -4,7 +4,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
 [![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
 [![dependencies Status](https://david-dm.org/PruvoNet/squiss-ts/status.svg)](https://david-dm.org/PruvoNet/squiss-ts)
-[![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev)
+[![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev) [![Greenkeeper badge](https://badges.greenkeeper.io/PruvoNet/squiss-ts.svg)](https://greenkeeper.io/)
 
 <p align="center">
   <a href="https://squiss-ts.pruvo.com"><img src="https://github.com/PruvoNet/squiss-ts/blob/docs/source/images/logo.png?raw=true" /></a>
