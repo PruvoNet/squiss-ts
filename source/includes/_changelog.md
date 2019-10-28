@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.0.8
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.7...v4.0.8)
+
+### Fixed
+
+- Updated depndencies [#53](https://github.com/PruvoNet/squiss-ts/issues/53)
+- Fixed readme broken links [#53](https://github.com/PruvoNet/squiss-ts/issues/53)
+
 ## v4.0.7
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.6...v4.0.7)
