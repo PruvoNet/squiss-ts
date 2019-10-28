@@ -27,7 +27,7 @@ import {Blobs, S3Stub} from '../stubs/S3Stub';
 const should = chai.should();
 let inst: Squiss | null = null;
 const origSQS = AWS.SQS;
-const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
+const wait = (ms?: number) => delay(ms === undefined ? 40 : ms);
 
 const getS3Stub = (blobs?: Blobs) => {
   return new S3Stub(blobs) as any as S3;
