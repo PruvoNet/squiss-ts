@@ -1,7 +1,7 @@
 # Overview
 
 [![Npm Version](https://img.shields.io/npm/v/squiss-ts.svg?style=popout)](https://www.npmjs.com/package/squiss-ts)
-[![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
+[![Build Status](https://travis-ci.com/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.com/PruvoNet/squiss-ts)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/test_coverage)](https://codeclimate.com/github/PruvoNet/squiss-ts/test_coverage)
 [![Maintainability](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
 [![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
