@@ -13,7 +13,7 @@
     "buildDist": "rm -rf dist/* && ./node_modules/.bin/tsc",
     "test": "npm run lint && npm run mocha",
     "mocha": "node --preserve-symlinks -r source-map-support/register node_modules/mocha/bin/_mocha --opts src/test/mocha.opts",
-    "cover": "nyc --reporter=lcov --reporter=text-summary npm run test",
+    "cover": "rm -rf coverage && nyc --reporter=lcov --reporter=text-summary npm run test",
     "lint": "tslint -c tslint.json 'src/**/*.ts' 'test/**/*.ts'"
   },
   "repository": {
