@@ -202,7 +202,7 @@ describe('index', () => {
       });
       inst!.once('queueEmpty', spy);
       inst!.start();
-      return wait().then(() => {
+      return wait(40).then(() => {
         spy.should.be.calledOnce();
         batches.should.deep.equal([
           {total: 10, num: 10},
