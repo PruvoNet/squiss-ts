@@ -1,5 +1,5 @@
 [![Npm Version](https://img.shields.io/npm/v/squiss-ts.svg?style=popout)](https://www.npmjs.com/package/squiss-ts)
-[![Build Status](https://travis-ci.org/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.org/PruvoNet/squiss-ts)
+[![Build Status](https://travis-ci.com/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.com/PruvoNet/squiss-ts)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/test_coverage)](https://codeclimate.com/github/PruvoNet/squiss-ts/test_coverage)
 [![Maintainability](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
 [![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
@@ -74,11 +74,11 @@ npm install squiss-ts
 
 ## How it works
 Squiss processes as many messages simultaneously as possible.  
-Set the [maxInFlight](#squiss-class-constructor-options-polling-options-maxinflight) option to the number of messages your app can handle at one time without choking, and Squiss will keep
+Set the [maxInFlight](https://squiss-ts.pruvo.com/#squiss-class-constructor-options-polling-options-maxinflight) option to the number of messages your app can handle at one time without choking, and Squiss will keep
 that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion.  
 If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.  
 Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time 
-(set up by you) has passed (see [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options-autoextendtimeout)).  
+(set up by you) has passed (see [autoExtendTimeout](https://squiss-ts.pruvo.com/#squiss-class-constructor-options-auto-extend-options-autoextendtimeout)).  
 Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
 
 ## Versions

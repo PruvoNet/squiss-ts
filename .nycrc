@@ -1,4 +1,6 @@
 {
     "extends": "@istanbuljs/nyc-config-typescript",
-    "exclude": ["src/test/**"]
+    "exclude": ["src/test/**"],
+    "sourceMap": true,
+    "produce-source-map": true
 }
