@@ -123,7 +123,6 @@ describe('index', () => {
       s3.should.be.an('object');
       inst!.getS3();
       spy.should.be.calledOnce();
-
     });
     it('accepts an instance of sqs client if one is provided', () => {
       inst = new SquissPatched({
@@ -229,7 +228,6 @@ describe('index', () => {
         ]);
       });
     });
-
     it('receives batches of messages as much as it can', () => {
       const batches: any = [];
       const spy = sinon.spy();
@@ -375,7 +373,6 @@ describe('index', () => {
         inst!.running.should.eq(false);
       });
     });
-
     it('should resolve when timeout exceeded and queue not drained', () => {
       const spy = sinon.spy();
       inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
