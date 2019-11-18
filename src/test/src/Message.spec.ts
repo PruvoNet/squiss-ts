@@ -34,11 +34,11 @@ function getSQSMsg(body?: string): SQS.Message {
       },
       SomeBinary: {
         DataType: 'Binary',
-        BinaryValue: new Buffer(['s']),
+        BinaryValue: Buffer.from(['s'.charCodeAt(0)]),
       },
       SomeCustomBinary: {
         DataType: 'CustomBinary',
-        BinaryValue: new Buffer(['c']),
+        BinaryValue: Buffer.from(['c'.charCodeAt(0)]),
       },
     },
   };
@@ -102,8 +102,8 @@ describe('Message', () => {
         msg.attributes.should.be.eql({
           SomeNumber: 1,
           SomeString: 's',
-          SomeBinary: new Buffer(['s']),
-          SomeCustomBinary: new Buffer(['c']),
+          SomeBinary: Buffer.from(['s'.charCodeAt(0)]),
+          SomeCustomBinary: Buffer.from(['c'.charCodeAt(0)]),
         });
       });
   });
