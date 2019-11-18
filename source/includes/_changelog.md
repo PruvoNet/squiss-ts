@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.0.9
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.8...v4.0.9)
+
+### Fixed
+
+- Fixed test coverage random breakage [#55(https://github.com/PruvoNet/squiss-ts/issues/55)
+- Fixed usage of Buffer constructor is deprecated in Node 10 [#67](https://github.com/PruvoNet/squiss-ts/issues/67)
+
 ## v4.0.8
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.7...v4.0.8)
