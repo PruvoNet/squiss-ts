@@ -65,8 +65,10 @@ const iteration = (context: IterationContext): Promise<void> => {
                             return message.del();
                         })
                         .catch((err) => {
-                            message.changeVisibility(context.releaseTimeoutSeconds);
-                            return Promise.reject(err);
+                            return message.changeVisibility(context.releaseTimeoutSeconds)
+                                .then(() => {
+                                    return Promise.reject(err);
+                                });
                         });
                 });
             });
