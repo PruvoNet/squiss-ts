@@ -12,6 +12,9 @@ export {
     IObject,
     ISendMessageRequest,
     ISquissOptions,
+    ResubmitterConfig,
+    ResubmitterMutator
 } from './Types';
 export {IMessageAttributes} from './attributeUtils';
 export {Message} from './Message';
+export {resubmitMessages} from './resubmitter';

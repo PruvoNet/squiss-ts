@@ -1,8 +1,8 @@
 'use strict';
 
-import {SQS_MAX_RECEIVE_BATCH, Squiss} from '../Squiss';
-import {IMessageToSend, ResubmitterConfig, ResubmitterMutator} from '../Types';
-import {Message} from '../Message';
+import {SQS_MAX_RECEIVE_BATCH, Squiss} from './Squiss';
+import {IMessageToSend, ResubmitterConfig, ResubmitterMutator} from './Types';
+import {Message} from './Message';
 
 interface IterationContext {
     readonly limit: number;
@@ -115,7 +115,7 @@ const handleMessage = (customMutator: ResubmitterMutator | undefined, context: M
         });
 };
 
-export const resubmit = (config: ResubmitterConfig) => {
+export const resubmitMessages = (config: ResubmitterConfig) => {
     const runContext = buildRunContext(config);
     const handledMessages = new Set<string>();
     return iteration({
