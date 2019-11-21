@@ -144,3 +144,13 @@ export interface ISquissEvents {
 }
 
 export type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
+
+export type ResubmitterMutator = (body: any) => any;
+
+export interface ResubmitterConfig {
+    readonly resubmitFromQueueConfig: ISquissOptions;
+    readonly resubmitToQueueConfig: ISquissOptions;
+    readonly limit: number;
+    readonly customMutator?: ResubmitterMutator;
+    readonly releaseTimeoutSeconds: number;
+}
