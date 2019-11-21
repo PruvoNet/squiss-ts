@@ -19,6 +19,8 @@ import {
 import {removeEmptyKeys} from './Utils';
 
 const AWS_MAX_SEND_BATCH = 10;
+const AWS_MAX_RECIEVE_BATCH = 10;
+const AWS_MAX_DELETE_BATCH = 10;
 
 export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
@@ -329,9 +331,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (this._opts.s3Fallback && !this._opts.s3Bucket) {
             throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
         }
-        this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, 10);
+        this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, AWS_MAX_DELETE_BATCH);
         this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize!,
-            this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : 10, 10);
+            this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : AWS_MAX_RECIEVE_BATCH, AWS_MAX_RECIEVE_BATCH);
         this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
     }
 
