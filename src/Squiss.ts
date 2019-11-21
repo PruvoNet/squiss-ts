@@ -18,9 +18,9 @@ import {
 } from './Types';
 import {removeEmptyKeys} from './Utils';
 
-const AWS_MAX_SEND_BATCH = 10;
-const AWS_MAX_RECIEVE_BATCH = 10;
-const AWS_MAX_DELETE_BATCH = 10;
+export const SQS_MAX_RECEIVE_BATCH = 10;
+const SQS_MAX_SEND_BATCH = 10;
+const SQS_MAX_DELETE_BATCH = 10;
 
 export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
@@ -256,7 +256,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             })
             .then((batches) => {
                 return Promise.all(batches.map((batch, idx) => {
-                    return this._sendMessageBatch(batch, delay, idx * AWS_MAX_SEND_BATCH);
+                    return this._sendMessageBatch(batch, delay, idx * SQS_MAX_SEND_BATCH);
                 }));
             })
             .then((results) => {
@@ -312,6 +312,33 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return this._s3;
     }
 
+    public getManualBatch(maxMessagesToGet: number): Promise<Message[]> {
+        return this.getQueueUrl()
+            .then((queueUrl) => {
+                return this._getBatchRequest(queueUrl, Math.min(maxMessagesToGet, SQS_MAX_RECEIVE_BATCH)).promise();
+            })
+            .then((data) => {
+                if (data && data.Messages) {
+                    const parsedMessage: Message[] = [];
+                    const parseMessagesPromises = data.Messages.map((msg) => {
+                        const message = this._createMessageInstance(msg);
+                        return message.parse()
+                            .then(() => {
+                                parsedMessage.push(message);
+                            })
+                            .catch((e: Error) => {
+                                message.release();
+                            });
+                    });
+                    return Promise.all(parseMessagesPromises)
+                        .then(() => {
+                            return Promise.resolve(parsedMessage);
+                        });
+                }
+                return Promise.resolve([]);
+            });
+    }
+
     private _initS3() {
         if (this._opts.S3) {
             if (typeof this._opts.S3 === 'function') {
@@ -331,9 +358,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (this._opts.s3Fallback && !this._opts.s3Bucket) {
             throw new Error('Squiss requires "s3Bucket" to be defined is using s3 fallback');
         }
-        this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, AWS_MAX_DELETE_BATCH);
+        this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize!, SQS_MAX_DELETE_BATCH);
         this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize!,
-            this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : AWS_MAX_RECIEVE_BATCH, AWS_MAX_RECIEVE_BATCH);
+            this._opts.maxInFlight! > 0 ? this._opts.maxInFlight! : SQS_MAX_RECEIVE_BATCH, SQS_MAX_RECEIVE_BATCH);
         this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
     }
 
@@ -354,16 +381,20 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
+    private _createMessageInstance(msg: SQS.Message) {
+        return new Message({
+            squiss: this,
+            unwrapSns: this._opts.unwrapSns,
+            bodyFormat: this._opts.bodyFormat,
+            msg,
+            s3Retriever: this.getS3.bind(this),
+            s3Retain: this._opts.s3Retain || false,
+        });
+    }
+
     private _emitMessages(messages: SQS.MessageList): void {
         messages.forEach((msg) => {
-            const message = new Message({
-                squiss: this,
-                unwrapSns: this._opts.unwrapSns,
-                bodyFormat: this._opts.bodyFormat,
-                msg,
-                s3Retriever: this.getS3.bind(this),
-                s3Retain: this._opts.s3Retain || false,
-            });
+            const message = this._createMessageInstance(msg);
             this._inFlight++;
             message.parse()
                 .then(() => {
@@ -376,6 +407,17 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
+    private _getBatchRequest(queueUrl: string, maxMessagesToGet: number) {
+        const params: SQS.Types.ReceiveMessageRequest = removeEmptyKeys({
+            QueueUrl: queueUrl, MaxNumberOfMessages: maxMessagesToGet,
+            WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
+            MessageAttributeNames: this._opts.receiveAttributes,
+            AttributeNames: this._opts.receiveSqsAttributes,
+            VisibilityTimeout: this._opts.visibilityTimeoutSecs,
+        });
+        return this.sqs.receiveMessage(params);
+    }
+
     private _getBatch(queueUrl: string): void {
         if (this._activeReq || !this._running) {
             return;
@@ -385,14 +427,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             this._paused = true;
             return;
         }
-        const params: SQS.Types.ReceiveMessageRequest = removeEmptyKeys({
-            QueueUrl: queueUrl, MaxNumberOfMessages: maxMessagesToGet,
-            WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
-            MessageAttributeNames: this._opts.receiveAttributes,
-            AttributeNames: this._opts.receiveSqsAttributes,
-            VisibilityTimeout: this._opts.visibilityTimeoutSecs,
-        });
-        this._activeReq = this.sqs.receiveMessage(params);
+        this._activeReq = this._getBatchRequest(queueUrl, maxMessagesToGet);
         this._activeReq.promise().then(this._handleGetBatchResult(queueUrl)).catch((err: AWSError) => {
             this._activeReq = undefined;
             if (err.code && err.code === 'RequestAbortedError') {
@@ -596,7 +631,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 let currentBatchLength = 0;
                 requests.forEach((message) => {
                     const messageSize = getMessageSize(message);
-                    if (currentBatchLength % AWS_MAX_SEND_BATCH === 0 ||
+                    if (currentBatchLength % SQS_MAX_SEND_BATCH === 0 ||
                         currentBatchSize + messageSize >= queueMaximumMessageSize) {
                         currentBatchLength = currentBatchSize = 0;
                         batches.push([]);

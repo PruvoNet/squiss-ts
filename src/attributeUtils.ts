@@ -3,7 +3,6 @@
 import {SQS} from 'aws-sdk';
 import {isBoolean, isNumber, isString} from 'ts-type-guards';
 
-const EMPTY_OBJ = {};
 const STRING_TYPE = 'String';
 const NUMBER_TYPE = 'Number';
 const BINARY_TYPE = 'Binary';
@@ -19,9 +18,11 @@ export interface IMessageAttributes {
 
 export const parseMessageAttributes = (messageAttributes: SQS.MessageBodyAttributeMap | undefined)
   : IMessageAttributes => {
-  const _messageAttributes = messageAttributes || EMPTY_OBJ as SQS.MessageBodyAttributeMap;
-  return Object.keys(_messageAttributes).reduce((parsedAttributes: IMessageAttributes, name: string) => {
-    parsedAttributes[name] = parseAttributeValue(_messageAttributes[name]);
+  if (!messageAttributes) {
+    return {};
+  }
+  return Object.keys(messageAttributes).reduce((parsedAttributes: IMessageAttributes, name: string) => {
+    parsedAttributes[name] = parseAttributeValue(messageAttributes[name]);
     return parsedAttributes;
   }, {});
 };
