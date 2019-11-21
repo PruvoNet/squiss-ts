@@ -1,27 +1,16 @@
 'use strict';
 
-import * as proxyquire from 'proxyquire';
-
-const uuidStub = () => {
-    return 'my_uuid';
-};
-(uuidStub as any)['@global'] = true;
-const stubs = {
-    'uuid/v4': uuidStub,
-};
-// tslint:disable-next-line
-const {Squiss: SquissPatched} = proxyquire('../../', stubs);
-
-import {Resubmitter} from '../../resubmitter';
+import {Resubmitter} from '../../index';
 import {SQSStub} from '../stubs/SQSStub';
-import {SQS} from 'aws-sdk';
+import {Squiss, SQS} from '../../index';
 
 describe('resubmitter', () => {
 
-    it('should work', () => {
-        const squissFrom = new SquissPatched({queueUrl: 'foo_DLQ'});
-        squissFrom!.sqs = new SQSStub(15, 0) as any as SQS;
-        const squissTo = new SquissPatched({queueUrl: 'foo'});
+    it('should work', function() {
+        this.timeout(2000000);
+        const squissFrom = new Squiss({queueUrl: 'foo_DLQ'});
+        squissFrom!.sqs = new SQSStub(2, 0) as any as SQS;
+        const squissTo = new Squiss({queueUrl: 'foo'});
         squissTo!.sqs = new SQSStub(0, 0) as any as SQS;
         const resubmitter = new Resubmitter({
             limit: 1,

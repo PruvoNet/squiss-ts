@@ -627,7 +627,7 @@ describe('index', () => {
       const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
       inst!.on('message', (msg: Message) => msg.del());
       inst!.start();
-      return wait().then(() => {
+      return wait(50).then(() => {
         spy.should.be.calledTwice();
       });
     });
