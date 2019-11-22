@@ -230,10 +230,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    public sendMessage(message: IMessageToSend, delaySeconds?: number, attributes?: IMessageAttributes)
         : Promise<SQS.Types.SendMessageResult> {
         return Promise.all([
-            this._prepareMessageRequest(message, delay, attributes),
+            this._prepareMessageRequest(message, delaySeconds, attributes),
             this.getQueueUrl(),
         ])
             .then((data) => {
@@ -516,9 +516,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    private _prepareMessageParams(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes) {
+    private _prepareMessageParams(message: IMessageToSend, delaySeconds?: number, attributes?: IMessageAttributes) {
         const messageStr = isString(message) ? message : JSON.stringify(message);
-        const params: ISendMessageRequest = {MessageBody: messageStr, DelaySeconds: delay};
+        const params: ISendMessageRequest = {MessageBody: messageStr, DelaySeconds: delaySeconds};
         attributes = Object.assign({}, attributes);
         params.MessageGroupId = attributes.FIFO_MessageGroupId;
         delete attributes.FIFO_MessageGroupId;
@@ -563,7 +563,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    private _prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    private _prepareMessageRequest(message: IMessageToSend, delaySeconds?: number, attributes?: IMessageAttributes)
         : Promise<ISendMessageRequest> {
         if (attributes && attributes[GZIP_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`));
@@ -571,7 +571,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (attributes && attributes[S3_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${S3_MARKER} is not allowed`));
         }
-        return this._prepareMessageParams(message, delay, attributes)
+        return this._prepareMessageParams(message, delaySeconds, attributes)
             .then(this._handleLargeMessagePrepare.bind(this))
             .then((params) => {
                 return removeEmptyKeys(params);

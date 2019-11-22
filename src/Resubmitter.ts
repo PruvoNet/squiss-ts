@@ -1,8 +1,9 @@
 'use strict';
 
 import {SQS_MAX_RECEIVE_BATCH, Squiss} from './Squiss';
-import {ResubmitterConfig, ResubmitterMutator} from './Types';
+import {ISquissOptions} from './Types';
 import {Message} from './Message';
+import {IMessageAttributes} from './attributeUtils';
 
 const DEFAULT_SQUISS_OPTS = {
     receiveAttributes: ['All'],
@@ -11,24 +12,47 @@ const DEFAULT_SQUISS_OPTS = {
     unwrapSns: false,
 };
 
+type MessageData = ResubmitterMutatorData;
+
+export interface ResubmitterMutatorData {
+    attributes: IMessageAttributes;
+    body?: string | any;
+}
+
+export type ResubmitterMutator = (message: ResubmitterMutatorData) => Promise<ResubmitterMutatorData>;
+
+export interface ResubmitterConfig {
+    queues: {
+        resubmitFromQueueConfig: ISquissOptions;
+        resubmitToQueueConfig: ISquissOptions;
+    };
+    limit: number;
+    customMutator?: ResubmitterMutator;
+    releaseTimeoutSeconds: number;
+    keepHandledMessages?: boolean;
+    continueOnFail?: boolean;
+    sendMessageDelaySeconds?: number;
+}
+
 export class Resubmitter {
 
-    public squissFrom: Squiss;
-    public squissTo: Squiss;
+    public _squissFrom: Squiss;
+    public _squissTo: Squiss;
     private _numHandledMessages = 0;
-    private _handledMessages = new Set<string>();
+    private readonly _handledMessages = new Set<string>();
     private readonly _limit: number;
     private readonly _customMutator?: ResubmitterMutator;
     private readonly _releaseTimeoutSeconds: number;
     private readonly _keepHandledMessages?: boolean;
     private readonly _continueOnFail?: boolean;
+    private readonly _sendMessageDelaySeconds?: number;
 
     constructor(config: ResubmitterConfig) {
-        this.squissFrom = new Squiss({
+        this._squissFrom = new Squiss({
             ...config.queues.resubmitFromQueueConfig,
             ...DEFAULT_SQUISS_OPTS,
         });
-        this.squissTo = new Squiss({
+        this._squissTo = new Squiss({
             ...config.queues.resubmitToQueueConfig,
             ...DEFAULT_SQUISS_OPTS,
         });
@@ -37,11 +61,12 @@ export class Resubmitter {
         this._releaseTimeoutSeconds = config.releaseTimeoutSeconds;
         this._keepHandledMessages = config.keepHandledMessages;
         this._continueOnFail = config.continueOnFail;
+        this._sendMessageDelaySeconds = config.sendMessageDelaySeconds;
     }
 
     public run() {
         this._numHandledMessages = 0;
-        this._handledMessages = new Set<string>();
+        this._handledMessages.clear();
         return Promise.resolve()
             .then(() => {
                 return this._iteration();
@@ -52,6 +77,17 @@ export class Resubmitter {
         return message.changeVisibility(this._releaseTimeoutSeconds);
     }
 
+    private _getMessageToSend(message: Message): Promise<MessageData> {
+        const data: MessageData = {
+            body: message.body,
+            attributes: message.attributes,
+        };
+        if (this._customMutator) {
+            return this._customMutator(data);
+        }
+        return Promise.resolve(data);
+    }
+
     private _handleMessage(message: Message): Promise<void> {
         console.log(`${++this._numHandledMessages} messages handled`);
         const location = message.raw.MessageId ?? '';
@@ -59,17 +95,11 @@ export class Resubmitter {
             return this._changeMessageVisibility(message);
         }
         this._handledMessages.add(location);
-        let body = message.body;
-        let attributes = message.attributes;
-        if (this._customMutator) {
-            const mutateResults = this._customMutator({
-                body,
-                attributes,
-            });
-            body = mutateResults.body;
-            attributes = mutateResults.attributes;
-        }
-        return this.squissTo.sendMessage(body, undefined, attributes)
+        return this._getMessageToSend(message)
+            .then((messageData) => {
+                return this._squissTo.sendMessage(
+                    messageData.body, this._sendMessageDelaySeconds, messageData.attributes);
+            })
             .then(() => {
                 if (this._keepHandledMessages) {
                     return this._changeMessageVisibility(message);
@@ -93,7 +123,7 @@ export class Resubmitter {
             return Promise.resolve();
         }
         const numberOfMessageToRead = Math.min(SQS_MAX_RECEIVE_BATCH, remainingMessagesToHandle);
-        return this.squissFrom.getManualBatch(numberOfMessageToRead)
+        return this._squissFrom.getManualBatch(numberOfMessageToRead)
             .then((messages) => {
                 if (!messages.length) {
                     this._numHandledMessages = this._limit;

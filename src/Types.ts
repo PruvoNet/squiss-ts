@@ -6,7 +6,6 @@ import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {IS3Upload} from './s3Utils';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
 import {EventEmitter} from 'events';
-import {IMessageAttributes} from './attributeUtils';
 
 export interface IMessageDeletedEventPayload {
     msg: Message;
@@ -145,22 +144,3 @@ export interface ISquissEvents {
 }
 
 export type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
-
-export interface ResubmitterMutatorData {
-    attributes: IMessageAttributes;
-    body?: string | any;
-}
-
-export type ResubmitterMutator = (message: ResubmitterMutatorData) => ResubmitterMutatorData;
-
-export interface ResubmitterConfig {
-    queues: {
-        resubmitFromQueueConfig: ISquissOptions;
-        resubmitToQueueConfig: ISquissOptions;
-    };
-    limit: number;
-    customMutator?: ResubmitterMutator;
-    releaseTimeoutSeconds: number;
-    keepHandledMessages?: boolean;
-    continueOnFail?: boolean;
-}

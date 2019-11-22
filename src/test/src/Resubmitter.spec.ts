@@ -24,8 +24,8 @@ describe('resubmitter', () => {
                 },
             },
         });
-        resubmitter.squissFrom = squissFrom;
-        resubmitter.squissTo = squissTo;
+        resubmitter._squissFrom = squissFrom;
+        resubmitter._squissTo = squissTo;
         return resubmitter.run();
     });
 
@@ -47,11 +47,11 @@ describe('resubmitter', () => {
                 },
             },
             customMutator: (obj) => {
-                return obj;
+                return Promise.resolve(obj);
             },
         });
-        resubmitter.squissFrom = squissFrom;
-        resubmitter.squissTo = squissTo;
+        resubmitter._squissFrom = squissFrom;
+        resubmitter._squissTo = squissTo;
         return resubmitter.run();
     });
 
@@ -73,8 +73,8 @@ describe('resubmitter', () => {
                 },
             },
         });
-        resubmitter.squissFrom = squissFrom;
-        resubmitter.squissTo = squissTo;
+        resubmitter._squissFrom = squissFrom;
+        resubmitter._squissTo = squissTo;
         return resubmitter.run();
     });
 
@@ -96,8 +96,8 @@ describe('resubmitter', () => {
                 },
             },
         });
-        resubmitter.squissFrom = squissFrom;
-        resubmitter.squissTo = squissTo;
+        resubmitter._squissFrom = squissFrom;
+        resubmitter._squissTo = squissTo;
         return resubmitter.run();
     });
 
