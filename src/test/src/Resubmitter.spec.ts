@@ -8,7 +8,7 @@ describe('resubmitter', () => {
 
     it('should work', function() {
         this.timeout(2000000);
-        const squissFrom = new Squiss({queueUrl: 'foo_DLQ'});
+        const squissFrom = new Squiss({queueUrl: 'foo_DLQ', deleteWaitMs: 1});
         squissFrom!.sqs = new SQSStub(2, 0) as any as SQS;
         const squissTo = new Squiss({queueUrl: 'foo'});
         squissTo!.sqs = new SQSStub(0, 0) as any as SQS;

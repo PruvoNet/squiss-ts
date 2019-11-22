@@ -17,4 +17,4 @@ export {
 } from './Types';
 export {IMessageAttributes} from './attributeUtils';
 export {Message} from './Message';
-export {Resubmitter} from './resubmitter';
+export {Resubmitter} from './Resubmitter';
