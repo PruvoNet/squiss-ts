@@ -318,24 +318,22 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 return this._getBatchRequest(queueUrl, Math.min(maxMessagesToGet, SQS_MAX_RECEIVE_BATCH)).promise();
             })
             .then((data) => {
-                if (data && data.Messages) {
-                    const parsedMessage: Message[] = [];
-                    const parseMessagesPromises = data.Messages.map((msg) => {
-                        const message = this._createMessageInstance(msg);
-                        return message.parse()
-                            .then(() => {
-                                parsedMessage.push(message);
-                            })
-                            .catch((e: Error) => {
-                                message.release();
-                            });
-                    });
-                    return Promise.all(parseMessagesPromises)
+                const parsedMessage: Message[] = [];
+                const messages = data?.Messages ?? [];
+                const parseMessagesPromises = messages.map((msg) => {
+                    const message = this._createMessageInstance(msg);
+                    return message.parse()
                         .then(() => {
-                            return Promise.resolve(parsedMessage);
+                            parsedMessage.push(message);
+                        })
+                        .catch((e: Error) => {
+                            message.release();
                         });
-                }
-                return Promise.resolve([]);
+                });
+                return Promise.all(parseMessagesPromises)
+                    .then(() => {
+                        return Promise.resolve(parsedMessage);
+                    });
             });
     }
 
