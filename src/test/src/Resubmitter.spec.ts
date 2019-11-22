@@ -15,11 +15,13 @@ describe('resubmitter', () => {
         const resubmitter = new Resubmitter({
             limit: 1,
             releaseTimeoutSeconds: 30,
-            resubmitFromQueueConfig: {
-                queueUrl: 'foo_DLQ',
-            },
-            resubmitToQueueConfig: {
-                queueUrl: 'foo',
+            queues: {
+                resubmitFromQueueConfig: {
+                    queueUrl: 'foo_DLQ',
+                },
+                resubmitToQueueConfig: {
+                    queueUrl: 'foo',
+                },
             },
         });
         resubmitter.squissFrom = squissFrom;
@@ -36,11 +38,13 @@ describe('resubmitter', () => {
         const resubmitter = new Resubmitter({
             limit: 1,
             releaseTimeoutSeconds: 30,
-            resubmitFromQueueConfig: {
-                queueUrl: 'foo_DLQ',
-            },
-            resubmitToQueueConfig: {
-                queueUrl: 'foo',
+            queues: {
+                resubmitFromQueueConfig: {
+                    queueUrl: 'foo_DLQ',
+                },
+                resubmitToQueueConfig: {
+                    queueUrl: 'foo',
+                },
             },
             customMutator: (obj) => {
                 return obj;
@@ -60,11 +64,13 @@ describe('resubmitter', () => {
         const resubmitter = new Resubmitter({
             limit: 0,
             releaseTimeoutSeconds: 30,
-            resubmitFromQueueConfig: {
-                queueUrl: 'foo_DLQ',
-            },
-            resubmitToQueueConfig: {
-                queueUrl: 'foo',
+            queues: {
+                resubmitFromQueueConfig: {
+                    queueUrl: 'foo_DLQ',
+                },
+                resubmitToQueueConfig: {
+                    queueUrl: 'foo',
+                },
             },
         });
         resubmitter.squissFrom = squissFrom;
@@ -81,11 +87,13 @@ describe('resubmitter', () => {
         const resubmitter = new Resubmitter({
             limit: 2,
             releaseTimeoutSeconds: 30,
-            resubmitFromQueueConfig: {
-                queueUrl: 'foo_DLQ',
-            },
-            resubmitToQueueConfig: {
-                queueUrl: 'foo',
+            queues: {
+                resubmitFromQueueConfig: {
+                    queueUrl: 'foo_DLQ',
+                },
+                resubmitToQueueConfig: {
+                    queueUrl: 'foo',
+                },
             },
         });
         resubmitter.squissFrom = squissFrom;

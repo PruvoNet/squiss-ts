@@ -13,7 +13,8 @@ export {
     ISendMessageRequest,
     ISquissOptions,
     ResubmitterConfig,
-    ResubmitterMutator
+    ResubmitterMutator,
+    ResubmitterMutatorData
 } from './Types';
 export {IMessageAttributes} from './attributeUtils';
 export {Message} from './Message';

@@ -20,19 +20,23 @@ export class Resubmitter {
     private readonly _limit: number;
     private readonly _customMutator?: ResubmitterMutator;
     private readonly _releaseTimeoutSeconds: number;
+    private readonly _keepHandledMessages?: boolean;
+    private readonly _continueOnFail?: boolean;
 
     constructor(config: ResubmitterConfig) {
         this.squissFrom = new Squiss({
-            ...config.resubmitFromQueueConfig,
+            ...config.queues.resubmitFromQueueConfig,
             ...DEFAULT_SQUISS_OPTS,
         });
         this.squissTo = new Squiss({
-            ...config.resubmitToQueueConfig,
+            ...config.queues.resubmitToQueueConfig,
             ...DEFAULT_SQUISS_OPTS,
         });
         this._limit = config.limit;
         this._customMutator = config.customMutator;
         this._releaseTimeoutSeconds = config.releaseTimeoutSeconds;
+        this._keepHandledMessages = config.keepHandledMessages;
+        this._continueOnFail = config.continueOnFail;
     }
 
     public run() {
@@ -56,16 +60,28 @@ export class Resubmitter {
         }
         this._handledMessages.add(location);
         let body = message.body;
+        let attributes = message.attributes;
         if (this._customMutator) {
-            body = this._customMutator(body);
+            const mutateResults = this._customMutator({
+                body,
+                attributes,
+            });
+            body = mutateResults.body;
+            attributes = mutateResults.attributes;
         }
-        return this.squissTo.sendMessage(body, undefined, message.attributes)
+        return this.squissTo.sendMessage(body, undefined, attributes)
             .then(() => {
+                if (this._keepHandledMessages) {
+                    return this._changeMessageVisibility(message);
+                }
                 return message.del();
             })
             .catch((err) => {
                 return this._changeMessageVisibility(message)
                     .then(() => {
+                        if (this._continueOnFail) {
+                            return Promise.resolve();
+                        }
                         return Promise.reject(err);
                     });
             });
