@@ -312,14 +312,14 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return this._s3;
     }
 
-    public getManualBatch(maxMessagesToGet: number): Promise<Message[]> {
+    public getManualBatch(maxMessagesToGet: number, failedMessageVisibility?: number): Promise<Message[]> {
         return this.getQueueUrl()
             .then((queueUrl) => {
                 return this._getBatchRequest(queueUrl, Math.min(maxMessagesToGet, SQS_MAX_RECEIVE_BATCH)).promise();
             })
             .then((data) => {
                 const parsedMessage: Message[] = [];
-                const messages = data?.Messages ?? [];
+                const messages = data.Messages ?? [];
                 const parseMessagesPromises = messages.map((msg) => {
                     const message = this._createMessageInstance(msg);
                     return message.parse()
@@ -327,7 +327,11 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                             parsedMessage.push(message);
                         })
                         .catch((e: Error) => {
-                            message.release();
+                            if (failedMessageVisibility){
+                                message.changeVisibility(failedMessageVisibility);
+                            } else {
+                                message.release();
+                            }
                         });
                 });
                 return Promise.all(parseMessagesPromises)

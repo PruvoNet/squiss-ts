@@ -123,7 +123,7 @@ export class Resubmitter {
             return Promise.resolve();
         }
         const numberOfMessageToRead = Math.min(SQS_MAX_RECEIVE_BATCH, remainingMessagesToHandle);
-        return this._squissFrom.getManualBatch(numberOfMessageToRead)
+        return this._squissFrom.getManualBatch(numberOfMessageToRead, this._releaseTimeoutSeconds)
             .then((messages) => {
                 if (!messages.length) {
                     this._numHandledMessages = this._limit;

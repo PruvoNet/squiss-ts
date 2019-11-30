@@ -48,7 +48,7 @@
   },
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
-    "aws-sdk": "^2.577.0",
+    "aws-sdk": "^2.578.0",
     "iltorb": "2.4.3",
     "linked-list": "^2.1.0",
     "ts-type-guards": "^0.6.1",
