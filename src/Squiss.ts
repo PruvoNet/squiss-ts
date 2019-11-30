@@ -327,7 +327,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                             parsedMessage.push(message);
                         })
                         .catch((e: Error) => {
-                            if (failedMessageVisibility){
+                            if (failedMessageVisibility) {
                                 message.changeVisibility(failedMessageVisibility);
                             } else {
                                 message.release();

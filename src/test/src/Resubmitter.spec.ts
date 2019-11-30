@@ -248,4 +248,137 @@ describe('resubmitter', () => {
             });
     });
 
+    it('should keep handled messages if option set', function() {
+        this.timeout(2000000);
+        const squissFrom = new Squiss({queueUrl: 'foo_DLQ', deleteWaitMs: 1});
+        const stub = new SQSStub(1, 0);
+        squissFrom!.sqs = stub as any as SQS;
+        if (stub.msgs[0]) {
+            stub.msgs[0].MessageId = 'myId';
+        }
+        const visibilitySpy = sinon.spy(squissFrom!.sqs, 'changeMessageVisibility');
+        const squissTo = new Squiss({queueUrl: 'foo'});
+        squissTo!.sqs = new SQSStub(0, 0) as any as SQS;
+        const spy = sinon.stub().resolvesArg(0);
+        const resubmitter = new Resubmitter({
+            limit: 1,
+            releaseTimeoutSeconds: 45,
+            queues: {
+                resubmitFromQueueConfig: {
+                    queueUrl: 'foo_DLQ',
+                },
+                resubmitToQueueConfig: {
+                    queueUrl: 'foo',
+                },
+            },
+            keepHandledMessages: true,
+            customMutator: spy,
+        });
+        resubmitter._squissFrom = squissFrom;
+        resubmitter._squissTo = squissTo;
+        return resubmitter.run()
+            .then(() => {
+                spy.should.have.callCount(1);
+                visibilitySpy.should.be.calledWith({
+                    QueueUrl: 'foo_DLQ',
+                    ReceiptHandle: '0',
+                    VisibilityTimeout: 45,
+                });
+            });
+    });
+
+    it('should reject if failed to handle message', function() {
+        this.timeout(2000000);
+        const squissFrom = new Squiss({queueUrl: 'foo_DLQ', deleteWaitMs: 1});
+        const stub = new SQSStub(1, 0);
+        squissFrom!.sqs = stub as any as SQS;
+        if (stub.msgs[0]) {
+            stub.msgs[0].MessageId = 'myId';
+        }
+        const visibilitySpy = sinon.spy(squissFrom!.sqs, 'changeMessageVisibility');
+        const squissTo = new Squiss({queueUrl: 'foo'});
+        squissTo!.sqs = new SQSStub(0, 0) as any as SQS;
+        const spy = sinon.stub().resolvesArg(0);
+        const sendMessageSpy = sinon.stub(squissTo!.sqs, 'sendMessage').returns({
+            promise: () => {
+                return Promise.reject(new Error('myFail'));
+            },
+        });
+        const resubmitter = new Resubmitter({
+            limit: 1,
+            releaseTimeoutSeconds: 45,
+            queues: {
+                resubmitFromQueueConfig: {
+                    queueUrl: 'foo_DLQ',
+                },
+                resubmitToQueueConfig: {
+                    queueUrl: 'foo',
+                },
+            },
+            customMutator: spy,
+        });
+        resubmitter._squissFrom = squissFrom;
+        resubmitter._squissTo = squissTo;
+        return resubmitter.run()
+            .then(() => {
+                throw new Error('was not supposed to succeed');
+            })
+            .catch((err) => {
+                err.message.should.eql('myFail');
+                spy.should.have.callCount(1);
+                sendMessageSpy.should.have.callCount(1);
+                visibilitySpy.should.be.calledWith({
+                    QueueUrl: 'foo_DLQ',
+                    ReceiptHandle: '0',
+                    VisibilityTimeout: 45,
+                });
+            });
+    });
+
+    it('should continue if failed to handle message', function() {
+        this.timeout(2000000);
+        const squissFrom = new Squiss({queueUrl: 'foo_DLQ', deleteWaitMs: 1});
+        const stub = new SQSStub(1, 0);
+        squissFrom!.sqs = stub as any as SQS;
+        if (stub.msgs[0]) {
+            stub.msgs[0].MessageId = 'myId';
+        }
+        const visibilitySpy = sinon.spy(squissFrom!.sqs, 'changeMessageVisibility');
+        const squissTo = new Squiss({queueUrl: 'foo'});
+        squissTo!.sqs = new SQSStub(0, 0) as any as SQS;
+        const spy = sinon.stub().resolvesArg(0);
+        const sendMessageSpy = sinon.stub(squissTo!.sqs, 'sendMessage').returns({
+            promise: () => {
+                return Promise.reject(new Error('myFail'));
+            },
+        });
+        const resubmitter = new Resubmitter({
+            limit: 1,
+            releaseTimeoutSeconds: 45,
+            queues: {
+                resubmitFromQueueConfig: {
+                    queueUrl: 'foo_DLQ',
+                },
+                resubmitToQueueConfig: {
+                    queueUrl: 'foo',
+                },
+            },
+            keepHandledMessages: true,
+            customMutator: spy,
+            continueOnFail: true,
+        });
+        resubmitter._squissFrom = squissFrom;
+        resubmitter._squissTo = squissTo;
+        return resubmitter.run()
+            .then(() => {
+                spy.should.have.callCount(1);
+                sendMessageSpy.should.have.callCount(1);
+                visibilitySpy.should.be.calledWith({
+                    QueueUrl: 'foo_DLQ',
+                    ReceiptHandle: '0',
+                    VisibilityTimeout: 45,
+                });
+            });
+    });
+
 });
