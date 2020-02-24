@@ -5,7 +5,6 @@ import * as proxyquire from 'proxyquire';
 const uuidStub = () => {
   return 'my_uuid';
 };
-// (uuidStub as any)['@global'] = true;
 const stubs = {
   'uuid': {
     v4: uuidStub,
