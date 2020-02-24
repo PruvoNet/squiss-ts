@@ -5,9 +5,12 @@ import * as proxyquire from 'proxyquire';
 const uuidStub = () => {
   return 'my_uuid';
 };
-(uuidStub as any)['@global'] = true;
+// (uuidStub as any)['@global'] = true;
 const stubs = {
-  'uuid/v4': uuidStub,
+  'uuid': {
+    v4: uuidStub,
+    '@global': true,
+  },
 };
 // tslint:disable-next-line
 const {Squiss: SquissPatched, Message: MessagePatched} = proxyquire('../../', stubs);
