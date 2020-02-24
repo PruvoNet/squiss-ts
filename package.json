@@ -50,7 +50,7 @@
     "iltorb": "2.4.3",
     "linked-list": "^2.1.0",
     "ts-type-guards": "^0.6.1",
-    "uuid": "^3.3.3"
+    "uuid": "^7.0.0"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^0.1.3",
