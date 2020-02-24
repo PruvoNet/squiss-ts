@@ -431,7 +431,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 QueueUrl: queueUrl,
                 Entries: [],
             };
-            const promises: Array<Promise<void>> = [];
+            const promises: Promise<void>[] = [];
             messages.forEach((msg, idx) => {
                 const entry: SQS.Types.SendMessageBatchRequestEntry = {
                     Id: (start + idx).toString(),

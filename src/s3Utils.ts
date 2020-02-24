@@ -1,7 +1,7 @@
 'use strict';
 
 import {S3} from 'aws-sdk';
-import * as uuid from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 import {getSizeInBytes} from './messageSizeUtils';
 
 export const S3_MARKER = '__SQS_S3__';
@@ -13,7 +13,7 @@ export interface IS3Upload {
 }
 
 export const uploadBlob = (s3: S3, bucket: string, blob: string, prefix: string): Promise<IS3Upload> => {
-  const key = `${prefix}${uuid()}`;
+  const key = `${prefix}${uuidv4()}`;
   const size = getSizeInBytes(blob);
   return s3.putObject({
     Body: blob,
