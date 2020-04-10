@@ -1,6 +1,24 @@
 'use strict';
+// tslint:disable:no-var-requires
 
-import {compress, decompress} from 'iltorb';
+import {gte} from 'semver';
+
+type Compress = (buf: Buffer) => Promise<Buffer>;
+
+
+let compress: Compress;
+let decompress: Compress;
+
+if (gte(process.version, '10.16.0')) {
+    const {brotliCompress, brotliDecompress} = require('zlib');
+    const {promisify} = require('util');
+    compress = promisify(brotliCompress);
+    decompress = promisify(brotliDecompress);
+} else {
+    const iltorb = require('iltorb');
+    compress = iltorb.compress;
+    decompress = iltorb.decompress;
+}
 
 export const GZIP_MARKER = '__SQS_GZIP__';
 
