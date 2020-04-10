@@ -1,11 +1,11 @@
 {
   "name": "squiss-ts",
-  "version": "4.0.10",
+  "version": "4.1.0",
   "description": "High-volume SQS poller",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": ">=6"
+    "node": "^6 || ^8 || ^10 || ^12 || ^13"
   },
   "scripts": {
     "postinstall": "node -e 'const semver = require(\"semver\");process.exit(semver.lt(process.version, \"10.16.0\"));' || npm install --no-save iltorb@2.4.3",
