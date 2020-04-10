@@ -5,6 +5,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.1.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.10...v4.1.0)
+
+### Fixed
+
+- Consider migrating to the compression built into zlib [#87](https://github.com/PruvoNet/squiss-ts/issues/87)
+
+## v4.0.10
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.9...v4.0.10)
+
+### Fixed
+
+- Updated dependencies [#81](https://github.com/PruvoNet/squiss-ts/issues/81)
+
 ## v4.0.9
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.8...v4.0.9)
