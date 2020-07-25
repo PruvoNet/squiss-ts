@@ -5,6 +5,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.1.1
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.1.0...v4.1.1)
+
+### Fixed
+
+- Change license to apache 2 [#90](https://github.com/PruvoNet/squiss-ts/issues/90)
+- Updated dependencies [#91](https://github.com/PruvoNet/squiss-ts/pull/91)
+- Added tests for node 14  [#91](https://github.com/PruvoNet/squiss-ts/pull/91)
+
 ## v4.1.0
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.0.10...v4.1.0)
