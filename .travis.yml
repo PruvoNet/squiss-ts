@@ -6,26 +6,35 @@ node_js:
   - "10"
   - "12"
   - "14"
+  - "15"
 
 install:
   - npm install
 
-before_script:
-  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-  - chmod +x ./cc-test-reporter
-  - ./cc-test-reporter before-build
+before_script: >
+  if  [[ $(node -v) =~ ^v14\.* ]]; then
+  curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  chmod +x ./cc-test-reporter
+  ./cc-test-reporter before-build
+  fi
 
-script:
-  - npm run build && npm run cover
+script: >
+  if  [[ $(node -v) =~ ^v14\.* ]]; then
+   npm run build && npm run test:cover;
+  else
+   npm run build && npm run test:unit;
+  fi
 
-after_script:
-  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+after_script: >
+  if  [[ $(node -v) =~ ^v14\.* ]]; then
+   ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+  fi
 
 jobs:
   include:
     - stage: npm release
       if: tag IS present
-      node_js: "6"
+      node_js: "14"
       script: npm run build
       deploy:
         provider: npm

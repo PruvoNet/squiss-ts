@@ -5,16 +5,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": "^6 || ^8 || ^10 || ^12 || ^14"
+    "node": "^6 || ^8 || ^10 || ^12 || ^14 || ^15"
   },
   "scripts": {
-    "postinstall": "node -e 'const semver = require(\"semver\");process.exit(semver.lt(process.version, \"10.16.0\"));' || npm install --no-save iltorb@2.4.3",
-    "clean": "rm -rf node_modules build coverage dist",
-    "build": "npm run lint && npm run buildDist",
-    "buildDist": "rm -rf dist/* && ./node_modules/.bin/tsc",
-    "test": "npm run lint && npm run mocha",
-    "mocha": "node --preserve-symlinks -r source-map-support/register node_modules/mocha/bin/_mocha --opts src/test/mocha.opts",
-    "cover": "rm -rf coverage && nyc --reporter=lcov --reporter=text-summary npm run test",
+    "postinstall": "node -e 'const semver = require(\"semver\");process.exit(semver.lt(process.version, \"10.16.0\"));' && (npm install --no-save @aws-sdk/client-sqs@^3.8.1 @aws-sdk/client-s3@^3.8.1) || (npm install --no-save iltorb@2.4.3 aws-sdk@^2.864.0)",
+    "build": "npm run lint && npm run compile",
+    "compile": "./node_modules/.bin/tsc",
+    "test": "npm run lint && npm run test:cover",
+    "test:unit": "mocha --opts src/test/mocha.opts",
+    "test:cover": "nyc --reporter=lcov --reporter=text-summary npm run test:unit",
     "lint": "tslint -c tslint.json 'src/**/*.ts' 'test/**/*.ts'"
   },
   "repository": {
@@ -47,34 +46,36 @@
   },
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
-    "aws-sdk": "^2.720.0",
     "linked-list": "^2.1.0",
-    "semver": "^7.3.2",
+    "semver": "^7.3.4",
     "ts-type-guards": "^0.7.0",
-    "uuid": "^8.2.0"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@istanbuljs/nyc-config-typescript": "0.1.3",
-    "@types/chai": "^4.2.12",
+    "aws-sdk": "^2.864.0",
+    "@aws-sdk/client-sqs": "^3.8.1",
+    "@aws-sdk/client-s3": "^3.8.1",
+    "@istanbuljs/nyc-config-typescript": "1.0.1",
+    "@types/chai": "^4.2.15",
     "@types/chai-as-promised": "^7.1.3",
     "@types/iltorb": "^2.3.2",
-    "@types/mocha": "^8.0.0",
-    "@types/node": "^14.0.26",
+    "@types/mocha": "^8.2.1",
+    "@types/node": "^14.14.35",
     "@types/proxyquire": "^1.3.28",
-    "@types/semver": "^7.3.1",
-    "@types/uuid": "^8.0.0",
-    "chai": "^4.2.0",
+    "@types/semver": "^7.3.4",
+    "@types/uuid": "^8.3.0",
+    "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
-    "delay": "^4.4.0",
+    "delay": "^5.0.0",
     "dirty-chai": "^2.0.1",
     "mocha": "6.2.2",
-    "nyc": "14.1.1",
+    "nyc": "^15.1.0",
     "proxyquire": "^2.1.3",
-    "sinon": "^9.0.2",
+    "sinon": "^9.2.4",
     "sinon-chai": "^3.5.0",
     "source-map-support": "^0.5.19",
-    "ts-node": "^8.10.2",
-    "tslint": "^6.1.2",
-    "typescript": "^3.9.7"
+    "ts-node": "^9.1.1",
+    "tslint": "^6.1.3",
+    "typescript": "^4.2.3"
   }
 }
