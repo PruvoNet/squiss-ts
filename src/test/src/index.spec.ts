@@ -714,12 +714,19 @@ describe('index', () => {
           Body: 'baz',
         },
       } as IMessageOpts);
-      inst!.deleteMessage(msg);
-      return wait().then(() => {
+      const expectedError = {Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true};
+      const deletePromise = inst!.deleteMessage(msg)
+          .then(() => {
+            throw new Error('should throw');
+          })
+          .catch((err) => {
+            err.should.eql(expectedError);
+          });
+      const spyPromise = wait().then(() => {
         spy.should.be.calledOnce();
-        spy.should.be.calledWith(
-            {message: msg, error: {Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true}});
+        spy.should.be.calledWith( {message: msg, error: expectedError});
       });
+      return Promise.all([deletePromise, spyPromise]);
     });
     it('emits error when delete call fails', () => {
       const spy = sinon.spy();
