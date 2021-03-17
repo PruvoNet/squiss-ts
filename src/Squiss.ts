@@ -11,7 +11,7 @@ import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
 import {
     IMessageToSend,
-    IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter, ISquissOptions, ISendMessageRequest
+    IDeleteQueueItem, IDeleteQueueItemById, optDefaults, ISquissOptions, ISendMessageRequest, ISquiss
 } from './Types';
 import {removeEmptyKeys} from './Utils';
 import {S3Facade} from './facades/S3Facade';
@@ -31,7 +31,7 @@ import {
 
 const AWS_MAX_SEND_BATCH = 10;
 
-export class Squiss extends (EventEmitter as new() => SquissEmitter) {
+export class Squiss extends EventEmitter implements ISquiss {
 
     public get inFlight(): number {
         return this._inFlight;

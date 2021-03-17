@@ -5,7 +5,14 @@ import {IS3Upload} from './s3Utils';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
 import {EventEmitter} from 'events';
 import {S3Facade} from './facades/S3Facade';
-import {BatchResultErrorEntry, SendMessageBatchRequestEntry, SQSFacade} from './facades/SQSFacade';
+import {
+    BatchResultErrorEntry,
+    SendMessageBatchRequestEntry,
+    SendMessageBatchResponse,
+    SendMessageResponse,
+    SQSFacade
+} from './facades/SQSFacade';
+import {IMessageAttributes} from './attributeUtils';
 
 export interface IMessageDeletedEventPayload {
     msg: Message;
@@ -137,3 +144,42 @@ export interface ISquissEvents {
 }
 
 export type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
+
+export interface ISquiss extends SquissEmitter {
+
+    inFlight: number;
+    running: boolean;
+
+    changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void>;
+
+    createQueue(): Promise<string>;
+
+    deleteMessage(msg: Message): Promise<void>;
+
+    deleteQueue(): Promise<void>;
+
+    getQueueUrl(): Promise<string>;
+
+    getQueueVisibilityTimeout(): Promise<number>;
+
+    getQueueMaximumMessageSize(): Promise<number>;
+
+    handledMessage(msg: Message): void;
+
+    releaseMessage(msg: Message): Promise<void>;
+
+    purgeQueue(): Promise<void>;
+
+    sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+        : Promise<SendMessageResponse>;
+
+    sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
+                 attributes?: IMessageAttributes | IMessageAttributes[])
+        : Promise<SendMessageBatchResponse>;
+
+    start(): Promise<void>;
+
+    stop(soft?: boolean, timeout?: number): Promise<boolean>;
+
+    getS3(): S3Facade;
+}
