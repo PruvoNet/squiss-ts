@@ -29,7 +29,7 @@ import {SendMessageBatchResponse} from '../../facades/SQSFacade';
 // tslint:disable-next-line:variable-name
 const SquissPatched: typeof Squiss = _SquissPatched;
 const should = chai.should();
-let inst: Squiss | null = null;
+let inst: Squiss;
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
 const getS3Stub = (blobs?: Blobs) => {
@@ -47,8 +47,9 @@ const generateLargeMessage = (length: number) => {
 describe('index', () => {
     afterEach(() => {
         if (inst) {
-            inst!.stop();
+            inst.stop();
         }
+        // @ts-ignore
         inst = null;
     });
     describe('constructor', () => {
@@ -90,8 +91,8 @@ describe('index', () => {
                 queueUrl: 'foo',
                 SQS: spy,
             });
-            inst!.should.have.property('sqs');
-            inst!.sqs.should.be.an('object');
+            inst.should.have.property('sqs');
+            inst.sqs.should.be.an('object');
             spy.should.be.calledOnce();
         });
         it('accepts an s3 function for instantiation if one is provided', () => {
@@ -101,9 +102,9 @@ describe('index', () => {
                 S3: spy,
                 SQS: SQSStub,
             });
-            const s3 = inst!.getS3();
+            const s3 = inst.getS3();
             s3.should.be.an('object');
-            inst!.getS3();
+            inst.getS3();
             spy.should.be.calledOnce();
         });
         it('accepts an instance of sqs client if one is provided', () => {
@@ -112,8 +113,8 @@ describe('index', () => {
                 SQS: {} as any,
                 S3: S3Stub,
             });
-            inst!.should.have.property('sqs');
-            inst!.sqs.should.be.an('object');
+            inst.should.have.property('sqs');
+            inst.sqs.should.be.an('object');
         });
         it('accepts an instance of s3 client if one is provided', () => {
             inst = new SquissPatched({
@@ -121,7 +122,7 @@ describe('index', () => {
                 S3: {} as any,
                 SQS: SQSStub,
             });
-            const s3 = inst!.getS3();
+            const s3 = inst.getS3();
             s3.should.be.an('object');
         });
     });
@@ -132,11 +133,11 @@ describe('index', () => {
                 SQS: SQSStub, queueUrl: 'foo',
             });
             // @ts-ignore
-            inst!._getBatch = () => {
+            inst._getBatch = () => {
             };
-            inst!.running.should.eq(false);
-            inst!.start();
-            inst!.running.should.eq(true);
+            inst.running.should.eq(false);
+            inst.start();
+            inst.running.should.eq(true);
         });
         it('treats start() as idempotent', () => {
             inst = new SquissPatched({
@@ -144,12 +145,12 @@ describe('index', () => {
                 SQS: SQSStub, queueUrl: 'foo',
             });
             // @ts-ignore
-            inst!._getBatch = () => {
+            inst._getBatch = () => {
             };
-            inst!.running.should.eq(false);
-            inst!.start();
-            inst!.start();
-            inst!.running.should.eq(true);
+            inst.running.should.eq(false);
+            inst.start();
+            inst.start();
+            inst.running.should.eq(true);
         });
         it('receives a batch of messages under the max', () => {
             const spy = sinon.spy();
@@ -157,8 +158,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo',
             });
-            inst!.on('gotMessages', spy);
-            inst!.start();
+            inst.on('gotMessages', spy);
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith(5);
@@ -171,10 +172,10 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo',
             });
-            inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst!.on('message', () => batches[batches.length - 1].num++);
-            inst!.once('queueEmpty', spy);
-            inst!.start();
+            inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+            inst.on('message', () => batches[batches.length - 1].num++);
+            inst.once('queueEmpty', spy);
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledOnce();
                 batches.should.deep.equal([
@@ -190,13 +191,13 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo', maxInFlight: 10, receiveBatchSize: 10,
             });
-            inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst!.on('message', (m: Message) => {
+            inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+            inst.on('message', (m: Message) => {
                 batches[batches.length - 1].num++;
                 m.del();
             });
-            inst!.once('queueEmpty', spy);
-            inst!.start();
+            inst.once('queueEmpty', spy);
+            inst.start();
             return wait(40).then(() => {
                 spy.should.be.calledOnce();
                 batches.should.deep.equal([
@@ -212,12 +213,12 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10,
             });
-            inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst!.once('queueEmpty', spy);
-            inst!.on('message', (m: Message) => {
+            inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+            inst.once('queueEmpty', spy);
+            inst.on('message', (m: Message) => {
                 batches[batches.length - 1].num++;
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
                 batches.should.deep.equal([
@@ -233,15 +234,15 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(16, 0), queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10,
             });
-            inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst!.once('queueEmpty', spy);
-            inst!.on('message', (m: Message) => {
+            inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+            inst.once('queueEmpty', spy);
+            inst.on('message', (m: Message) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num === 5) {
                     m.del();
                 }
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
                 batches.should.deep.equal([
@@ -262,15 +263,15 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(16, 0),
             });
-            inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst!.once('queueEmpty', spy);
-            inst!.on('message', (m: Message) => {
+            inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+            inst.once('queueEmpty', spy);
+            inst.on('message', (m: Message) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num >= 14) {
                     m.del();
                 }
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
                 batches.should.deep.equal([
@@ -291,15 +292,15 @@ describe('index', () => {
                 receiveBatchSize: 10,
                 minReceiveBatchSize: 2,
             });
-            inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst!.once('queueEmpty', spy);
-            inst!.on('message', (m: Message) => {
+            inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+            inst.once('queueEmpty', spy);
+            inst.on('message', (m: Message) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num === 5) {
                     m.del();
                 }
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
                 batches.should.deep.equal([
@@ -315,15 +316,15 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10,
             });
-            inst!.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst!.once('queueEmpty', spy);
-            inst!.on('message', (m: Message) => {
+            inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
+            inst.once('queueEmpty', spy);
+            inst.on('message', (m: Message) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num === 5) {
                     m.del();
                 }
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledOnce();
                 batches.should.deep.equal([
@@ -341,10 +342,10 @@ describe('index', () => {
                 bodyFormat: 'json', queueUrl: 'foo', maxInFlight: 15,
                 receiveBatchSize: 10,
             });
-            inst!.on('message', msgSpy);
-            inst!.on('error', errorSpy);
-            inst!.start();
-            inst!.sendMessage('{sdfsdf');
+            inst.on('message', msgSpy);
+            inst.on('error', errorSpy);
+            inst.start();
+            inst.sendMessage('{sdfsdf');
             return wait().then(() => {
                 msgSpy.should.not.be.called();
                 errorSpy.should.be.calledOnce();
@@ -358,9 +359,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(0, 0), queueUrl: 'foo',
             });
-            inst!.on('message', msgSpy);
-            inst!.once('queueEmpty', qeSpy);
-            inst!.start();
+            inst.on('message', msgSpy);
+            inst.once('queueEmpty', qeSpy);
+            inst.start();
             return wait().then(() => {
                 msgSpy.should.not.be.called();
                 qeSpy.should.be.calledOnce();
@@ -372,16 +373,16 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(0, 1000), queueUrl: 'foo',
             });
-            inst!.on('aborted', spy);
-            inst!.start();
+            inst.on('aborted', spy);
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
-                inst!.stop();
+                inst.stop();
                 return wait();
             }).then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith(sinon.match.instanceOf(Error));
-                inst!.running.should.eq(false);
+                inst.running.should.eq(false);
             });
         });
         it('should resolve when timeout exceeded and queue not drained', () => {
@@ -390,11 +391,11 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1, 1000), queueUrl: 'foo',
             });
-            inst!.on('aborted', spy);
-            inst!.start();
+            inst.on('aborted', spy);
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
-                return inst!.stop(false, 1000);
+                return inst.stop(false, 1000);
             }).then((result: boolean) => {
                 result.should.eq(false);
             });
@@ -405,11 +406,11 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(0, 1000), queueUrl: 'foo',
             });
-            inst!.on('aborted', spy);
-            inst!.start();
+            inst.on('aborted', spy);
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
-                return inst!.stop(false, 1000);
+                return inst.stop(false, 1000);
             }).then((result: boolean) => {
                 result.should.eq(true);
             });
@@ -420,16 +421,16 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1, 1000), queueUrl: 'foo',
             });
-            inst!.on('aborted', spy);
-            inst!.on('message', (msg: Message) => {
+            inst.on('aborted', spy);
+            inst.on('message', (msg: Message) => {
                 setTimeout(() => {
                     msg.del();
                 }, 1000);
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
-                return inst!.stop(false, 10000);
+                return inst.stop(false, 10000);
             }).then((result: boolean) => {
                 result.should.eq(true);
             });
@@ -441,16 +442,16 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1, 1000), queueUrl: 'foo',
             });
-            inst!.on('aborted', spy);
-            inst!.on('message', (msg: Message) => {
+            inst.on('aborted', spy);
+            inst.on('message', (msg: Message) => {
                 setTimeout(() => {
                     msg.del();
                 }, 1000);
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.not.be.called();
-                return inst!.stop(false, 50);
+                return inst.stop(false, 50);
             }).then((result: boolean) => {
                 result.should.eq(false);
                 return wait(2000);
@@ -463,9 +464,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(15), queueUrl: 'foo', maxInFlight: 10,
             });
-            inst!.on('message', msgSpy);
-            inst!.on('maxInFlight', maxSpy);
-            inst!.start();
+            inst.on('message', msgSpy);
+            inst.on('maxInFlight', maxSpy);
+            inst.start();
             return wait().then(() => {
                 msgSpy.should.have.callCount(10);
                 maxSpy.should.have.callCount(1);
@@ -479,10 +480,10 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(35, 0), queueUrl: 'foo', maxInFlight: 0,
             });
-            inst!.on('message', msgSpy);
-            inst!.on('gotMessages', gmSpy);
-            inst!.once('queueEmpty', qeSpy);
-            inst!.start();
+            inst.on('message', msgSpy);
+            inst.on('gotMessages', gmSpy);
+            inst.once('queueEmpty', qeSpy);
+            inst.start();
             return wait(50).then(() => {
                 msgSpy.should.have.callCount(35);
                 gmSpy.should.have.callCount(4);
@@ -495,15 +496,15 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo', deleteWaitMs: 1,
             });
-            inst!.on('message', (msg: Message) => msgs.push(msg));
-            inst!.start();
+            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.start();
             return wait().then(() => {
-                inst!.inFlight.should.equal(5);
-                inst!.deleteMessage(msgs.pop()!);
-                inst!.handledMessage(new EventEmitter() as any);
+                inst.inFlight.should.equal(5);
+                inst.deleteMessage(msgs.pop()!);
+                inst.handledMessage(new EventEmitter() as any);
                 return wait(1);
             }).then(() => {
-                inst!.inFlight.should.equal(3);
+                inst.inFlight.should.equal(3);
             });
         });
         it('pauses polling when maxInFlight is reached; resumes after', () => {
@@ -513,14 +514,14 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(11, 1000), queueUrl: 'foo', maxInFlight: 10,
             });
-            inst!.on('message', msgSpy);
-            inst!.on('maxInFlight', maxSpy);
-            inst!.start();
+            inst.on('message', msgSpy);
+            inst.on('maxInFlight', maxSpy);
+            inst.start();
             return wait().then(() => {
                 msgSpy.should.have.callCount(10);
                 maxSpy.should.be.calledOnce();
                 for (let i = 0; i < 10; i++) {
-                    inst!.handledMessage(new EventEmitter() as any);
+                    inst.handledMessage(new EventEmitter() as any);
                 }
                 return wait();
             }).then(() => {
@@ -532,8 +533,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', visibilityTimeoutSecs: 10,
             });
-            const spy = sinon.spy(inst!.sqs, 'receiveMessage');
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'receiveMessage');
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -552,9 +553,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1, 0), queueUrl: 'foo', activePollIntervalMs: 1000,
             });
-            inst!.on('aborted', abortSpy);
-            inst!.on('gotMessages', gmSpy);
-            inst!.start();
+            inst.on('aborted', abortSpy);
+            inst.on('gotMessages', gmSpy);
+            inst.start();
             return wait().then(() => {
                 gmSpy.should.be.calledOnce();
                 abortSpy.should.not.be.called();
@@ -567,9 +568,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1, 0), queueUrl: 'foo', idlePollIntervalMs: 1000,
             });
-            inst!.on('aborted', abortSpy);
-            inst!.on('queueEmpty', qeSpy);
-            inst!.start();
+            inst.on('aborted', abortSpy);
+            inst.on('queueEmpty', qeSpy);
+            inst.start();
             return wait().then(() => {
                 qeSpy.should.be.calledOnce();
                 abortSpy.should.not.be.called();
@@ -580,8 +581,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'receiveMessage');
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'receiveMessage');
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -597,8 +598,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', receiveAttributes: ['a'],
             });
-            const spy = sinon.spy(inst!.sqs, 'receiveMessage');
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'receiveMessage');
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -614,8 +615,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', receiveSqsAttributes: ['a'],
             });
-            const spy = sinon.spy(inst!.sqs, 'receiveMessage');
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'receiveMessage');
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -634,13 +635,13 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo', deleteWaitMs: 1,
             });
-            const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
-            inst!.on('message', (msg: Message) => msgs.push(msg));
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'deleteMessageBatch');
+            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.start();
             let promise: Promise<void>;
             return wait().then(() => {
                 msgs.should.have.length(5);
-                promise = inst!.deleteMessage(msgs.pop()!);
+                promise = inst.deleteMessage(msgs.pop()!);
                 return wait(10);
             }).then(() => {
                 spy.should.be.calledOnce();
@@ -653,9 +654,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo', deleteWaitMs: 1,
             });
-            const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
-            inst!.on('message', (msg: Message) => msgs.push(msg));
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'deleteMessageBatch');
+            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.start();
             return wait().then(() => {
                 msgs.should.have.length(5);
                 msgs.pop()!.del();
@@ -669,9 +670,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(15), queueUrl: 'foo', deleteWaitMs: 10,
             });
-            const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
-            inst!.on('message', (msg: Message) => msg.del());
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'deleteMessageBatch');
+            inst.on('message', (msg: Message) => msg.del());
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledTwice();
             });
@@ -681,12 +682,12 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(15), queueUrl: 'foo', deleteWaitMs: 10,
             });
-            const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
-            inst!.on('message', (msg: Message) => {
-                inst!.deleteMessage(msg);
-                inst!.deleteMessage(msg);
+            const spy = sinon.spy(inst.sqs, 'deleteMessageBatch');
+            inst.on('message', (msg: Message) => {
+                inst.deleteMessage(msg);
+                inst.deleteMessage(msg);
             });
-            inst!.start();
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledTwice();
             });
@@ -696,9 +697,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo', deleteBatchSize: 1,
             });
-            const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
-            inst!.on('message', (msg: Message) => msg.del());
-            inst!.start();
+            const spy = sinon.spy(inst.sqs, 'deleteMessageBatch');
+            inst.on('message', (msg: Message) => msg.del());
+            inst.start();
             return wait().then(() => {
                 spy.should.have.callCount(5);
             });
@@ -711,13 +712,13 @@ describe('index', () => {
                 SQS: new SQSStub(1), queueUrl: 'foo', deleteBatchSize: 1,
             });
             let message: Message;
-            inst!.on('message', (msg: Message) => {
+            inst.on('message', (msg: Message) => {
                 message = msg;
                 msg!.on('deleted', msgSpyMessage);
                 msg.del();
             });
-            inst!.on('deleted', msgSpySquiss);
-            inst!.start();
+            inst.on('deleted', msgSpySquiss);
+            inst.start();
             return wait().then(() => {
                 msgSpyMessage.should.be.calledOnce();
                 msgSpyMessage.should.be.calledWith('id_0');
@@ -732,10 +733,10 @@ describe('index', () => {
                 SQS: new SQSStub(2), queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10,
             });
             const spy = sinon.spy(inst, '_deleteMessages');
-            inst!.on('message', (msg: Message) => msgs.push(msg));
-            inst!.start();
+            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.start();
             return wait().then(() => {
-                inst!.stop();
+                inst.stop();
                 msgs[0].del();
                 return wait(15);
             }).then(() => {
@@ -751,7 +752,7 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: SQSStub, queueUrl: 'foo', deleteBatchSize: 1,
             });
-            const promise = inst!.deleteMessage('foo' as any);
+            const promise = inst.deleteMessage('foo' as any);
             return promise.should.be.rejectedWith(/Message/);
         });
     });
@@ -762,7 +763,7 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo', deleteBatchSize: 1,
             });
-            inst!.on('delError', spy);
+            inst.on('delError', spy);
             const msg = new MessagePatched({
                 msg: {
                     MessageId: 'foo',
@@ -771,7 +772,7 @@ describe('index', () => {
                 },
             } as IMessageOpts);
             const expectedError = {Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true};
-            const deletePromise = inst!.deleteMessage(msg)
+            const deletePromise = inst.deleteMessage(msg)
                 .then(() => {
                     throw new Error('should throw');
                 })
@@ -790,14 +791,14 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo', deleteBatchSize: 1,
             });
-            inst!.sqs.deleteMessageBatch = () => Promise.reject(new Error('test'));
-            inst!.on('error', spy);
+            inst.sqs.deleteMessageBatch = () => Promise.reject(new Error('test'));
+            inst.on('error', spy);
             const msg = new EventEmitter() as any;
             msg.raw = {
                 MessageId: 'foo',
                 ReceiptHandle: 'bar',
             };
-            inst!.deleteMessage(msg as Message);
+            inst.deleteMessage(msg as Message);
             return wait().then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith(sinon.match.instanceOf(Error));
@@ -809,15 +810,15 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo',
             });
-            inst!.sqs.receiveMessage = (() => {
+            inst.sqs.receiveMessage = (() => {
                 return {
                     promise: () => Promise.reject(new Error('test')),
                     abort: () => {
                     },
                 };
             });
-            inst!.on('error', spy);
-            inst!.start();
+            inst.on('error', spy);
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith(sinon.match.instanceOf(Error));
@@ -830,17 +831,17 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(2), queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 5,
             });
-            (sinon.stub(inst!.sqs, 'receiveMessage').callsFake(() => {
-                (inst!.sqs.receiveMessage as any).restore();
+            (sinon.stub(inst.sqs, 'receiveMessage').callsFake(() => {
+                (inst.sqs.receiveMessage as any).restore();
                 return {
                     promise: () => Promise.reject(new Error('test')),
                     abort: () => {
                     },
                 };
             }));
-            inst!.on('message', msgSpy);
-            inst!.on('error', errSpy);
-            inst!.start();
+            inst.on('message', msgSpy);
+            inst.on('error', errSpy);
+            inst.start();
             return wait().then(() => {
                 errSpy.should.be.calledOnce();
                 msgSpy.should.be.calledTwice();
@@ -852,9 +853,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: SQSStub, queueName: 'foo',
             });
-            inst!.sqs.getQueueUrl = () => Promise.reject(new Error('test'));
-            inst!.on('error', spy);
-            inst!.start();
+            inst.sqs.getQueueUrl = () => Promise.reject(new Error('test'));
+            inst.on('error', spy);
+            inst.start();
             return wait().then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith(sinon.match.instanceOf(Error));
@@ -867,7 +868,7 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueName: 'foo', correctQueueUrl: true,
             });
-            return inst!.getQueueUrl().then((url: string) => {
+            return inst.getQueueUrl().then((url: string) => {
                 url.should.equal('http://foo.bar/queues/foo');
             });
         });
@@ -878,15 +879,15 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo',
             });
-            return inst!.createQueue().should.be.rejected('not rejected');
+            return inst.createQueue().should.be.rejected('not rejected');
         });
         it('calls SQS SDK createQueue method with default attributes', () => {
             inst = new SquissPatched({
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueName: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'createQueue');
-            return inst!.createQueue().then((queueUrl: string) => {
+            const spy = sinon.spy(inst.sqs, 'createQueue');
+            return inst.createQueue().then((queueUrl: string) => {
                 queueUrl!.should.be.a('string');
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
@@ -905,8 +906,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueName: 'foo', visibilityTimeoutSecs: 15,
             });
-            const spy = sinon.spy(inst!.sqs, 'createQueue');
-            return inst!.createQueue().then((queueUrl: string) => {
+            const spy = sinon.spy(inst.sqs, 'createQueue');
+            return inst.createQueue().then((queueUrl: string) => {
                 queueUrl!.should.be.a('string');
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
@@ -933,8 +934,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1),
             });
-            const spy = sinon.spy(inst!.sqs, 'createQueue');
-            return inst!.createQueue().then((queueUrl: string) => {
+            const spy = sinon.spy(inst.sqs, 'createQueue');
+            return inst.createQueue().then((queueUrl: string) => {
                 queueUrl!.should.be.a('string');
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
@@ -957,8 +958,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'changeMessageVisibility');
-            return inst!.changeMessageVisibility('bar', 1).then(() => {
+            const spy = sinon.spy(inst.sqs, 'changeMessageVisibility');
+            return inst.changeMessageVisibility('bar', 1).then(() => {
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
                     ReceiptHandle: 'bar',
@@ -971,13 +972,13 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'changeMessageVisibility');
+            const spy = sinon.spy(inst.sqs, 'changeMessageVisibility');
             const msg = new MessagePatched({
                 msg: {
                     ReceiptHandle: 'bar',
                 },
             } as IMessageOpts);
-            return inst!.changeMessageVisibility(msg, 1).then(() => {
+            return inst.changeMessageVisibility(msg, 1).then(() => {
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
                     ReceiptHandle: 'bar',
@@ -992,8 +993,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'deleteQueue');
-            return inst!.deleteQueue().then(() => {
+            const spy = sinon.spy(inst.sqs, 'deleteQueue');
+            return inst.deleteQueue().then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({QueueUrl: 'foo'});
             });
@@ -1005,8 +1006,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
-            return inst!.getQueueUrl().then((queueUrl: string) => {
+            const spy = sinon.spy(inst.sqs, 'getQueueUrl');
+            return inst.getQueueUrl().then((queueUrl: string) => {
                 queueUrl.should.equal('foo');
                 spy.should.not.be.called();
             });
@@ -1016,8 +1017,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueName: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
-            return inst!.getQueueUrl().then((queueUrl: string) => {
+            const spy = sinon.spy(inst.sqs, 'getQueueUrl');
+            return inst.getQueueUrl().then((queueUrl: string) => {
                 queueUrl.indexOf('http').should.equal(0);
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
@@ -1030,10 +1031,10 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueName: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
-            return inst!.getQueueUrl().then(() => {
+            const spy = sinon.spy(inst.sqs, 'getQueueUrl');
+            return inst.getQueueUrl().then(() => {
                 spy.should.be.calledOnce();
-                return inst!.getQueueUrl();
+                return inst.getQueueUrl();
             }).then(() => {
                 spy.should.be.calledOnce();
             });
@@ -1043,8 +1044,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(1), queueName: 'foo', accountNumber: 1234,
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueUrl');
-            return inst!.getQueueUrl().then((queueUrl: string) => {
+            const spy = sinon.spy(inst.sqs, 'getQueueUrl');
+            return inst.getQueueUrl().then((queueUrl: string) => {
                 queueUrl.indexOf('http').should.equal(0);
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
@@ -1060,8 +1061,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'https://foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
-            return inst!.getQueueVisibilityTimeout().then((timeout: number) => {
+            const spy = sinon.spy(inst.sqs, 'getQueueAttributes');
+            return inst.getQueueVisibilityTimeout().then((timeout: number) => {
                 should.exist(timeout);
                 timeout.should.equal(31);
                 spy.should.be.calledOnce();
@@ -1076,11 +1077,11 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'https://foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
-            return inst!.getQueueVisibilityTimeout().then((timeout: number) => {
+            const spy = sinon.spy(inst.sqs, 'getQueueAttributes');
+            return inst.getQueueVisibilityTimeout().then((timeout: number) => {
                 timeout.should.equal(31);
                 spy.should.be.calledOnce();
-                return inst!.getQueueVisibilityTimeout();
+                return inst.getQueueVisibilityTimeout();
             }).then((timeout: number) => {
                 should.exist(timeout);
                 timeout.should.equal(31);
@@ -1092,8 +1093,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            inst!.sqs.getQueueAttributes = sinon.stub().returns(Promise.resolve({foo: 'bar'}));
-            return inst!.getQueueVisibilityTimeout().should.be.rejectedWith(/foo/);
+            inst.sqs.getQueueAttributes = sinon.stub().returns(Promise.resolve({foo: 'bar'}));
+            return inst.getQueueVisibilityTimeout().should.be.rejectedWith(/foo/);
         });
     });
     describe('getQueueMaximumMessageSize', () => {
@@ -1102,8 +1103,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'https://foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
-            return inst!.getQueueMaximumMessageSize().then((timeout: number) => {
+            const spy = sinon.spy(inst.sqs, 'getQueueAttributes');
+            return inst.getQueueMaximumMessageSize().then((timeout: number) => {
                 should.exist(timeout);
                 timeout.should.equal(200);
                 spy.should.be.calledOnce();
@@ -1118,11 +1119,11 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'https://foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'getQueueAttributes');
-            return inst!.getQueueMaximumMessageSize().then((timeout: number) => {
+            const spy = sinon.spy(inst.sqs, 'getQueueAttributes');
+            return inst.getQueueMaximumMessageSize().then((timeout: number) => {
                 timeout.should.equal(200);
                 spy.should.be.calledOnce();
-                return inst!.getQueueMaximumMessageSize();
+                return inst.getQueueMaximumMessageSize();
             }).then((timeout: number) => {
                 should.exist(timeout);
                 timeout.should.equal(200);
@@ -1134,8 +1135,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            inst!.sqs.getQueueAttributes = sinon.stub().returns(Promise.resolve({foo: 'bar'}));
-            return inst!.getQueueMaximumMessageSize().should.be.rejectedWith(/foo/);
+            inst.sqs.getQueueAttributes = sinon.stub().returns(Promise.resolve({foo: 'bar'}));
+            return inst.getQueueMaximumMessageSize().should.be.rejectedWith(/foo/);
         });
     });
     describe('releaseMessage', () => {
@@ -1147,7 +1148,7 @@ describe('index', () => {
             const handledSpy = sinon.spy(inst, 'handledMessage');
             const visibilitySpy = sinon.spy(inst, 'changeMessageVisibility');
             const msg = new EventEmitter() as any;
-            return inst!.releaseMessage(msg).then(() => {
+            return inst.releaseMessage(msg).then(() => {
                 handledSpy.should.be.calledOnce();
                 visibilitySpy.should.be.calledOnce();
                 visibilitySpy.should.be.calledWith(msg, 0);
@@ -1161,8 +1162,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: stub, queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'purgeQueue');
-            return inst!.purgeQueue().then(() => {
+            const spy = sinon.spy(inst.sqs, 'purgeQueue');
+            return inst.purgeQueue().then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({QueueUrl: 'foo'});
                 stub.msgs.length.should.equal(0);
@@ -1176,8 +1177,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage('bar').then(() => {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage('bar').then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({QueueUrl: 'foo', MessageBody: 'bar'});
             });
@@ -1187,8 +1188,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', gzip: true,
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage('{"i": 1}').then(() => {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage('{"i": 1}').then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueUrl: 'foo', MessageBody: 'iwOAeyJpIjogMX0D', MessageAttributes: {
@@ -1205,8 +1206,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage({bar: 'baz'}).then(() => {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage({bar: 'baz'}).then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({QueueUrl: 'foo', MessageBody: '{"bar":"baz"}'});
             });
@@ -1217,8 +1218,8 @@ describe('index', () => {
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
             const buffer = Buffer.from('s');
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage('bar', 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage('bar', 10, {
                 baz: 'fizz',
                 num: 1,
                 boolean1: true,
@@ -1271,16 +1272,16 @@ describe('index', () => {
                 s3Bucket: bucket,
             });
             const buffer = Buffer.from('s');
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
             let squissS3UploadEventEmitted = false;
-            inst!.on('s3Upload', (data) => {
+            inst.on('s3Upload', (data) => {
                 data.bucket.should.eql(bucket);
                 data.key.should.eql('my_uuid');
                 data.uploadSize.should.eql(300);
                 squissS3UploadEventEmitted = true;
             });
-            return inst!.sendMessage(largeMessage, 10, {
+            return inst.sendMessage(largeMessage, 10, {
                 baz: 'fizz',
                 num: 1,
                 boolean1: true,
@@ -1333,9 +1334,9 @@ describe('index', () => {
                 SQS: new SQSStub(),
             });
             const buffer = Buffer.from('s');
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
-            return inst!.sendMessage(largeMessage, 10, {
+            return inst.sendMessage(largeMessage, 10, {
                 baz: 'fizz',
                 num: 1,
                 boolean1: true,
@@ -1384,9 +1385,9 @@ describe('index', () => {
             inst = new SquissPatched({
                 SQS: new SQSStub(), S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
-            return inst!.sendMessage(largeMessage, 10).then(() => {
+            return inst.sendMessage(largeMessage, 10).then(() => {
                 blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -1409,9 +1410,9 @@ describe('index', () => {
                 s3Bucket: 'my_bucket',
                 minS3Size: 250,
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
-            return inst!.sendMessage(largeMessage, 10).then(() => {
+            return inst.sendMessage(largeMessage, 10).then(() => {
                 blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -1434,9 +1435,9 @@ describe('index', () => {
                 s3Bucket: 'my_bucket',
                 minS3Size: 500,
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
-            return inst!.sendMessage(largeMessage, 10).then(() => {
+            return inst.sendMessage(largeMessage, 10).then(() => {
                 Object.keys(blobs).length.should.be.eq(0);
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -1452,9 +1453,9 @@ describe('index', () => {
                 SQS: new SQSStub(),
                 S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
             const smallMessage = generateLargeMessage(50);
-            return inst!.sendMessage(smallMessage, 10, {
+            return inst.sendMessage(smallMessage, 10, {
                 baz: 'fizz',
             }).then(() => {
                 blobs.should.not.have.property('my_bucket');
@@ -1477,8 +1478,8 @@ describe('index', () => {
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
             const buffer = Buffer.from('s');
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            inst!.sendMessage('bar', 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            inst.sendMessage('bar', 10, {
                 baz: 'fizz',
                 num: 1,
                 __SQS_GZIP__: true,
@@ -1499,8 +1500,8 @@ describe('index', () => {
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
             const buffer = Buffer.from('s');
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            inst!.sendMessage('bar', 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            inst.sendMessage('bar', 10, {
                 baz: 'fizz',
                 num: 1,
                 __SQS_S3__: true,
@@ -1521,8 +1522,8 @@ describe('index', () => {
                 SQS: new SQSStub(), queueUrl: 'foo', gzip: true,
             });
             const buffer = Buffer.from('s');
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage({'i': 1}, 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage({'i': 1}, 10, {
                 baz: 'fizz',
                 num: 1,
                 boolean1: true,
@@ -1574,8 +1575,8 @@ describe('index', () => {
             });
             const buffer = Buffer.from('s');
             const largeMessage = generateLargeMessage(200);
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage(largeMessage, 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage(largeMessage, 10, {
                 baz: 'fizz',
                 num: 1,
                 boolean1: true,
@@ -1627,8 +1628,8 @@ describe('index', () => {
             });
             const buffer = Buffer.from('s');
             const largeMessage = generateLargeMessage(200);
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage(largeMessage, 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage(largeMessage, 10, {
                 baz: 'fizz',
                 num: 1,
                 boolean1: true,
@@ -1675,8 +1676,8 @@ describe('index', () => {
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
             const buffer = Buffer.from('s');
-            const spy = sinon.spy(inst!.sqs, 'sendMessage');
-            return inst!.sendMessage('bar', 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessage');
+            return inst.sendMessage('bar', 10, {
                 FIFO_MessageGroupId: 'groupId',
                 FIFO_MessageDeduplicationId: 'dedupId',
                 baz: 'fizz',
@@ -1718,8 +1719,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-            return inst!.sendMessages('bar').then((res: SendMessageBatchResponse) => {
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
+            return inst.sendMessages('bar').then((res: SendMessageBatchResponse) => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -1736,8 +1737,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-            return inst!.sendMessages({bar: 'baz'}).then(() => {
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
+            return inst.sendMessages({bar: 'baz'}).then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -1752,8 +1753,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-            return inst!.sendMessages([{bar: 'baz'}, {bar1: 'baz1'}]).then(() => {
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
+            return inst.sendMessages([{bar: 'baz'}, {bar1: 'baz1'}]).then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -1769,8 +1770,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-            return inst!.sendMessages('bar', 10, {baz: 'fizz'}).then(() => {
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
+            return inst.sendMessages('bar', 10, {baz: 'fizz'}).then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueUrl: 'foo',
@@ -1788,8 +1789,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-            return inst!.sendMessages(['bar', 'baz'], 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
+            return inst.sendMessages(['bar', 'baz'], 10, {
                 baz: 'fizz', FIFO_MessageGroupId: 'groupId',
                 FIFO_MessageDeduplicationId: 'dedupId',
             }).then(() => {
@@ -1819,8 +1820,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', gzip: true,
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-            return inst!.sendMessages(['bar', 'baz'], 10, {
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
+            return inst.sendMessages(['bar', 'baz'], 10, {
                 baz: 'fizz', FIFO_MessageGroupId: 'groupId',
                 FIFO_MessageDeduplicationId: 'dedupId',
             }).then(() => {
@@ -1856,8 +1857,8 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-            return inst!.sendMessages(['bar', 'baz'], 10, [{
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
+            return inst.sendMessages(['bar', 'baz'], 10, [{
                 baz: 'fizz', FIFO_MessageGroupId: 'groupId',
                 FIFO_MessageDeduplicationId: 'dedupId',
             }, {
@@ -1891,9 +1892,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: stub, queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
             const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
-            return inst!.sendMessages(msgs).then((res: SendMessageBatchResponse) => {
+            return inst.sendMessages(msgs).then((res: SendMessageBatchResponse) => {
                 spy.should.be.calledTwice();
                 stub.msgs.length.should.equal(15);
                 res.should.have.property('Successful').with.length(15);
@@ -1906,10 +1907,10 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: stub, queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
             const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
             msgs.unshift(generateLargeMessage(300));
-            return inst!.sendMessages(msgs).then((res: SendMessageBatchResponse) => {
+            return inst.sendMessages(msgs).then((res: SendMessageBatchResponse) => {
                 spy.should.be.calledThrice();
                 stub.msgs.length.should.equal(16);
                 res.should.have.property('Successful').with.length(16);
@@ -1922,9 +1923,9 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: stub, queueUrl: 'foo',
             });
-            const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
+            const spy = sinon.spy(inst.sqs, 'sendMessageBatch');
             const msgs = 'a.FAIL.c.d.e.f.g.h.i.j.k.l.m.n.FAIL'.split('.');
-            return inst!.sendMessages(msgs).then((res: SendMessageBatchResponse) => {
+            return inst.sendMessages(msgs).then((res: SendMessageBatchResponse) => {
                 spy.should.be.calledTwice();
                 stub.msgs.length.should.equal(13);
                 res.should.have.property('Successful').with.length(13);
@@ -1938,12 +1939,12 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', autoExtendTimeout: true,
             });
-            return inst!.start().then(() => {
-                should.exist(inst!._timeoutExtender);
-                inst!._timeoutExtender!.should.not.equal(null);
-                inst!._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(31);
-                inst!._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(43200);
-                inst!._timeoutExtender!._opts.advancedCallMs!.should.equal(5000);
+            return inst.start().then(() => {
+                should.exist(inst._timeoutExtender);
+                inst._timeoutExtender!.should.not.equal(null);
+                inst._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(31);
+                inst._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(43200);
+                inst._timeoutExtender!._opts.advancedCallMs!.should.equal(5000);
             });
         });
         it('constructs a TimeoutExtender with custom options', () => {
@@ -1956,12 +1957,12 @@ describe('index', () => {
                 noExtensionsAfterSecs: 400,
                 advancedCallMs: 4500,
             });
-            return inst!.start().then(() => {
-                should.exist(inst!._timeoutExtender);
-                inst!._timeoutExtender!.should.not.equal(null);
-                inst!._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(53);
-                inst!._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(400);
-                inst!._timeoutExtender!._opts.advancedCallMs!.should.equal(4500);
+            return inst.start().then(() => {
+                should.exist(inst._timeoutExtender);
+                inst._timeoutExtender!.should.not.equal(null);
+                inst._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(53);
+                inst._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(400);
+                inst._timeoutExtender!._opts.advancedCallMs!.should.equal(4500);
             });
         });
     });
