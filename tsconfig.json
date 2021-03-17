@@ -6,8 +6,8 @@
     "declaration": true,
     "checkJs": false,
     "allowJs": false,
-    "outDir": "./dist",
     "strict": true,
+    "baseUrl": "packages",
     "noImplicitAny": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
@@ -18,17 +18,13 @@
     "alwaysStrict": true,
     "noImplicitUseStrict": false,
     "preserveSymlinks": true,
-    "rootDir": "src",
     "sourceMap": true,
     "lib": [
       "es6",
       "dom"
     ]
   },
-  "include": [
-    "src/**/*.ts"
-  ],
   "exclude": [
-    "dist"
+    "mocha-setup.ts"
   ]
 }

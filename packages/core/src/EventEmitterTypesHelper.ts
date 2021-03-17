@@ -1,4 +1,3 @@
-'use strict';
 
 // https://github.com/bterlson/strict-event-emitter-types
 

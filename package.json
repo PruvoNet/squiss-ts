@@ -1,56 +1,19 @@
 {
-  "name": "squiss-ts",
-  "version": "4.1.1",
-  "description": "High-volume SQS poller",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "engines": {
-    "node": "^6 || ^8 || ^10 || ^12 || ^14 || ^15"
-  },
+  "private": true,
   "scripts": {
-    "postinstall": "node -e 'const semver = require(\"semver\");process.exit(semver.lt(process.version, \"10.16.0\"));' && (npm install --no-save @aws-sdk/client-sqs@^3.8.1 @aws-sdk/client-s3@^3.8.1) || (npm install --no-save iltorb@2.4.3 aws-sdk@^2.864.0)",
-    "build": "npm run lint && npm run compile",
-    "compile": "./node_modules/.bin/tsc",
-    "test": "npm run lint && npm run test:cover",
-    "test:unit": "mocha --opts src/test/mocha.opts",
-    "test:cover": "nyc --reporter=lcov --reporter=text-summary npm run test:unit",
-    "lint": "tslint -c tslint.json 'src/**/*.ts' 'test/**/*.ts'"
+    "clean": "lerna run --parallel clean && rm -rf .nyc_output *.log coverage",
+    "bootstrap": "lerna bootstrap",
+    "compile": "lerna run --parallel compile",
+    "build": "yarn lint && yarn compile",
+    "build:fresh": "yarn clean && yarn build",
+    "test": "yarn lint && yarn test:cover",
+    "test:unit": "mocha --opts mocha.opts",
+    "test:cover": "nyc --reporter=lcov --reporter=text-summary yarn test:unit",
+    "lint": "tslint -c tslint.json 'packages/*/src/**/*.ts' 'packages/*/test/**/*.ts'"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/PruvoNet/squiss-ts.git"
-  },
-  "files": [
-    "/dist/*.d.ts",
-    "/dist/*.js"
+  "workspaces": [
+    "packages/**"
   ],
-  "keywords": [
-    "aws",
-    "amazon",
-    "sqs",
-    "polling",
-    "poll",
-    "poller",
-    "queue",
-    "typescript",
-    "sns",
-    "s3",
-    "extended",
-    "client",
-    "sdk"
-  ],
-  "author": "Regev Brody <regevbr@gmail.com>",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/PruvoNet/squiss-ts/issues"
-  },
-  "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
-  "dependencies": {
-    "linked-list": "^2.1.0",
-    "semver": "^7.3.4",
-    "ts-type-guards": "^0.7.0",
-    "uuid": "^8.3.2"
-  },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.8.1",
     "@aws-sdk/client-sqs": "^3.8.1",
@@ -68,6 +31,7 @@
     "chai-as-promised": "^7.1.1",
     "delay": "^4.4.1",
     "dirty-chai": "^2.0.1",
+    "lerna": "^4.0.0",
     "mocha": "6.2.2",
     "nyc": "^15.1.0",
     "proxyquire": "^2.1.3",

@@ -1,4 +1,3 @@
-'use strict';
 
 import * as proxyquire from 'proxyquire';
 
@@ -14,7 +13,7 @@ const stubs = {
 // tslint:disable-next-line
 const {Squiss: _SquissPatched, Message: _MessagePatched} = proxyquire('../../', stubs);
 
-import {ISquiss, Squiss} from '../../';
+import {ISquiss, Squiss} from '../../index';
 // TODO fix after createing facade
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';

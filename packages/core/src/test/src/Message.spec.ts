@@ -1,6 +1,5 @@
-'use strict';
 
-import {ISquiss, Message} from '../../';
+import {ISquiss, Message} from '../../index';
 import {SquissStub} from '../stubs/SquissStub';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';

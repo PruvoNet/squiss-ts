@@ -1,6 +1,5 @@
-'use strict';
 
-import {BodyFormat, ISquiss, S3Facade} from '.';
+import {BodyFormat, ISquiss, S3Facade} from './index';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';
 import {GZIP_MARKER, decompressMessage} from './gzipUtils';

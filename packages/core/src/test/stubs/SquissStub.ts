@@ -1,10 +1,9 @@
-'use strict';
 
 import {EventEmitter} from 'events';
 import {IMessageToSend, ISquiss} from '../../Types';
 import {Message} from '../../Message';
 import {S3Facade} from '../../facades/S3Facade';
-import {IMessageAttributes, SendMessageBatchResponse, SendMessageResponse} from '../..';
+import {IMessageAttributes, SendMessageBatchResponse, SendMessageResponse} from '../../index';
 import {TimeoutExtender} from '../../TimeoutExtender';
 
 export class SquissStub extends EventEmitter implements ISquiss {

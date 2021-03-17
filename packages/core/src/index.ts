@@ -1,4 +1,3 @@
-'use strict';
 
 export * from './facades/S3Facade';
 export * from './facades/SQSFacade';

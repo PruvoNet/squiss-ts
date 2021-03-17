@@ -1,4 +1,3 @@
-'use strict';
 
 import {isBoolean, isNumber, isString} from 'ts-type-guards';
 import {Binary, MessageAttributeValue, MessageBodyAttributeMap} from './facades/SQSFacade';

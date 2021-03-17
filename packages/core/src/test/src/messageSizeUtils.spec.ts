@@ -1,4 +1,3 @@
-'use strict';
 
 import {getMessageSize} from '../../messageSizeUtils';
 

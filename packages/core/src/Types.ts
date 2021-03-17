@@ -1,4 +1,3 @@
-'use strict';
 
 import {Message} from './Message';
 import {IS3Upload} from './s3Utils';

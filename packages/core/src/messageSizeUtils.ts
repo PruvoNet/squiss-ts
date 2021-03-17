@@ -1,4 +1,3 @@
-'use strict';
 
 import {ISendMessageRequest} from './index';
 import {MessageBodyAttributeMap} from './facades/SQSFacade';

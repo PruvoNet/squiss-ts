@@ -1,4 +1,3 @@
-'use strict';
 
 import * as url from 'url';
 import {EventEmitter} from 'events';
@@ -58,7 +57,7 @@ export class Squiss extends EventEmitter implements ISquiss {
 
     constructor(opts: ISquissOptions) {
         super();
-        this._opts = Object.assign({}, optDefaults, opts || {});
+        this._opts = Object.assign({}, optDefaults, opts);
         this._initOpts();
         this._queueUrl = this._opts.queueUrl || '';
         this.sqs = this._initSqs();

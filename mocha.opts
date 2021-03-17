@@ -1,7 +1,7 @@
 --reporter spec
 --require ts-node/register
 --require source-map-support/register
---require src/test/setup.ts
+--require mocha-setup.ts
 --recursive
 --exit
-src/test/**/*.spec.ts
+packages/*/src/test/**/*.spec.ts

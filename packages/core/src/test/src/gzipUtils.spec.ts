@@ -1,4 +1,3 @@
-'use strict';
 
 import {decompressMessage, compressMessage} from '../../gzipUtils';
 

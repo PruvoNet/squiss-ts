@@ -1,6 +1,5 @@
-'use strict';
 
-import {Message} from '../../';
+import {Message} from '../../index';
 import {TimeoutExtender} from '../../TimeoutExtender';
 import {SquissStub} from '../stubs/SquissStub';
 import delay from 'delay';

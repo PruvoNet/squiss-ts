@@ -1,4 +1,3 @@
-'use strict';
 
 import {Message} from './Message';
 import * as LinkedList from 'linked-list';
