@@ -41,9 +41,10 @@ export class Squiss extends EventEmitter implements ISquiss {
         return this._running;
     }
 
-    public sqs: SQSFacade;
+    // TODO remove public
     public _timeoutExtender: TimeoutExtender | undefined;
-    public _opts: ISquissOptions;
+    private sqs: SQSFacade;
+    private _opts: ISquissOptions;
     private _s3?: S3Facade;
     private _running = false;
     private _paused = true;

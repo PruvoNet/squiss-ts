@@ -1,6 +1,6 @@
 'use strict';
 
-import {Message, Squiss} from '../../';
+import {ISquiss, Message} from '../../';
 import {SquissStub} from '../stubs/SquissStub';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
@@ -9,7 +9,7 @@ import {SQSMessage} from '../../facades/SQSFacade';
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
 const getSquissStub = () => {
-    return new SquissStub() as any as Squiss;
+    return new SquissStub();
 };
 
 const getS3Stub = (blobs?: Blobs) => {
@@ -279,7 +279,7 @@ describe('Message', () => {
                     squissS3DeleteEventEmitted = squissS3DeleteEventEmitted || event === 's3Delete';
                     squissS3DownloadEventEmitted = squissS3DownloadEventEmitted || event === 's3Download';
                 },
-            } as any as Squiss,
+            } as ISquiss,
             msg: rawMsg,
             bodyFormat: 'json',
             s3Retriever: getS3Stub(blobs),
@@ -335,7 +335,7 @@ describe('Message', () => {
                     squissS3DeleteEventEmitted = squissS3DeleteEventEmitted || event === 's3Delete';
                     squissS3DownloadEventEmitted = squissS3DownloadEventEmitted || event === 's3Download';
                 },
-            } as any as Squiss,
+            } as ISquiss,
             msg: rawMsg,
             bodyFormat: 'json',
             s3Retriever: getS3Stub(blobs),
@@ -364,7 +364,7 @@ describe('Message', () => {
                     toDel.should.equal(msg);
                     done();
                 },
-            } as any as Squiss,
+            } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
         });
@@ -378,7 +378,7 @@ describe('Message', () => {
                 deleteMessage: (toDel: Message) => {
                     return Promise.reject();
                 },
-            } as any as Squiss,
+            } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
         });
@@ -395,7 +395,7 @@ describe('Message', () => {
                 releaseMessage: (toDel: Message) => {
                     return Promise.reject();
                 },
-            } as any as Squiss,
+            } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
         });
@@ -409,8 +409,10 @@ describe('Message', () => {
             msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
             bodyFormat: 'json',
             squiss: {
-                handledMessage: () => done(),
-            } as any as Squiss,
+                handledMessage: (_msg: Message) => {
+                    done()
+                },
+            } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
         });
@@ -431,7 +433,7 @@ describe('Message', () => {
                 releaseMessage: () => {
                     calls += 100;
                 },
-            } as any as Squiss,
+            } as any as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
         });
@@ -455,7 +457,7 @@ describe('Message', () => {
                     timeoutInSeconds.should.be.eql(timeout);
                     done();
                 },
-            } as any as Squiss,
+            } as any as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
         });
@@ -470,7 +472,7 @@ describe('Message', () => {
                     msg.should.eql(message);
                     return Promise.resolve();
                 },
-            } as any as Squiss,
+            } as any as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
         });

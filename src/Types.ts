@@ -13,6 +13,7 @@ import {
     SQSFacade
 } from './facades/SQSFacade';
 import {IMessageAttributes} from './attributeUtils';
+import {TimeoutExtender} from './TimeoutExtender';
 
 export interface IMessageDeletedEventPayload {
     msg: Message;
@@ -146,7 +147,8 @@ export interface ISquissEvents {
 export type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
 
 export interface ISquiss extends SquissEmitter {
-
+    // TODO remove
+    _timeoutExtender: TimeoutExtender | undefined;
     inFlight: number;
     running: boolean;
 

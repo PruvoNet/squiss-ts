@@ -1,6 +1,6 @@
 'use strict';
 
-import {BodyFormat, S3Facade, Squiss} from '.';
+import {BodyFormat, ISquiss, S3Facade} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';
 import {GZIP_MARKER, decompressMessage} from './gzipUtils';
@@ -14,7 +14,7 @@ export interface IMessageOpts {
     msg: SQSMessage;
     unwrapSns?: boolean;
     bodyFormat?: BodyFormat;
-    squiss: Squiss;
+    squiss: ISquiss;
     s3Retriever: () => S3Facade;
     s3Retain: boolean;
 }
@@ -60,7 +60,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
     public topicName?: string;
     public attributes: IMessageAttributes;
     public sqsAttributes: { [k: string]: string };
-    private _squiss: Squiss;
+    private _squiss: ISquiss;
     private _handled: boolean;
     private _opts: IMessageOpts;
     private _deleteCallback?: () => Promise<void>;

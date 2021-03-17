@@ -1,9 +1,9 @@
 'use strict';
 
-import {Squiss} from './index';
 import {Message} from './Message';
 import * as LinkedList from 'linked-list';
 import {Item} from 'linked-list';
+import {ISquiss} from './Types';
 
 const MAX_MESSAGE_AGE_MS = 43200000;
 
@@ -34,13 +34,13 @@ export class TimeoutExtender {
   public readonly _index: MessageIndex;
   public _linkedList: LinkedList<Node>;
   public _opts: ITimeoutExtenderOptions;
-  private _squiss: Squiss;
+  private _squiss: ISquiss;
   private _timer: any;
   private readonly _visTimeout: number;
   private readonly _stopAfter: number;
   private readonly _apiLeadMs: number;
 
-  constructor(squiss: Squiss, opts?: ITimeoutExtenderOptions) {
+  constructor(squiss: ISquiss, opts?: ITimeoutExtenderOptions) {
     this._opts = Object.assign({}, optDefaults, opts || {});
     this._index = {};
     this._timer = undefined;
