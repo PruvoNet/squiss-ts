@@ -545,10 +545,11 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     private _handleBatchDeleteResults(batch: IDeleteQueueItem[], data: DeleteMessageBatchResponse) {
+        const acc: IDeleteQueueItemById = {};
         const itemById: IDeleteQueueItemById = batch.reduce((prevByValue, item) => {
             prevByValue[item.Id] = item;
             return prevByValue;
-        }, {} as IDeleteQueueItemById);
+        }, acc);
         if (data.Failed && data.Failed.length) {
             data.Failed.forEach((fail) => {
                 this.emit('delError', {error: fail, message: itemById[fail.Id].msg});

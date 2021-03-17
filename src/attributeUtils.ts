@@ -3,7 +3,7 @@
 import {isBoolean, isNumber, isString} from 'ts-type-guards';
 import {Binary, MessageAttributeValue, MessageBodyAttributeMap} from './facades/SQSFacade';
 
-const EMPTY_OBJ = {};
+const EMPTY_OBJ: Record<string, any> = {};
 const STRING_TYPE = 'String';
 const NUMBER_TYPE = 'Number';
 const BINARY_TYPE = 'Binary';
@@ -19,7 +19,7 @@ export interface IMessageAttributes {
 
 export const parseMessageAttributes = (messageAttributes: MessageBodyAttributeMap | undefined)
     : IMessageAttributes => {
-    const _messageAttributes = messageAttributes || EMPTY_OBJ as MessageBodyAttributeMap;
+    const _messageAttributes = messageAttributes || EMPTY_OBJ;
     return Object.keys(_messageAttributes).reduce((parsedAttributes: IMessageAttributes, name: string) => {
         parsedAttributes[name] = parseAttributeValue(_messageAttributes[name]);
         return parsedAttributes;

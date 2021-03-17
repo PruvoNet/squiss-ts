@@ -12,7 +12,7 @@ const stubs = {
     },
 };
 // tslint:disable-next-line
-const {Squiss: _SquissPatched, Message: MessagePatched} = proxyquire('../../', stubs);
+const {Squiss: _SquissPatched, Message: _MessagePatched} = proxyquire('../../', stubs);
 
 import {Squiss} from '../../';
 // TODO fix after createing facade
@@ -28,6 +28,8 @@ import {SendMessageBatchResponse} from '../../facades/SQSFacade';
 
 // tslint:disable-next-line:variable-name
 const SquissPatched: typeof Squiss = _SquissPatched;
+// tslint:disable-next-line:variable-name
+const MessagePatched: typeof Message = _MessagePatched;
 const should = chai.should();
 let inst: Squiss;
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
@@ -501,7 +503,7 @@ describe('index', () => {
             return wait().then(() => {
                 inst.inFlight.should.equal(5);
                 inst.deleteMessage(msgs.pop()!);
-                inst.handledMessage(new EventEmitter() as any);
+                inst.handledMessage(new EventEmitter() as Message);
                 return wait(1);
             }).then(() => {
                 inst.inFlight.should.equal(3);
@@ -521,7 +523,7 @@ describe('index', () => {
                 msgSpy.should.have.callCount(10);
                 maxSpy.should.be.calledOnce();
                 for (let i = 0; i < 10; i++) {
-                    inst.handledMessage(new EventEmitter() as any);
+                    inst.handledMessage(new EventEmitter() as Message);
                 }
                 return wait();
             }).then(() => {
@@ -752,7 +754,7 @@ describe('index', () => {
                 S3: S3Stub,
                 SQS: SQSStub, queueUrl: 'foo', deleteBatchSize: 1,
             });
-            const promise = inst.deleteMessage('foo' as any);
+            const promise = inst.deleteMessage('foo' as any as Message);
             return promise.should.be.rejectedWith(/Message/);
         });
     });
@@ -793,7 +795,7 @@ describe('index', () => {
             });
             inst.sqs.deleteMessageBatch = () => Promise.reject(new Error('test'));
             inst.on('error', spy);
-            const msg = new EventEmitter() as any;
+            const msg = new EventEmitter() as Message;
             msg.raw = {
                 MessageId: 'foo',
                 ReceiptHandle: 'bar',
@@ -1147,7 +1149,7 @@ describe('index', () => {
             });
             const handledSpy = sinon.spy(inst, 'handledMessage');
             const visibilitySpy = sinon.spy(inst, 'changeMessageVisibility');
-            const msg = new EventEmitter() as any;
+            const msg = new EventEmitter() as Message;
             return inst.releaseMessage(msg).then(() => {
                 handledSpy.should.be.calledOnce();
                 visibilitySpy.should.be.calledOnce();
