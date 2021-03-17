@@ -1,6 +1,6 @@
 'use strict';
 
-export {SQS, S3} from 'aws-sdk';
+export {S3Facade} from './facades/S3Facade';
 export {Squiss} from './Squiss';
 export {
     BodyFormat,

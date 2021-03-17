@@ -1,22 +1,33 @@
 'use strict';
 
-import * as AWS from 'aws-sdk';
 import * as url from 'url';
 import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
-import {SQS, S3} from 'aws-sdk';
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
 import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
-import {AWSError} from 'aws-sdk';
 import {
-    IMessageToSend, ISendMessageRequest,
-    IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter, ISquissOptions
+    IMessageToSend,
+    IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter, ISquissOptions, ISendMessageRequest
 } from './Types';
 import {removeEmptyKeys} from './Utils';
+import {S3Facade} from './facades/S3Facade';
+import {
+    Abortable,
+    CreateQueueRequest,
+    GetQueueUrlRequest, ReceiveMessageRequest,
+    ReceiveMessageResponse,
+    SendMessageBatchRequest,
+    SendMessageBatchRequestEntry,
+    SendMessageBatchResponse,
+    SendMessageRequest,
+    SendMessageResponse,
+    SQSFacade,
+    SQSMessage, DeleteMessageBatchResponse,
+} from './facades/SQSFacade';
 
 const AWS_MAX_SEND_BATCH = 10;
 
@@ -30,10 +41,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return this._running;
     }
 
-    public sqs: SQS;
+    public sqs: SQSFacade;
     public _timeoutExtender: TimeoutExtender | undefined;
     public _opts: ISquissOptions;
-    private _s3?: S3;
+    private _s3?: S3Facade;
     private _running = false;
     private _paused = true;
     private _inFlight = 0;
@@ -42,9 +53,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _queueUrl: string;
     private _delQueue = new Map<string, IDeleteQueueItem>();
     private _delTimer: any;
-    private _activeReq: AWS.Request<SQS.Types.ReceiveMessageResult, AWS.AWSError> | undefined;
+    private _activeReq: Abortable<ReceiveMessageResponse> | undefined;
 
-    constructor(opts?: ISquissOptions | undefined) {
+    constructor(opts: ISquissOptions) {
         super();
         this._opts = Object.assign({}, optDefaults, opts || {});
         this._initOpts();
@@ -61,15 +72,11 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         }
         return this.getQueueUrl()
             .then((queueUrl) => {
-                    return this.sqs.changeMessageVisibility({
-                        QueueUrl: queueUrl,
-                        ReceiptHandle: receiptHandle,
-                        VisibilityTimeout: timeoutInSeconds,
-                    }).promise();
-                }
-            )
-            .then(() => {
-                return Promise.resolve();
+                return this.sqs.changeMessageVisibility({
+                    QueueUrl: queueUrl,
+                    ReceiptHandle: receiptHandle,
+                    VisibilityTimeout: timeoutInSeconds,
+                });
             });
     }
 
@@ -77,7 +84,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (!this._opts.queueName) {
             return Promise.reject(new Error('Squiss was not instantiated with a queueName'));
         }
-        const params: SQS.Types.CreateQueueRequest = {
+        const params: CreateQueueRequest = {
             QueueName: this._opts.queueName,
             Attributes: {
                 ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs!.toString(),
@@ -87,14 +94,14 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             },
         };
         if (this._opts.visibilityTimeoutSecs) {
-            params.Attributes!.VisibilityTimeout = this._opts.visibilityTimeoutSecs.toString();
+            params.Attributes.VisibilityTimeout = this._opts.visibilityTimeoutSecs.toString();
         }
         if (this._opts.queuePolicy) {
-            params.Attributes!.Policy = this._opts.queuePolicy;
+            params.Attributes.Policy = this._opts.queuePolicy;
         }
-        return this.sqs.createQueue(params).promise().then((res) => {
-            this._queueUrl = res.QueueUrl!;
-            return res.QueueUrl!;
+        return this.sqs.createQueue(params).then(({QueueUrl}) => {
+            this._queueUrl = QueueUrl;
+            return QueueUrl;
         });
     }
 
@@ -127,10 +134,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public deleteQueue(): Promise<void> {
         return this.getQueueUrl()
             .then((queueUrl) => {
-                return this.sqs.deleteQueue({QueueUrl: queueUrl}).promise();
-            })
-            .then(() => {
-                return Promise.resolve();
+                return this.sqs.deleteQueue({QueueUrl: queueUrl});
             });
     }
 
@@ -138,14 +142,14 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (this._queueUrl) {
             return Promise.resolve(this._queueUrl);
         }
-        const params: SQS.Types.GetQueueUrlRequest = {QueueName: this._opts.queueName!};
+        const params: GetQueueUrlRequest = {QueueName: this._opts.queueName!};
         if (this._opts.accountNumber) {
             params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString();
         }
-        return this.sqs.getQueueUrl(params).promise().then((data) => {
-            this._queueUrl = data.QueueUrl!;
+        return this.sqs.getQueueUrl(params).then(({QueueUrl}) => {
+            this._queueUrl = QueueUrl!;
             if (this._opts.correctQueueUrl) {
-                const newUrl = url.parse(this.sqs.config.endpoint as string);
+                const newUrl = url.parse(this.sqs.config.endpoint);
                 const parsedQueueUrl = url.parse(this._queueUrl);
                 newUrl.pathname = parsedQueueUrl.pathname;
                 this._queueUrl = url.format(newUrl);
@@ -162,7 +166,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             return this.sqs.getQueueAttributes({
                 AttributeNames: ['VisibilityTimeout'],
                 QueueUrl: queueUrl,
-            }).promise();
+            });
         }).then((res) => {
             if (!res.Attributes || !res.Attributes.VisibilityTimeout) {
                 throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
@@ -181,7 +185,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             return this.sqs.getQueueAttributes({
                 AttributeNames: ['MaximumMessageSize'],
                 QueueUrl: queueUrl,
-            }).promise();
+            });
         }).then((res) => {
             if (!res.Attributes || !res.Attributes.MaximumMessageSize) {
                 throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
@@ -218,7 +222,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public purgeQueue(): Promise<void> {
         return this.getQueueUrl()
             .then((queueUrl) => {
-                return this.sqs.purgeQueue({QueueUrl: queueUrl}).promise();
+                return this.sqs.purgeQueue({QueueUrl: queueUrl});
             })
             .then(() => {
                 this._inFlight = 0;
@@ -228,37 +232,33 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
-        : Promise<SQS.Types.SendMessageResult> {
-        return Promise.all([
+    public async sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+        : Promise<SendMessageResponse> {
+        const [rawParams, queueUrl] = await Promise.all([
             this._prepareMessageRequest(message, delay, attributes),
             this.getQueueUrl(),
-        ])
-            .then((data) => {
-                const rawParams = data[0];
-                const queueUrl = data[1];
-                const params: SQS.Types.SendMessageRequest = {
-                    QueueUrl: queueUrl,
-                    ...rawParams,
-                };
-                return this.sqs.sendMessage(params).promise();
-            });
+        ]);
+        const params: SendMessageRequest = {
+            QueueUrl: queueUrl,
+            ...rawParams,
+        };
+        return this.sqs.sendMessage(params);
     }
 
     public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
                         attributes?: IMessageAttributes | IMessageAttributes[])
-        : Promise<SQS.Types.SendMessageBatchResult> {
+        : Promise<SendMessageBatchResponse> {
         return this.getQueueMaximumMessageSize()
             .then((queueMaximumMessageSize) => {
                 return this._prepareMessagesToSend(messages, queueMaximumMessageSize, delay, attributes);
             })
             .then((batches) => {
                 return Promise.all(batches.map((batch, idx) => {
-                    return this._sendMessageBatch(batch, delay, idx * AWS_MAX_SEND_BATCH);
+                    return this._sendMessageBatch(batch, idx * AWS_MAX_SEND_BATCH);
                 }));
             })
             .then((results) => {
-                const merged: SQS.Types.SendMessageBatchResult = {Successful: [], Failed: []};
+                const merged: SendMessageBatchResponse = {Successful: [], Failed: []};
                 results.forEach((res) => {
                     res.Successful.forEach((elem) => merged.Successful.push(elem));
                     res.Failed.forEach((elem) => merged.Failed.push(elem));
@@ -303,22 +303,20 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public getS3(): S3 {
-        if (!this._s3) {
-            this._s3 = this._initS3();
+    public getS3(): S3Facade {
+        if (this._s3) {
+            return this._s3;
         }
-        return this._s3;
+        const s3 = this._initS3();
+        this._s3 = s3;
+        return s3;
     }
 
     private _initS3() {
-        if (this._opts.S3) {
-            if (typeof this._opts.S3 === 'function') {
-                return new this._opts.S3(this._opts.awsConfig);
-            } else {
-                return this._opts.S3;
-            }
+        if (typeof this._opts.S3 === 'function') {
+            return new this._opts.S3();
         } else {
-            return new S3(this._opts.awsConfig);
+            return this._opts.S3;
         }
     }
 
@@ -335,9 +333,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
     }
 
-    private _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
-        return this.getQueueUrl().then((queueUrl) => {
-            return this.sqs.deleteMessageBatch({
+    private async _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
+        try {
+            const queueUrl = await this.getQueueUrl();
+            const result = await this.sqs.deleteMessageBatch({
                 QueueUrl: queueUrl,
                 Entries: batch.map((item) => {
                     return {
@@ -345,14 +344,15 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                         ReceiptHandle: item.ReceiptHandle,
                     };
                 }),
-            }).promise();
-        }).then(this._handleBatchDeleteResults(batch))
-            .catch((err: Error) => {
-                this.emit('error', err);
             });
+            this._handleBatchDeleteResults(batch, result);
+        } catch (err) {
+            this.emit('error', err);
+
+        }
     }
 
-    private _emitMessages(messages: SQS.MessageList): void {
+    private _emitMessages(messages: SQSMessage[]): void {
         messages.forEach((msg) => {
             const message = new Message({
                 squiss: this,
@@ -383,7 +383,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             this._paused = true;
             return;
         }
-        const params: SQS.Types.ReceiveMessageRequest = removeEmptyKeys({
+        const params: ReceiveMessageRequest = removeEmptyKeys({
             QueueUrl: queueUrl, MaxNumberOfMessages: maxMessagesToGet,
             WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
             MessageAttributeNames: this._opts.receiveAttributes,
@@ -391,9 +391,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             VisibilityTimeout: this._opts.visibilityTimeoutSecs,
         });
         this._activeReq = this.sqs.receiveMessage(params);
-        this._activeReq.promise().then(this._handleGetBatchResult(queueUrl)).catch((err: AWSError) => {
+        this._activeReq.promise().then(this._handleGetBatchResult(queueUrl)).catch((err) => {
             this._activeReq = undefined;
-            if (err.code && err.code === 'RequestAbortedError') {
+            if (err.message === 'Request aborted' || (err.code && err.code === 'RequestAbortedError')) {
                 this.emit('aborted', err);
             } else {
                 setTimeout(this._getBatch.bind(this, queueUrl), this._opts.pollRetryMs);
@@ -423,27 +423,22 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    private _sendMessageBatch(messages: ISendMessageRequest[], delay: number | undefined, startIndex: number):
-        Promise<SQS.Types.SendMessageBatchResult> {
+    private async _sendMessageBatch(messages: ISendMessageRequest[], startIndex: number):
+        Promise<SendMessageBatchResponse> {
         const start = startIndex || 0;
-        return this.getQueueUrl().then((queueUrl) => {
-            const params: SQS.Types.SendMessageBatchRequest = {
-                QueueUrl: queueUrl,
-                Entries: [],
+        const queueUrl = await this.getQueueUrl();
+        const params: SendMessageBatchRequest = {
+            QueueUrl: queueUrl,
+            Entries: [],
+        };
+        messages.forEach((msg, idx) => {
+            const entry: SendMessageBatchRequestEntry = {
+                Id: (start + idx).toString(),
+                ...msg,
             };
-            const promises: Promise<void>[] = [];
-            messages.forEach((msg, idx) => {
-                const entry: SQS.Types.SendMessageBatchRequestEntry = {
-                    Id: (start + idx).toString(),
-                    ...msg,
-                };
-                params.Entries.push(entry);
-            });
-            return Promise.all(promises)
-                .then(() => {
-                    return this.sqs.sendMessageBatch(params).promise();
-                });
+            params.Entries.push(entry);
         });
+        return this.sqs.sendMessageBatch(params);
     }
 
     private _slotsAvailable(): boolean {
@@ -462,7 +457,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _deleteXMessages(x?: number) {
         const delQueue = this._delQueue;
         const iterator = delQueue.entries();
-        const delBatch = Array.from({length: x || delQueue.size}, function(this: typeof iterator) {
+        const delBatch = Array.from({length: x || delQueue.size}, function (this: typeof iterator) {
             const element = this.next().value;
             delQueue.delete(element[0]);
             return element[1];
@@ -528,55 +523,47 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             });
     }
 
-    private _prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    private async _prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
         : Promise<ISendMessageRequest> {
         if (attributes && attributes[GZIP_MARKER]) {
-            return Promise.reject(new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`));
+            throw new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`);
         }
         if (attributes && attributes[S3_MARKER]) {
-            return Promise.reject(new Error(`Using of internal attribute ${S3_MARKER} is not allowed`));
+            throw new Error(`Using of internal attribute ${S3_MARKER} is not allowed`);
         }
-        return this._prepareMessageParams(message, delay, attributes)
-            .then(this._handleLargeMessagePrepare.bind(this))
-            .then((params) => {
-                return removeEmptyKeys(params);
-            });
+        const paramsRaw = await this._prepareMessageParams(message, delay, attributes);
+        const params = await this._handleLargeMessagePrepare(paramsRaw);
+        return removeEmptyKeys(params);
     }
 
     private _initSqs() {
-        if (this._opts.SQS) {
-            if (typeof this._opts.SQS === 'function') {
-                return new this._opts.SQS(this._opts.awsConfig);
-            } else {
-                return this._opts.SQS;
-            }
+        if (typeof this._opts.SQS === 'function') {
+            return new this._opts.SQS();
         } else {
-            return new SQS(this._opts.awsConfig);
+            return this._opts.SQS;
         }
     }
 
-    private _handleBatchDeleteResults(batch: IDeleteQueueItem[]) {
+    private _handleBatchDeleteResults(batch: IDeleteQueueItem[], data: DeleteMessageBatchResponse) {
         const itemById: IDeleteQueueItemById = batch.reduce((prevByValue, item) => {
             prevByValue[item.Id] = item;
             return prevByValue;
         }, {} as IDeleteQueueItemById);
-        return (data: SQS.DeleteMessageBatchResult) => {
-            if (data.Failed && data.Failed.length) {
-                data.Failed.forEach((fail) => {
-                    this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
-                    itemById[fail.Id].msg.emit('delError', fail);
-                    itemById[fail.Id].reject(fail);
-                });
-            }
-            if (data.Successful && data.Successful.length) {
-                data.Successful.forEach((success) => {
-                    const msg = itemById[success.Id].msg;
-                    this.emit('deleted', {msg, successId: success.Id});
-                    msg.emit('deleted', success.Id);
-                    itemById[success.Id].resolve();
-                });
-            }
-        };
+        if (data.Failed && data.Failed.length) {
+            data.Failed.forEach((fail) => {
+                this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
+                itemById[fail.Id].msg.emit('delError', fail);
+                itemById[fail.Id].reject(fail);
+            });
+        }
+        if (data.Successful && data.Successful.length) {
+            data.Successful.forEach((success) => {
+                const msg = itemById[success.Id].msg;
+                this.emit('deleted', {msg, successId: success.Id});
+                msg.emit('deleted', success.Id);
+                itemById[success.Id].resolve();
+            });
+        }
     }
 
     private _prepareMessagesToSend(messages: IMessageToSend[] | IMessageToSend, queueMaximumMessageSize: number,
@@ -608,7 +595,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     private _handleGetBatchResult(queueUrl: string) {
-        return (data: SQS.Types.ReceiveMessageResult) => {
+        return (data: ReceiveMessageResponse) => {
             let gotMessages = true;
             this._activeReq = undefined;
             if (data && data.Messages) {

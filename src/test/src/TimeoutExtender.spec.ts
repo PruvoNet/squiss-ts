@@ -7,14 +7,13 @@ import delay from 'delay';
 // @ts-ignore
 import * as sinon from 'sinon';
 import {S3Stub} from '../stubs/S3Stub';
-import {S3} from 'aws-sdk';
 
 const getSquissStub = () => {
   return new SquissStub() as any as Squiss;
 };
 
 const getS3Stub = () => {
-  return new S3Stub() as any as S3;
+  return new S3Stub();
 };
 
 let inst = null;

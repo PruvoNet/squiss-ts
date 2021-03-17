@@ -2,9 +2,9 @@
 
 import {Message, Squiss} from '../../';
 import {SquissStub} from '../stubs/SquissStub';
-import {SQS, S3} from 'aws-sdk';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
+import {SQSMessage} from '../../facades/SQSFacade';
 
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
@@ -13,11 +13,11 @@ const getSquissStub = () => {
 };
 
 const getS3Stub = (blobs?: Blobs) => {
-  const stub = new S3Stub(blobs) as any as S3;
+  const stub = new S3Stub(blobs);
   return () => stub;
 };
 
-function getSQSMsg(body?: string): SQS.Message {
+function getSQSMsg(body?: string): SQSMessage {
   return {
     MessageId: 'msgId',
     ReceiptHandle: 'handle',

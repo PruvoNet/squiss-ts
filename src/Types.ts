@@ -1,11 +1,11 @@
 'use strict';
 
 import {Message} from './Message';
-import {AWSError, SQS, S3} from 'aws-sdk';
-import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {IS3Upload} from './s3Utils';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
 import {EventEmitter} from 'events';
+import {S3Facade} from './facades/S3Facade';
+import {BatchResultErrorEntry, SendMessageBatchRequestEntry, SQSFacade} from './facades/SQSFacade';
 
 export interface IMessageDeletedEventPayload {
     msg: Message;
@@ -14,7 +14,7 @@ export interface IMessageDeletedEventPayload {
 
 export interface IMessageErrorEventPayload {
     message: Message;
-    error: AWSError;
+    error: Error;
 }
 
 export interface IMessageDeleteErrorEventPayload {
@@ -27,13 +27,7 @@ export interface IMessageS3EventPayload {
     data: IS3Upload;
 }
 
-export interface ISendMessageRequest {
-    MessageBody: string;
-    DelaySeconds?: number;
-    MessageAttributes?: SQS.MessageBodyAttributeMap;
-    MessageDeduplicationId?: string;
-    MessageGroupId?: string;
-}
+export type ISendMessageRequest = Omit<SendMessageBatchRequestEntry, 'Id'>
 
 export interface IObject {
     [k: string]: any;
@@ -44,6 +38,8 @@ export type IMessageToSend = IObject | string;
 export type BodyFormat = 'json' | 'plain' | undefined;
 
 export interface ISquissOptions {
+    SQS: SQSFacade | (new () => SQSFacade);
+    S3: S3Facade | (new () => S3Facade);
     receiveBatchSize?: number;
     receiveAttributes?: string[];
     receiveSqsAttributes?: string[];
@@ -64,9 +60,6 @@ export interface ISquissOptions {
     maxMessageBytes?: number;
     messageRetentionSecs?: number;
     autoExtendTimeout?: boolean;
-    SQS?: SQS | typeof SQS;
-    S3?: S3 | typeof S3;
-    awsConfig?: SQS.Types.ClientConfiguration;
     queueUrl?: string;
     queueName?: string;
     visibilityTimeoutSecs?: number;
@@ -93,7 +86,7 @@ export interface IDeleteQueueItemById {
     [k: string]: IDeleteQueueItem;
 }
 
-export const optDefaults: ISquissOptions = {
+export const optDefaults: Partial<ISquissOptions> = {
     receiveBatchSize: 10,
     receiveAttributes: ['All'],
     receiveSqsAttributes: ['All'],
@@ -134,7 +127,7 @@ export interface ISquissEvents {
     deleted: IMessageDeletedEventPayload;
     gotMessages: number;
     error: Error;
-    aborted: AWSError;
+    aborted: Error;
     delError: IMessageDeleteErrorEventPayload;
     autoExtendFail: IMessageErrorEventPayload;
     autoExtendError: IMessageErrorEventPayload;

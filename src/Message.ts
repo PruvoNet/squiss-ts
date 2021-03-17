@@ -1,22 +1,21 @@
 'use strict';
 
-import {SQS, S3, AWSError} from 'aws-sdk';
-import {BodyFormat, Squiss} from '.';
+import {BodyFormat, S3Facade, Squiss} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';
 import {GZIP_MARKER, decompressMessage} from './gzipUtils';
 import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './s3Utils';
-import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
+import {BatchResultErrorEntry, SQSMessage} from './facades/SQSFacade';
 
 const EMPTY_BODY = '{}';
 
 export interface IMessageOpts {
-    msg: SQS.Message;
+    msg: SQSMessage;
     unwrapSns?: boolean;
     bodyFormat?: BodyFormat;
     squiss: Squiss;
-    s3Retriever: () => S3;
+    s3Retriever: () => S3Facade;
     s3Retain: boolean;
 }
 
@@ -36,8 +35,8 @@ interface IMessageEvents {
     keep: void;
     delError: BatchResultErrorEntry;
     deleted: string;
-    autoExtendFail: AWSError;
-    autoExtendError: AWSError;
+    autoExtendFail: Error;
+    autoExtendError: Error;
     s3Download: IS3Upload;
     s3Delete: IS3Upload;
 }
@@ -54,7 +53,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
         }
     }
 
-    public raw: SQS.Message;
+    public raw: SQSMessage;
     public body?: string | any;
     public subject?: string;
     public topicArn?: string;
@@ -65,7 +64,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
     private _handled: boolean;
     private _opts: IMessageOpts;
     private _deleteCallback?: () => Promise<void>;
-    private _s3Retriever: () => S3;
+    private _s3Retriever: () => S3Facade;
     private _s3Retain: boolean;
 
     constructor(opts: IMessageOpts) {

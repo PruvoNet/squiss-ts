@@ -4,7 +4,6 @@ import {Squiss} from './index';
 import {Message} from './Message';
 import * as LinkedList from 'linked-list';
 import {Item} from 'linked-list';
-import {AWSError} from 'aws-sdk';
 
 const MAX_MESSAGE_AGE_MS = 43200000;
 
@@ -125,7 +124,7 @@ export class TimeoutExtender {
         node.message.emit('timeoutExtended');
         this._squiss.emit('timeoutExtended', node.message);
       })
-      .catch((err: AWSError) => {
+      .catch((err: Error) => {
         if (err.message.match(/Message does not exist or is not available/)) {
           this._deleteNode(node);
           node.message.emit('autoExtendFail', err);

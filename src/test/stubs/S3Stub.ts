@@ -1,59 +1,48 @@
 'use strict';
 
 import {EventEmitter} from 'events';
-import {S3} from 'aws-sdk';
+import {
+    GetObjectRequest,
+    S3Facade,
+    PutObjectRequest,
+    GetObjectResponse,
+    DeleteObjectRequest
+} from '../../facades/S3Facade';
 
 export interface Blobs {
-  [k: string]: { [k: string]: string };
+    [k: string]: { [k: string]: string };
 }
 
-export class S3Stub extends EventEmitter {
+export class S3Stub extends EventEmitter implements S3Facade {
 
-  private blobs: Blobs;
+    private blobs: Blobs;
 
-  constructor(blobs?: Blobs) {
-    super();
-    this.blobs = blobs || {};
-  }
+    constructor(blobs?: Blobs) {
+        super();
+        this.blobs = blobs || {};
+    }
 
-  public getObject({Key, Bucket}: S3.Types.GetObjectRequest) {
-    return this._makeReq(() => {
-      if (this.blobs[Bucket] && this.blobs[Bucket][Key]) {
-        return Promise.resolve({Body: this.blobs[Bucket][Key]});
-      } else {
-        return Promise.reject('Blob doesnt exist');
-      }
-    });
-  }
+    public async getObject({Key, Bucket}: GetObjectRequest): Promise<GetObjectResponse> {
+        if (this.blobs[Bucket] && this.blobs[Bucket][Key]) {
+            return {Body: this.blobs[Bucket][Key]};
+        } else {
+            throw new Error('Blob doesnt exist');
+        }
+    }
 
-  public putObject({Key, Bucket, Body}: S3.Types.PutObjectRequest) {
-    return this._makeReq(() => {
-      if (!this.blobs[Bucket]) {
-        this.blobs[Bucket] = {};
-      }
-      // @ts-ignore
-      this.blobs[Bucket][Key] = Body;
-      return Promise.resolve();
-    });
-  }
+    public async putObject({Key, Bucket, Body}: PutObjectRequest): Promise<void> {
+        if (!this.blobs[Bucket]) {
+            this.blobs[Bucket] = {};
+        }
+        this.blobs[Bucket][Key] = Body;
+    }
 
-  public deleteObject({Key, Bucket}: S3.Types.DeleteObjectRequest) {
-    return this._makeReq(() => {
-      if (this.blobs[Bucket] && this.blobs[Bucket][Key]) {
-        delete this.blobs[Bucket][Key];
-        return Promise.resolve();
-      } else {
-        return Promise.reject('Blob doesnt exist');
-      }
-    });
-  }
+    public async deleteObject({Key, Bucket}: DeleteObjectRequest): Promise<void> {
+        if (this.blobs[Bucket] && this.blobs[Bucket][Key]) {
+            delete this.blobs[Bucket][Key];
+        } else {
+            throw new Error('Blob doesnt exist');
+        }
+    }
 
-  private _makeReq(func: any) {
-    return {
-      promise: func,
-      abort: () => {
-        this.emit('abort');
-      },
-    };
-  }
 }

@@ -1,7 +1,7 @@
 'use strict';
 
 import {ISendMessageRequest} from './index';
-import {SQS} from 'aws-sdk';
+import {MessageBodyAttributeMap} from './facades/SQSFacade';
 
 export const getMessageSize = (message: ISendMessageRequest): number => {
     const msgAttributesSize = getMsgAttributesSize(message.MessageAttributes);
@@ -14,7 +14,7 @@ export const getSizeInBytes = (obj?: string | NodeJS.TypedArray | DataView | Arr
     return obj ? Buffer.byteLength(obj) : 0;
 };
 
-const getMsgAttributesSize = (attributes?: SQS.MessageBodyAttributeMap): number => {
+const getMsgAttributesSize = (attributes?: MessageBodyAttributeMap): number => {
     let totalMsgAttributesSize = 0;
     attributes = attributes || {};
     for (const attribute in attributes) {
