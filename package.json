@@ -9,6 +9,7 @@
     "build": "yarn lint && yarn compile",
     "build:fresh": "yarn clean && yarn build",
     "test": "yarn lint && yarn test:cover",
+    "test:complete": "yarn clean && yarn build && yarn test:cover",
     "test:unit": "mocha --opts mocha.opts",
     "test:cover": "nyc --reporter=lcov --reporter=text-summary yarn test:unit",
     "lint": "tslint -c tslint.json 'packages/*/src/**/*.ts' 'packages/*/test/**/*.ts'"

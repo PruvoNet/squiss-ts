@@ -3,10 +3,12 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "composite": true,
+    "composite": true
   },
   "references": [
-    { "path": "../core" }
+    {
+      "path": "../core"
+    }
   ],
   "include": [
     "src/**/*.ts"

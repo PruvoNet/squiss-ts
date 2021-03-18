@@ -29,5 +29,10 @@
   "exclude": [
     "mocha-setup.ts",
     "node_modules"
-  ]
+  ],
+  "paths": {
+    "@squiss/*": [
+      "./packages/*/src"
+    ]
+  }
 }
