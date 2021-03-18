@@ -4,14 +4,18 @@
 [![Test Coverage](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/test_coverage)](https://codeclimate.com/github/PruvoNet/squiss-ts/test_coverage)
 [![Maintainability](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
 [![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
+[![dependencies Status](https://david-dm.org/PruvoNet/squiss-ts/status.svg)](https://david-dm.org/PruvoNet/squiss-ts)
+[![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev)
 
 <p align="center">
   <a href="https://squiss-ts.pruvo.com"><img src="https://github.com/PruvoNet/squiss-ts/blob/docs/source/images/logo.png?raw=true" /></a>
 </p>
 
-# Squiss-TS 
-High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up with full typescript support  
+# Squiss-TS
+High-volume Amazon SQS Poller and single-queue client for **Node.js 10** and up with full typescript support  
 The library is production ready and is being stress used in a full-blown production environment
+
+> If you need support from Node.js 6 and above, please use [@squiss/squiss-ts-bc](https://www.npmjs.com/package/@squiss/squiss-ts)
 
 ## Main features
 - Control how many messages can be handled at any given point
@@ -25,16 +29,6 @@ The library is production ready and is being stress used in a full-blown product
 ## Documentation
 
 Please see full documentation <a href="https://squiss-ts.pruvo.com">here</a>
-
-## Install
-### Node 10 and above support please use
-```bash
-npm install @squiss/squiss-ts
-```
-### Node 6 and above support please use
-```bash
-npm install @squiss/squiss-ts-bc
-```
 
 ## Quick example
 ```typescript
@@ -76,14 +70,19 @@ const propsToSend = {
 squiss.sendMessage(messageToSend, 0, propsToSend);
 ```
 
+## Install
+```bash
+npm install squiss-ts
+```
+
 ## How it works
 Squiss processes as many messages simultaneously as possible.  
 Set the [maxInFlight](https://squiss-ts.pruvo.com/#squiss-class-constructor-options-polling-options-maxinflight) option to the number of messages your app can handle at one time without choking, and Squiss will keep
 that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion.  
 If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.  
-Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time 
+Squiss can also handle renewing the visibility timeout for your messages until you handle the message, or message handling time
 (set up by you) has passed (see [autoExtendTimeout](https://squiss-ts.pruvo.com/#squiss-class-constructor-options-auto-extend-options-autoextendtimeout)).  
-Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages. 
+Bonus: Squiss will also automatically handle the message attributes formatting and parsing when receiving and sending messages.
 
 ## Versions
 Squiss supports Node 6 LTS and higher.

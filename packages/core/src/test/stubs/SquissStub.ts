@@ -1,6 +1,6 @@
 
 import {EventEmitter} from 'events';
-import {IMessageToSend, ISquiss} from '../../Types';
+import {IMessageToSend, ISquiss} from '../../types';
 import {Message} from '../../Message';
 import {S3Facade} from '../../facades/S3Facade';
 import {IMessageAttributes, SendMessageBatchResponse, SendMessageResponse} from '../../index';

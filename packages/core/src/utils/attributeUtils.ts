@@ -1,6 +1,6 @@
 
 import {isBoolean, isNumber, isString} from 'ts-type-guards';
-import {Binary, MessageAttributeValue, MessageBodyAttributeMap} from './facades/SQSFacade';
+import {Binary, MessageAttributeValue, MessageBodyAttributeMap} from '../facades/SQSFacade';
 
 const EMPTY_OBJ: Record<string, any> = {};
 const STRING_TYPE = 'String';

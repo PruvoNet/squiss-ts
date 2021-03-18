@@ -3,17 +3,19 @@
     "target": "es2016",
     "module": "commonjs",
     "moduleResolution": "node",
+    "skipLibCheck": true,
     "declaration": true,
     "checkJs": false,
     "allowJs": false,
     "strict": true,
     "baseUrl": "packages",
+    "removeComments": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
-    "resolveJsonModule": true,
+    "resolveJsonModule": false,
     "strictFunctionTypes": true,
     "alwaysStrict": true,
     "noImplicitUseStrict": false,
@@ -25,6 +27,7 @@
     ]
   },
   "exclude": [
-    "mocha-setup.ts"
+    "mocha-setup.ts",
+    "node_modules"
   ]
 }

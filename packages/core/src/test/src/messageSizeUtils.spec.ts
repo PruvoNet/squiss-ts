@@ -1,5 +1,5 @@
 
-import {getMessageSize} from '../../messageSizeUtils';
+import {getMessageSize} from '../../utils/messageSizeUtils';
 
 describe('message size utils', () => {
 

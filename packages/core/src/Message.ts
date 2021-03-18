@@ -1,10 +1,10 @@
 
 import {BodyFormat, ISquiss, S3Facade} from './index';
-import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
+import {IMessageAttributes, parseMessageAttributes} from './utils/attributeUtils';
 import {EventEmitter} from 'events';
-import {GZIP_MARKER, decompressMessage} from './gzipUtils';
-import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './s3Utils';
-import {StrictEventEmitter} from './EventEmitterTypesHelper';
+import {GZIP_MARKER, decompressMessage} from './utils/gzipUtils';
+import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './utils/s3Utils';
+import {StrictEventEmitter} from './eventEmitterTypesHelper';
 import {BatchResultErrorEntry, SQSMessage} from './facades/SQSFacade';
 
 const EMPTY_BODY = '{}';

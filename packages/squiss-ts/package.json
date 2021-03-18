@@ -1,14 +1,13 @@
 {
-  "name": "@squiss/core",
+  "name": "@squiss/squiss-ts",
   "version": "1.0.0",
-  "description": "High-volume SQS poller - core",
+  "description": "High-volume SQS poller",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": "^6 || ^8 || ^10 || ^12 || ^14 || ^15"
+    "node": "^10 || ^12 || ^14 || ^15"
   },
   "scripts": {
-    "postinstall": "node -e 'const semver = require(\"semver\");process.exit(semver.lt(process.version, \"10.16.0\"));' && (echo 'done') || (npm install --no-save iltorb@2.4.3)",
     "compile": "tsc",
     "clean": "rm -rf dist .nyc_output *.log coverage",
     "build": "yarn lint && yarn compile",
@@ -48,10 +47,9 @@
   },
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
-    "linked-list": "^2.1.0",
-    "semver": "^7.3.4",
-    "ts-type-guards": "^0.7.0",
-    "uuid": "^8.3.2"
+    "@squiss/core": "^1.0.0",
+    "@aws-sdk/client-s3": "^3.8.1",
+    "@aws-sdk/client-sqs": "^3.8.1"
   },
   "devDependencies": {
   }

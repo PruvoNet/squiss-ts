@@ -2,7 +2,7 @@
 import {Message} from './Message';
 import * as LinkedList from 'linked-list';
 import {Item} from 'linked-list';
-import {ISquiss} from './Types';
+import {ISquiss} from './types';
 
 const MAX_MESSAGE_AGE_MS = 43200000;
 

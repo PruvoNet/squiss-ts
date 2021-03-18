@@ -1,5 +1,5 @@
 
-import {decompressMessage, compressMessage} from '../../gzipUtils';
+import {decompressMessage, compressMessage} from '../../utils/gzipUtils';
 
 describe('gzip utils', () => {
 

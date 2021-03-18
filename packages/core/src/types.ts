@@ -1,7 +1,7 @@
 
 import {Message} from './Message';
-import {IS3Upload} from './s3Utils';
-import {StrictEventEmitter} from './EventEmitterTypesHelper';
+import {IS3Upload} from './utils/s3Utils';
+import {StrictEventEmitter} from './eventEmitterTypesHelper';
 import {EventEmitter} from 'events';
 import {S3Facade} from './facades/S3Facade';
 import {
@@ -11,7 +11,7 @@ import {
     SendMessageResponse,
     SQSFacade
 } from './facades/SQSFacade';
-import {IMessageAttributes} from './attributeUtils';
+import {IMessageAttributes} from './utils/attributeUtils';
 import {TimeoutExtender} from './TimeoutExtender';
 
 export interface IMessageDeletedEventPayload {
@@ -45,8 +45,8 @@ export type IMessageToSend = IObject | string;
 export type BodyFormat = 'json' | 'plain' | undefined;
 
 export interface ISquissOptions {
-    SQS: SQSFacade | (new () => SQSFacade);
-    S3: S3Facade | (new () => S3Facade);
+    SQS: SQSFacade | (() => SQSFacade);
+    S3: S3Facade | (() => S3Facade);
     receiveBatchSize?: number;
     receiveAttributes?: string[];
     receiveSqsAttributes?: string[];

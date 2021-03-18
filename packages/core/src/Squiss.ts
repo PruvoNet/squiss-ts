@@ -1,18 +1,16 @@
-
 import * as url from 'url';
 import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
-import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
+import {createMessageAttributes, IMessageAttributes} from './utils/attributeUtils';
 import {isString} from 'ts-type-guards';
-import {GZIP_MARKER, compressMessage} from './gzipUtils';
-import {S3_MARKER, uploadBlob} from './s3Utils';
-import {getMessageSize} from './messageSizeUtils';
+import {GZIP_MARKER, compressMessage} from './utils/gzipUtils';
+import {S3_MARKER, uploadBlob} from './utils/s3Utils';
+import {getMessageSize} from './utils/messageSizeUtils';
 import {
     IMessageToSend,
     IDeleteQueueItem, IDeleteQueueItemById, optDefaults, ISquissOptions, ISendMessageRequest, ISquiss
-} from './Types';
-import {removeEmptyKeys} from './Utils';
+} from './types';
 import {S3Facade} from './facades/S3Facade';
 import {
     Abortable,
@@ -27,8 +25,17 @@ import {
     SQSFacade,
     SQSMessage, DeleteMessageBatchResponse,
 } from './facades/SQSFacade';
+import {buildLazyGetter, removeEmptyKeys} from './utils/utils';
 
 const AWS_MAX_SEND_BATCH = 10;
+
+const getFromProvider = <A>(arg: A | (() => A)): A => {
+    if (typeof arg === 'function') {
+        return (arg as (() => A))();
+    } else {
+        return arg;
+    }
+}
 
 export class Squiss extends EventEmitter implements ISquiss {
 
@@ -40,11 +47,12 @@ export class Squiss extends EventEmitter implements ISquiss {
         return this._running;
     }
 
+    public getS3: () => S3Facade;
+
     // TODO remove public
     public _timeoutExtender: TimeoutExtender | undefined;
     private sqs: SQSFacade;
     private _opts: ISquissOptions;
-    private _s3?: S3Facade;
     private _running = false;
     private _paused = true;
     private _inFlight = 0;
@@ -60,7 +68,8 @@ export class Squiss extends EventEmitter implements ISquiss {
         this._opts = Object.assign({}, optDefaults, opts);
         this._initOpts();
         this._queueUrl = this._opts.queueUrl || '';
-        this.sqs = this._initSqs();
+        this.sqs = getFromProvider(this._opts.SQS);
+        this.getS3 = buildLazyGetter<S3Facade>(() => getFromProvider(this._opts.S3));
     }
 
     public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void> {
@@ -138,24 +147,24 @@ export class Squiss extends EventEmitter implements ISquiss {
             });
     }
 
-    public getQueueUrl(): Promise<string> {
+    public async getQueueUrl(): Promise<string> {
         if (this._queueUrl) {
-            return Promise.resolve(this._queueUrl);
+            return this._queueUrl;
         }
         const params: GetQueueUrlRequest = {QueueName: this._opts.queueName!};
         if (this._opts.accountNumber) {
             params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString();
         }
-        return this.sqs.getQueueUrl(params).then(({QueueUrl}) => {
-            this._queueUrl = QueueUrl!;
-            if (this._opts.correctQueueUrl) {
-                const newUrl = url.parse(this.sqs.config.endpoint);
-                const parsedQueueUrl = url.parse(this._queueUrl);
-                newUrl.pathname = parsedQueueUrl.pathname;
-                this._queueUrl = url.format(newUrl);
-            }
-            return this._queueUrl;
-        });
+        const {QueueUrl} = await this.sqs.getQueueUrl(params);
+        this._queueUrl = QueueUrl!;
+        if (this._opts.correctQueueUrl) {
+            const endpoint = await this.sqs.getEndpoint();
+            const newUrl = url.parse(endpoint);
+            const parsedQueueUrl = url.parse(this._queueUrl);
+            newUrl.pathname = parsedQueueUrl.pathname;
+            this._queueUrl = url.format(newUrl);
+        }
+        return this._queueUrl;
     }
 
     public getQueueVisibilityTimeout(): Promise<number> {
@@ -301,23 +310,6 @@ export class Squiss extends EventEmitter implements ISquiss {
                 resolve(false);
             }, timeout) : undefined;
         });
-    }
-
-    public getS3(): S3Facade {
-        if (this._s3) {
-            return this._s3;
-        }
-        const s3 = this._initS3();
-        this._s3 = s3;
-        return s3;
-    }
-
-    private _initS3() {
-        if (typeof this._opts.S3 === 'function') {
-            return new this._opts.S3();
-        } else {
-            return this._opts.S3;
-        }
     }
 
     private _initOpts() {
@@ -534,14 +526,6 @@ export class Squiss extends EventEmitter implements ISquiss {
         const paramsRaw = await this._prepareMessageParams(message, delay, attributes);
         const params = await this._handleLargeMessagePrepare(paramsRaw);
         return removeEmptyKeys(params);
-    }
-
-    private _initSqs() {
-        if (typeof this._opts.SQS === 'function') {
-            return new this._opts.SQS();
-        } else {
-            return this._opts.SQS;
-        }
     }
 
     private _handleBatchDeleteResults(batch: IDeleteQueueItem[], data: DeleteMessageBatchResponse) {

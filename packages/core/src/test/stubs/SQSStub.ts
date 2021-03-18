@@ -1,4 +1,3 @@
-
 import {EventEmitter} from 'events';
 import {
     CreateQueueRequest,
@@ -14,23 +13,19 @@ export class SQSStub extends EventEmitter implements SQSFacade {
     public msgs: SQSMessage[];
     public timeout: number;
     public msgCount: number;
-    public config: {
-        region: string;
-        endpoint: string;
-    };
 
     constructor(msgCount?: number, timeout?: number) {
         super();
         this.msgs = [];
         this.timeout = timeout === undefined ? 20 : timeout;
         this.msgCount = msgCount || 0;
-        this.config = {
-            region: 'us-east-1',
-            endpoint: 'http://foo.bar',
-        };
         for (let i = 0; i < this.msgCount; i++) {
             this._addMessage(i);
         }
+    }
+
+    public async getEndpoint() {
+        return 'http://foo.bar';
     }
 
     public async createQueue(params: CreateQueueRequest) {

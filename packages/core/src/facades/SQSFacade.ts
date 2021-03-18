@@ -147,7 +147,7 @@ export interface DeleteMessageBatchRequestEntry {
 
 export interface DeleteMessageBatchRequest {
     QueueUrl: string;
-    Entries: DeleteMessageBatchRequestEntry[]
+    Entries: DeleteMessageBatchRequestEntry[],
 }
 
 export interface DeleteMessageBatchResultEntry {
@@ -207,7 +207,5 @@ export interface SQSFacade {
     sendMessage: (request: SendMessageRequest) => Promise<SendMessageResponse>;
     sendMessageBatch: (request: SendMessageBatchRequest) => Promise<SendMessageBatchResponse>;
     deleteMessageBatch: (request: DeleteMessageBatchRequest) => Promise<DeleteMessageBatchResponse>;
-    config: {
-        endpoint: string;
-    }
+    getEndpoint: () => Promise<string>;
 }

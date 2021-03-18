@@ -1,6 +1,6 @@
 
-import {ISendMessageRequest} from './index';
-import {MessageBodyAttributeMap} from './facades/SQSFacade';
+import {ISendMessageRequest} from '../index';
+import {MessageBodyAttributeMap} from '../facades/SQSFacade';
 
 export const getMessageSize = (message: ISendMessageRequest): number => {
     const msgAttributesSize = getMsgAttributesSize(message.MessageAttributes);
