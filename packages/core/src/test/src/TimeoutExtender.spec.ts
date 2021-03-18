@@ -6,6 +6,7 @@ import delay from 'delay';
 // @ts-ignore
 import * as sinon from 'sinon';
 import {S3Stub} from '../stubs/S3Stub';
+import {testMessageGzip} from '../stubs/identityGzipUtils';
 
 const getSquissStub = () => {
   return new SquissStub();
@@ -23,18 +24,21 @@ const fooMsg = new Message({
   msg: {MessageId: 'foo', Body: 'foo'},
   s3Retriever: getS3Stub,
   s3Retain: false,
+  messageGzip: testMessageGzip,
 });
 const barMsg = new Message({
   squiss: msgSquissStub,
   msg: {MessageId: 'bar', Body: 'bar'},
   s3Retriever: getS3Stub,
   s3Retain: false,
+  messageGzip: testMessageGzip,
 });
 const bazMsg = new Message({
   squiss: msgSquissStub,
   msg: {MessageId: 'baz', Body: 'baz'},
   s3Retriever: getS3Stub,
   s3Retain: false,
+  messageGzip: testMessageGzip,
 });
 const notExistError = new Error('Value AQEB5iHoiWO4nU0Tx3mGzJLdXNQ+fg3nadtYYTDoWMhuOiUOP7sjZTgC64MlRbSwFneA5+' +
   'C+fS5DGRbiEC1VAF0KTMEBrgEOVAQpwRQo8yfie8ltzf+0LLasaHrTB1IFDIvQ0+wsrM4PxXiDJD1tzQ2kw89ijfP4W4tAy6Dqvd5mhlAn' +

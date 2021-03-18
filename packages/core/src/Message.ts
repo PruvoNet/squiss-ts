@@ -2,7 +2,7 @@
 import {BodyFormat, ISquiss, S3Facade} from './index';
 import {IMessageAttributes, parseMessageAttributes} from './utils/attributeUtils';
 import {EventEmitter} from 'events';
-import {GZIP_MARKER, decompressMessage} from './utils/gzipUtils';
+import {GZIP_MARKER, MessageGzip} from './utils/gzipUtils';
 import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './utils/s3Utils';
 import {StrictEventEmitter} from './eventEmitterTypesHelper';
 import {BatchResultErrorEntry, SQSMessage} from './facades/SQSFacade';
@@ -16,6 +16,7 @@ export interface IMessageOpts {
     squiss: ISquiss;
     s3Retriever: () => S3Facade;
     s3Retain: boolean;
+    messageGzip: MessageGzip;
 }
 
 interface SNSBody {
@@ -101,7 +102,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
             .then((resolvedBody) => {
                 if (this.attributes[GZIP_MARKER] === 1) {
                     delete this.attributes[GZIP_MARKER];
-                    return decompressMessage(resolvedBody);
+                    return this._opts.messageGzip.decompressMessage(resolvedBody);
                 } else {
                     return Promise.resolve(resolvedBody);
                 }

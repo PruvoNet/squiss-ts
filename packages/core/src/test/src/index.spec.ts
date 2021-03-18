@@ -1,4 +1,3 @@
-
 import * as proxyquire from 'proxyquire';
 
 const uuidStub = () => {
@@ -24,6 +23,7 @@ import * as chai from 'chai';
 import {EventEmitter} from 'events';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import {SendMessageBatchResponse} from '../../facades/SQSFacade';
+import {testMessageGzip} from '../stubs/identityGzipUtils';
 
 // tslint:disable-next-line:variable-name
 const SquissPatched: typeof Squiss = _SquissPatched;
@@ -64,13 +64,17 @@ describe('index', () => {
                 queueUrl: 'foo',
                 unwrapSns: true,
                 visibilityTimeoutSecs: 10,
+                messageGzip: testMessageGzip,
             });
             should.exist(inst);
         });
         it('fails if queue is not specified', () => {
             let errored = false;
             try {
-                new SquissPatched({S3: getS3Stub, SQS: getSQSStub});
+                new SquissPatched({
+                    S3: getS3Stub, SQS: getSQSStub,
+                    messageGzip: testMessageGzip,
+                });
             } catch (e) {
                 should.exist(e);
                 e.should.be.instanceOf(Error);
@@ -81,7 +85,10 @@ describe('index', () => {
         it('fail if s3 but no bucket is not specified', () => {
             let errored = false;
             try {
-                new SquissPatched({S3: getS3Stub, SQS: getSQSStub, queueUrl: 'foo', s3Fallback: true});
+                new SquissPatched({
+                    S3: getS3Stub, SQS: getSQSStub,
+                    messageGzip: testMessageGzip, queueUrl: 'foo', s3Fallback: true,
+                });
             } catch (e) {
                 should.exist(e);
                 e.should.be.instanceOf(Error);
@@ -95,6 +102,7 @@ describe('index', () => {
                 S3: getS3Stub,
                 queueUrl: 'foo',
                 SQS: spy,
+                messageGzip: testMessageGzip,
             });
             inst.should.have.property('sqs');
             spy.should.be.calledOnce();
@@ -106,6 +114,7 @@ describe('index', () => {
                 queueUrl: 'foo',
                 S3: spy,
                 SQS: getSQSStub,
+                messageGzip: testMessageGzip,
             });
             const s3 = inst.getS3();
             s3.should.eq(placeholder);
@@ -117,6 +126,7 @@ describe('index', () => {
                 queueUrl: 'foo',
                 SQS: {} as any,
                 S3: getS3Stub,
+                messageGzip: testMessageGzip,
             });
             inst.should.have.property('sqs');
         });
@@ -125,6 +135,7 @@ describe('index', () => {
                 queueUrl: 'foo',
                 S3: {} as any,
                 SQS: getSQSStub,
+                messageGzip: testMessageGzip,
             });
             const s3 = inst.getS3();
             s3.should.be.an('object');
@@ -135,6 +146,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: getSQSStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             // @ts-ignore
             inst._getBatch = () => {
@@ -147,6 +159,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: getSQSStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             // @ts-ignore
             inst._getBatch = () => {
@@ -161,6 +174,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', spy);
             inst.start();
@@ -175,6 +189,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.on('message', () => batches[batches.length - 1].num++);
@@ -194,6 +209,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo', maxInFlight: 10, receiveBatchSize: 10,
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.on('message', (m: Message) => {
@@ -216,6 +232,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10,
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
@@ -237,6 +254,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(16, 0), queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10,
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
@@ -266,6 +284,7 @@ describe('index', () => {
                 minReceiveBatchSize: 2,
                 S3: getS3Stub,
                 SQS: new SQSStub(16, 0),
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
@@ -295,6 +314,7 @@ describe('index', () => {
                 maxInFlight: 15,
                 receiveBatchSize: 10,
                 minReceiveBatchSize: 2,
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
@@ -319,6 +339,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(15, 0), queueUrl: 'foo', maxInFlight: 15, receiveBatchSize: 10,
+                messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
@@ -345,6 +366,7 @@ describe('index', () => {
                 SQS: new SQSStub(0, 0),
                 bodyFormat: 'json', queueUrl: 'foo', maxInFlight: 15,
                 receiveBatchSize: 10,
+                messageGzip: testMessageGzip,
             });
             inst.on('message', msgSpy);
             inst.on('error', errorSpy);
@@ -362,6 +384,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(0, 0), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('message', msgSpy);
             inst.once('queueEmpty', qeSpy);
@@ -376,6 +399,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(0, 1000), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('aborted', spy);
             inst.start();
@@ -394,6 +418,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1, 1000), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('aborted', spy);
             inst.start();
@@ -409,6 +434,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(0, 1000), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('aborted', spy);
             inst.start();
@@ -424,6 +450,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1, 1000), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('aborted', spy);
             inst.on('message', (msg: Message) => {
@@ -445,6 +472,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1, 1000), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             inst.on('aborted', spy);
             inst.on('message', (msg: Message) => {
@@ -467,6 +495,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(15), queueUrl: 'foo', maxInFlight: 10,
+                messageGzip: testMessageGzip,
             });
             inst.on('message', msgSpy);
             inst.on('maxInFlight', maxSpy);
@@ -483,6 +512,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(35, 0), queueUrl: 'foo', maxInFlight: 0,
+                messageGzip: testMessageGzip,
             });
             inst.on('message', msgSpy);
             inst.on('gotMessages', gmSpy);
@@ -499,6 +529,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo', deleteWaitMs: 1,
+                messageGzip: testMessageGzip,
             });
             inst.on('message', (msg: Message) => msgs.push(msg));
             inst.start();
@@ -517,6 +548,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(11, 1000), queueUrl: 'foo', maxInFlight: 10,
+                messageGzip: testMessageGzip,
             });
             inst.on('message', msgSpy);
             inst.on('maxInFlight', maxSpy);
@@ -537,6 +569,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', visibilityTimeoutSecs: 10,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'receiveMessage');
             inst.start();
@@ -557,6 +590,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1, 0), queueUrl: 'foo', activePollIntervalMs: 1000,
+                messageGzip: testMessageGzip,
             });
             inst.on('aborted', abortSpy);
             inst.on('gotMessages', gmSpy);
@@ -572,6 +606,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1, 0), queueUrl: 'foo', idlePollIntervalMs: 1000,
+                messageGzip: testMessageGzip,
             });
             inst.on('aborted', abortSpy);
             inst.on('queueEmpty', qeSpy);
@@ -586,6 +621,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'receiveMessage');
             inst.start();
@@ -604,6 +640,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', receiveAttributes: ['a'],
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'receiveMessage');
             inst.start();
@@ -622,6 +659,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', receiveSqsAttributes: ['a'],
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'receiveMessage');
             inst.start();
@@ -643,6 +681,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteWaitMs: 1,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
             inst.on('message', (msg: Message) => msgs.push(msg));
@@ -663,6 +702,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteWaitMs: 1,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
             inst.on('message', (msg: Message) => msgs.push(msg));
@@ -680,6 +720,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteWaitMs: 10,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
             inst.on('message', (msg: Message) => msg.del());
@@ -693,6 +734,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteWaitMs: 10,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
             inst.on('message', (msg: Message) => {
@@ -709,6 +751,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteBatchSize: 1,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
             inst.on('message', (msg: Message) => msg.del());
@@ -723,6 +766,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo', deleteBatchSize: 1,
+                messageGzip: testMessageGzip,
             });
             let message: Message;
             inst.on('message', (msg: Message) => {
@@ -744,6 +788,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(2), queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(inst, '_deleteMessages');
             inst.on('message', (msg: Message) => msgs.push(msg));
@@ -764,6 +809,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: getSQSStub, queueUrl: 'foo', deleteBatchSize: 1,
+                messageGzip: testMessageGzip,
             });
             const promise = inst.deleteMessage('foo' as any as Message);
             return promise.should.be.rejectedWith(/Message/);
@@ -775,6 +821,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo', deleteBatchSize: 1,
+                messageGzip: testMessageGzip,
             });
             inst.on('delError', spy);
             const msg = new MessagePatched({
@@ -804,6 +851,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteBatchSize: 1,
+                messageGzip: testMessageGzip,
             });
             sqsStub.deleteMessageBatch = () => Promise.reject(new Error('test'));
             inst.on('error', spy);
@@ -824,6 +872,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             sqsStub.receiveMessage = (() => {
                 return {
@@ -846,6 +895,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 5,
+                messageGzip: testMessageGzip,
             });
             (sinon.stub(sqsStub, 'receiveMessage').callsFake(() => {
                 (sqsStub.receiveMessage as any).restore();
@@ -869,6 +919,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueName: 'foo',
+                messageGzip: testMessageGzip,
             });
             sqsStub.getQueueUrl = () => Promise.reject(new Error('test'));
             inst.on('error', spy);
@@ -884,6 +935,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1), queueName: 'foo', correctQueueUrl: true,
+                messageGzip: testMessageGzip,
             });
             return inst.getQueueUrl().then((url: string) => {
                 url.should.equal('http://foo.bar/queues/foo');
@@ -895,6 +947,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1), queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             return inst.createQueue().should.be.rejected('not rejected');
         });
@@ -903,6 +956,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueName: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'createQueue');
             return inst.createQueue().then((queueUrl: string) => {
@@ -924,6 +978,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueName: 'foo', visibilityTimeoutSecs: 15,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'createQueue');
             return inst.createQueue().then((queueUrl: string) => {
@@ -953,6 +1008,7 @@ describe('index', () => {
                 queuePolicy: 'foo',
                 S3: getS3Stub,
                 SQS: sqsStub,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'createQueue');
             return inst.createQueue().then((queueUrl: string) => {
@@ -978,6 +1034,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'changeMessageVisibility');
             return inst.changeMessageVisibility('bar', 1).then(() => {
@@ -993,6 +1050,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'changeMessageVisibility');
             const msg = new MessagePatched({
@@ -1015,6 +1073,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteQueue');
             return inst.deleteQueue().then(() => {
@@ -1029,6 +1088,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueUrl');
             return inst.getQueueUrl().then((queueUrl: string) => {
@@ -1041,6 +1101,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueName: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueUrl');
             return inst.getQueueUrl().then((queueUrl: string) => {
@@ -1056,6 +1117,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueName: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueUrl');
             return inst.getQueueUrl().then(() => {
@@ -1070,6 +1132,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueName: 'foo', accountNumber: 1234,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueUrl');
             return inst.getQueueUrl().then((queueUrl: string) => {
@@ -1088,6 +1151,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'https://foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueAttributes');
             return inst.getQueueVisibilityTimeout().then((timeout: number) => {
@@ -1105,6 +1169,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'https://foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueAttributes');
             return inst.getQueueVisibilityTimeout().then((timeout: number) => {
@@ -1122,6 +1187,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             sqsStub.getQueueAttributes = sinon.stub().returns(Promise.resolve({foo: 'bar'}));
             return inst.getQueueVisibilityTimeout().should.be.rejectedWith(/foo/);
@@ -1133,6 +1199,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'https://foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueAttributes');
             return inst.getQueueMaximumMessageSize().then((timeout: number) => {
@@ -1150,6 +1217,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'https://foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'getQueueAttributes');
             return inst.getQueueMaximumMessageSize().then((timeout: number) => {
@@ -1167,6 +1235,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             sqsStub.getQueueAttributes = sinon.stub().returns(Promise.resolve({foo: 'bar'}));
             return inst.getQueueMaximumMessageSize().should.be.rejectedWith(/foo/);
@@ -1177,6 +1246,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(1), queueName: 'foo',
+                messageGzip: testMessageGzip,
             });
             const handledSpy = sinon.spy(inst, 'handledMessage');
             const visibilitySpy = sinon.spy(inst, 'changeMessageVisibility');
@@ -1194,6 +1264,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: stub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(stub, 'purgeQueue');
             return inst.purgeQueue().then(() => {
@@ -1210,6 +1281,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessage');
             return inst.sendMessage('bar').then(() => {
@@ -1222,6 +1294,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', gzip: true,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessage');
             return inst.sendMessage('{"i": 1}').then(() => {
@@ -1241,6 +1314,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessage');
             return inst.sendMessage({bar: 'baz'}).then(() => {
@@ -1253,6 +1327,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const spy = sinon.spy(sqsStub, 'sendMessage');
@@ -1308,6 +1383,7 @@ describe('index', () => {
                 queueUrl: 'foo',
                 s3Fallback: true,
                 s3Bucket: bucket,
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const spy = sinon.spy(sqsStub, 'sendMessage');
@@ -1371,6 +1447,7 @@ describe('index', () => {
                 S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket',
                 s3Prefix: 'my_prefix/',
                 SQS: sqsStub,
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const spy = sinon.spy(sqsStub, 'sendMessage');
@@ -1424,6 +1501,7 @@ describe('index', () => {
             const sqsStub = new SQSStub();
             inst = new SquissPatched({
                 SQS: sqsStub, S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
@@ -1450,6 +1528,7 @@ describe('index', () => {
                 s3Fallback: true,
                 s3Bucket: 'my_bucket',
                 minS3Size: 250,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
@@ -1476,6 +1555,7 @@ describe('index', () => {
                 s3Fallback: true,
                 s3Bucket: 'my_bucket',
                 minS3Size: 500,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessage');
             const largeMessage = generateLargeMessage(300);
@@ -1495,6 +1575,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 SQS: sqsStub,
                 S3: s3Stub, queueUrl: 'foo', s3Fallback: true, s3Bucket: 'my_bucket',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessage');
             const smallMessage = generateLargeMessage(50);
@@ -1520,6 +1601,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const spy = sinon.spy(sqsStub, 'sendMessage');
@@ -1543,6 +1625,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const spy = sinon.spy(sqsStub, 'sendMessage');
@@ -1566,6 +1649,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', gzip: true,
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const spy = sinon.spy(sqsStub, 'sendMessage');
@@ -1619,6 +1703,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', gzip: true, minGzipSize: 20,
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const largeMessage = generateLargeMessage(200);
@@ -1673,6 +1758,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', gzip: true, minGzipSize: 500,
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const largeMessage = generateLargeMessage(200);
@@ -1723,6 +1809,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const buffer = Buffer.from('s');
             const spy = sinon.spy(sqsStub, 'sendMessage');
@@ -1768,6 +1855,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessageBatch');
             return inst.sendMessages('bar').then((res: SendMessageBatchResponse) => {
@@ -1787,6 +1875,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessageBatch');
             return inst.sendMessages({bar: 'baz'}).then(() => {
@@ -1804,6 +1893,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessageBatch');
             return inst.sendMessages([{bar: 'baz'}, {bar1: 'baz1'}]).then(() => {
@@ -1822,6 +1912,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessageBatch');
             return inst.sendMessages('bar', 10, {baz: 'fizz'}).then(() => {
@@ -1842,6 +1933,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessageBatch');
             return inst.sendMessages(['bar', 'baz'], 10, {
@@ -1874,6 +1966,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', gzip: true,
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessageBatch');
             return inst.sendMessages(['bar', 'baz'], 10, {
@@ -1912,6 +2005,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'sendMessageBatch');
             return inst.sendMessages(['bar', 'baz'], 10, [{
@@ -1947,6 +2041,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: stub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(stub, 'sendMessageBatch');
             const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
@@ -1962,6 +2057,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: stub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(stub, 'sendMessageBatch');
             const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
@@ -1978,6 +2074,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: stub, queueUrl: 'foo',
+                messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(stub, 'sendMessageBatch');
             const msgs = 'a.FAIL.c.d.e.f.g.h.i.j.k.l.m.n.FAIL'.split('.');
@@ -1994,6 +2091,7 @@ describe('index', () => {
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', autoExtendTimeout: true,
+                messageGzip: testMessageGzip,
             });
             return inst.start().then(() => {
                 should.exist(inst._timeoutExtender);
@@ -2012,6 +2110,7 @@ describe('index', () => {
                 visibilityTimeoutSecs: 53,
                 noExtensionsAfterSecs: 400,
                 advancedCallMs: 4500,
+                messageGzip: testMessageGzip,
             });
             return inst.start().then(() => {
                 should.exist(inst._timeoutExtender);

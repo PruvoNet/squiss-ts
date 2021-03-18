@@ -4,6 +4,7 @@ import {SquissStub} from '../stubs/SquissStub';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
 import {SQSMessage} from '../../facades/SQSFacade';
+import {testMessageGzip} from '../stubs/identityGzipUtils';
 
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
@@ -65,6 +66,7 @@ describe('Message', () => {
             bodyFormat: 'plain',
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         msg.should.have.property('body').equal('foo');
         msg.should.have.property('subject').equal('some-subject');
@@ -79,6 +81,7 @@ describe('Message', () => {
             bodyFormat: 'plain',
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         msg.should.have.property('body').equal(undefined);
         msg.should.have.property('subject').equal(undefined);
@@ -91,6 +94,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -123,6 +127,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(blobs),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -143,6 +148,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -172,6 +178,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(blobs),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -191,6 +198,7 @@ describe('Message', () => {
             msg: rawMsg,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -209,6 +217,7 @@ describe('Message', () => {
             msg: rawMsg,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -222,6 +231,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -236,6 +246,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.parse()
             .then(() => {
@@ -283,6 +294,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(blobs),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         msg.on('s3Delete', (data) => {
             data.bucket.should.eql(bucket);
@@ -339,6 +351,7 @@ describe('Message', () => {
             bodyFormat: 'json',
             s3Retriever: getS3Stub(blobs),
             s3Retain: true,
+            messageGzip: testMessageGzip,
         });
         msg.on('s3Delete', () => {
             msgS3DeleteEventEmitted = true;
@@ -366,6 +379,7 @@ describe('Message', () => {
             } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         msg.del();
     });
@@ -380,6 +394,7 @@ describe('Message', () => {
             } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.del()
             .then(() => {
@@ -397,6 +412,7 @@ describe('Message', () => {
             } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         return msg.release()
             .then(() => {
@@ -414,6 +430,7 @@ describe('Message', () => {
             } as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         msg.keep();
     });
@@ -435,6 +452,7 @@ describe('Message', () => {
             } as any as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         msg.del();
         msg.keep();
@@ -459,6 +477,7 @@ describe('Message', () => {
             } as any as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         message.changeVisibility(timeout);
     });
@@ -474,6 +493,7 @@ describe('Message', () => {
             } as any as ISquiss,
             s3Retriever: getS3Stub(),
             s3Retain: false,
+            messageGzip: testMessageGzip,
         });
         message.release()
             .then(() => {

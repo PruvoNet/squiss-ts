@@ -4,7 +4,7 @@ import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IRequestMessageAttributes} from './utils/attributeUtils';
 import {isString} from 'ts-type-guards';
-import {GZIP_MARKER, compressMessage} from './utils/gzipUtils';
+import {GZIP_MARKER} from './utils/gzipUtils';
 import {S3_MARKER, uploadBlob} from './utils/s3Utils';
 import {getMessageSize} from './utils/messageSizeUtils';
 import {
@@ -352,6 +352,7 @@ export class Squiss extends EventEmitter implements ISquiss {
                 msg,
                 s3Retriever: this.getS3.bind(this),
                 s3Retain: this._opts.s3Retain || false,
+                messageGzip: this._opts.messageGzip,
             });
             this._inFlight++;
             message.parse()
@@ -478,7 +479,7 @@ export class Squiss extends EventEmitter implements ISquiss {
         params.MessageAttributes = createMessageAttributes(attributes);
         let getMessagePromise = Promise.resolve(messageStr);
         if (this._opts.gzip && (!this._opts.minGzipSize || getMessageSize(params) >= this._opts.minGzipSize)) {
-            getMessagePromise = compressMessage(messageStr);
+            getMessagePromise = this._opts.messageGzip.compressMessage(messageStr);
             params.MessageAttributes = params.MessageAttributes || {};
             params.MessageAttributes[GZIP_MARKER] = {
                 StringValue: `1`,

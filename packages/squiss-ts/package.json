@@ -13,7 +13,7 @@
     "build": "yarn lint && yarn compile",
     "build:fresh": "yarn clean && yarn build",
     "test": "yarn lint && yarn test:cover",
-    "test:unit": "mocha --opts ../../mocha.opts",
+    "test:unit": "mocha --opts ../../mocha.opts --require ts-node/register --require ../../mocha-setup.ts",
     "test:cover": "nyc --reporter=lcov --reporter=text-summary yarn test:unit",
     "lint": "tslint -c ../../tslint.json 'src/**/*.ts' 'test/**/*.ts'"
   },

@@ -5,3 +5,4 @@ export * from './types';
 export * from './utils/attributeUtils';
 export * from './Message';
 export * from './utils/utils';
+export * from './utils/gzipUtils';

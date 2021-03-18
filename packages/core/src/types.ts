@@ -13,6 +13,7 @@ import {
 } from './facades/SQSFacade';
 import {IMessageAttributes} from './utils/attributeUtils';
 import {TimeoutExtender} from './TimeoutExtender';
+import {MessageGzip} from './utils/gzipUtils';
 
 export interface IMessageDeletedEventPayload {
     msg: Message;
@@ -47,6 +48,7 @@ export type BodyFormat = 'json' | 'plain' | undefined;
 export interface ISquissOptions {
     SQS: SQSFacade | (() => SQSFacade);
     S3: S3Facade | (() => S3Facade);
+    messageGzip: MessageGzip;
     receiveBatchSize?: number;
     receiveAttributes?: string[];
     receiveSqsAttributes?: string[];

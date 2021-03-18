@@ -1,25 +1,18 @@
-import {getMessageGzip} from '../../utils/gzipUtils';
+import {messageGzip} from '../gzip';
 
-const {compressMessage, decompressMessage} = getMessageGzip({
-    compress: async (buf: Buffer): Promise<Buffer> => {
-        return buf;
-    },
-    decompress: async (buf: Buffer): Promise<Buffer> => {
-        return buf;
-    },
-});
+const {compressMessage, decompressMessage} = messageGzip;
 
 describe('gzip utils', () => {
 
     it('should compress message', () => {
         return compressMessage('{"i": 1}')
             .then((gzipped) => {
-                gzipped.should.eql('eyJpIjogMX0=');
+                gzipped.should.eql('iwOAeyJpIjogMX0D');
             });
     });
 
     it('should decompress message', () => {
-        return decompressMessage('eyJpIjogMX0=')
+        return decompressMessage('iwOAeyJpIjogMX0D')
             .then((parsed) => {
                 parsed.should.eql('{"i": 1}');
             });
