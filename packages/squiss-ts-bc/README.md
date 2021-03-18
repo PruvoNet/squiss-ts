@@ -1,5 +1,5 @@
-[![Npm Version](https://img.shields.io/npm/v/@squiss/squiss-ts.svg?style=popout)](https://www.npmjs.com/package/@squiss/squiss-ts)
-![node](https://img.shields.io/node/v-lts/@squiss/squiss-ts)
+[![Npm Version](https://img.shields.io/npm/v/@squiss/squiss-ts-bc.svg?style=popout)](https://www.npmjs.com/package/@squiss/squiss-ts-bc)
+![node](https://img.shields.io/node/v-lts/@squiss/squiss-ts-bc)
 [![Build Status](https://travis-ci.com/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.com/PruvoNet/squiss-ts)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/test_coverage)](https://codeclimate.com/github/PruvoNet/squiss-ts/test_coverage)
 [![Maintainability](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
@@ -10,10 +10,10 @@
 </p>
 
 # Squiss-TS
-High-volume Amazon SQS Poller and single-queue client for **Node.js 10** and up with full typescript support  
+High-volume Amazon SQS Poller and single-queue client for **Node.js 6** and up with full typescript support  
 The library is production ready and is being stress used in a full-blown production environment
 
-> If you need support from Node.js 6 and above, please use [@squiss/squiss-ts-bc](https://www.npmjs.com/package/@squiss/squiss-ts)
+> If you only need support from Node.js 10 and above, please use [@squiss/squiss-ts](https://www.npmjs.com/package/@squiss/squiss-ts)
 
 ## Main features
 - Control how many messages can be handled at any given point

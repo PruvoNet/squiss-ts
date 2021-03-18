@@ -18,54 +18,48 @@ import {
     SendMessageBatchResponse,
     SQSFacade, buildLazyGetter, classGetter, IQueueAttributes
 } from '@squiss/core';
-import {
-    ChangeMessageVisibilityCommand,
-    CreateQueueCommand,
-    DeleteMessageBatchCommand,
-    DeleteQueueCommand,
-    GetQueueAttributesCommand,
-    GetQueueUrlCommand,
-    PurgeQueueCommand,
-    ReceiveMessageCommand, SendMessageBatchCommand, SendMessageCommand,
-    SQSClient,
-    SQSClientConfig
-} from '@aws-sdk/client-sqs';
+import * as url from 'url';
+import {SQS} from 'aws-sdk';
+import {isString} from 'ts-type-guards';
 import {UrlObject} from 'url';
-import {AbortController} from '@aws-sdk/abort-controller';
 
 class SQSImpl implements SQSFacade {
-    constructor(private readonly client: SQSClient) {
+    constructor(private readonly client: SQS) {
     }
 
     public async getEndpoint(): Promise<UrlObject> {
-        const endpointObj = await this.client.config.endpoint();
+        const endpoint = this.client.config.endpoint;
+        if (!endpoint) {
+            throw new Error('Failed to get queue endpoint');
+        }
+        if (isString(endpoint)) {
+            return url.parse(endpoint);
+        }
         return {
-            ...endpointObj,
-            pathname: endpointObj.path,
-            protocol: endpointObj.protocol,
-            hostname: endpointObj.hostname,
-            port: endpointObj.port,
-            query: endpointObj.query,
-        };
+            ...endpoint,
+            protocol: endpoint.protocol,
+            host: endpoint.host,
+            hostname: endpoint.hostname,
+            port: endpoint.port,
+            href: endpoint.href,
+        }
     }
 
     public async changeMessageVisibility(request: ChangeMessageVisibilityRequest): Promise<void> {
-        const command = new ChangeMessageVisibilityCommand({
+        await this.client.changeMessageVisibility({
             ...request,
             QueueUrl: request.QueueUrl,
             ReceiptHandle: request.ReceiptHandle,
             VisibilityTimeout: request.VisibilityTimeout,
-        });
-        await this.client.send(command);
+        }).promise();
     }
 
     public async createQueue(request: CreateQueueRequest): Promise<CreateQueueResponse> {
-        const command = new CreateQueueCommand({
+        const result = await this.client.createQueue({
             ...request,
             QueueName: request.QueueName,
             Attributes: request.Attributes as Record<string, string>,
-        });
-        const result = await this.client.send(command);
+        }).promise();
         if (!result.QueueUrl) {
             throw new Error('Create queue did not return the queue url');
         }
@@ -75,44 +69,36 @@ class SQSImpl implements SQSFacade {
     }
 
     public async deleteMessageBatch(request: DeleteMessageBatchRequest): Promise<DeleteMessageBatchResponse> {
-        const command = new DeleteMessageBatchCommand({
+        return this.client.deleteMessageBatch({
             ...request,
             QueueUrl: request.QueueUrl,
             Entries: request.Entries,
-        });
-        const result = await this.client.send(command);
-        return {
-            Failed: result.Failed || [],
-            Successful: result.Successful || [],
-        };
+        }).promise();
     }
 
     public async deleteQueue(request: DeleteQueueRequest): Promise<void> {
-        const command = new DeleteQueueCommand({
+        await this.client.deleteQueue({
             ...request,
             QueueUrl: request.QueueUrl,
-        });
-        await this.client.send(command);
+        }).promise();
     }
 
     public async getQueueAttributes<A extends keyof IQueueAttributes>(request: GetQueueAttributesRequest<A>)
         : Promise<GetQueueAttributesResponse<A>> {
-        const command = new GetQueueAttributesCommand({
+        const result = await this.client.getQueueAttributes({
             ...request,
             AttributeNames: request.AttributeNames,
             QueueUrl: request.QueueUrl,
-        });
-        const result = await this.client.send(command);
+        }).promise();
         return {Attributes: result.Attributes} as GetQueueAttributesResponse<A>;
     }
 
     public async getQueueUrl(request: GetQueueUrlRequest): Promise<GetQueueUrlResponse> {
-        const command = new GetQueueUrlCommand({
+        const result = await this.client.getQueueUrl({
             ...request,
             QueueName: request.QueueName,
             QueueOwnerAWSAccountId: request.QueueOwnerAWSAccountId,
-        });
-        const result = await this.client.send(command);
+        }).promise();
         if (!result.QueueUrl) {
             throw new Error('Get queue ur did not return the queue url');
         }
@@ -122,15 +108,14 @@ class SQSImpl implements SQSFacade {
     }
 
     public async purgeQueue(request: PurgeQueueRequest): Promise<void> {
-        const command = new PurgeQueueCommand({
+        await this.client.purgeQueue({
             ...request,
             QueueUrl: request.QueueUrl,
-        });
-        await this.client.send(command);
+        }).promise();
     }
 
     public receiveMessage(request: ReceiveMessageRequest): Abortable<ReceiveMessageResponse> {
-        const command = new ReceiveMessageCommand({
+        const result = this.client.receiveMessage({
             ...request,
             AttributeNames: request.AttributeNames,
             MaxNumberOfMessages: request.MaxNumberOfMessages,
@@ -140,25 +125,18 @@ class SQSImpl implements SQSFacade {
             WaitTimeSeconds: request.WaitTimeSeconds,
             VisibilityTimeout: request.VisibilityTimeout,
         });
-        const abortController = new AbortController()
-        const promise = this.client.send(command, {
-            abortSignal: abortController.signal,
-        });
         return {
-            promise: async () => {
-                const result = await promise;
-                return {
-                    Messages: result.Messages,
-                }
+            promise: () => {
+                return result.promise();
             },
             abort: () => {
-                abortController.abort();
+                result.abort();
             },
         }
     }
 
     public async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
-        const command = new SendMessageCommand({
+        return this.client.sendMessage({
             ...request,
             DelaySeconds: request.DelaySeconds,
             MessageAttributes: request.MessageAttributes,
@@ -166,34 +144,22 @@ class SQSImpl implements SQSFacade {
             MessageDeduplicationId: request.MessageDeduplicationId,
             MessageGroupId: request.MessageGroupId,
             QueueUrl: request.QueueUrl,
-        });
-        const result = await this.client.send(command);
-        return {
-            SequenceNumber: result.SequenceNumber,
-            MessageId: result.MessageId,
-            MD5OfMessageSystemAttributes: result.MD5OfMessageSystemAttributes,
-            MD5OfMessageBody: result.MD5OfMessageBody,
-            MD5OfMessageAttributes: result.MD5OfMessageAttributes,
-        };
+        }).promise();
     }
 
     public async sendMessageBatch(request: SendMessageBatchRequest): Promise<SendMessageBatchResponse> {
-        const command = new SendMessageBatchCommand({
+        return this.client.sendMessageBatch({
             ...request,
             QueueUrl: request.QueueUrl,
             Entries: request.Entries,
-        });
-        const result = await this.client.send(command);
-        return {
-            Failed: result.Failed || [],
-            Successful: result.Successful || [],
-        };
+        }).promise();
     }
 }
 
-export const buildS3FacadeLazyGetter = (configuration: SQSClientConfig, client?: SQSClient | typeof SQSClient) => {
+export const buildS3FacadeLazyGetter = (configuration: SQS.ClientConfiguration, client?: SQS | typeof SQS) => {
     return buildLazyGetter<SQSFacade>(() => {
-        const instance = classGetter<SQSClient, SQSClientConfig>(SQSClient, configuration, client);
+        const instance = classGetter<SQS, SQS.ClientConfiguration>(SQS, configuration, client);
         return new SQSImpl(instance);
     })
 }
+

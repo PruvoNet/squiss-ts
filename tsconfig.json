@@ -3,7 +3,6 @@
     "target": "es2016",
     "module": "commonjs",
     "moduleResolution": "node",
-    "skipLibCheck": true,
     "declaration": true,
     "checkJs": false,
     "allowJs": false,
@@ -21,6 +20,7 @@
     "noImplicitUseStrict": false,
     "preserveSymlinks": true,
     "sourceMap": true,
+    "outDir": "./dist",
     "lib": [
       "es6",
       "dom"

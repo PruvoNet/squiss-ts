@@ -100,14 +100,15 @@ describe('index', () => {
             spy.should.be.calledOnce();
         });
         it('accepts an s3 function for instantiation if one is provided', () => {
-            const spy = sinon.spy();
+            const placeholder = {};
+            const spy = sinon.stub().returns(placeholder);
             inst = new SquissPatched({
                 queueUrl: 'foo',
                 S3: spy,
                 SQS: getSQSStub,
             });
             const s3 = inst.getS3();
-            s3.should.be.an('object');
+            s3.should.eq(placeholder);
             inst.getS3();
             spy.should.be.calledOnce();
         });

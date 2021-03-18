@@ -2,7 +2,7 @@ import * as url from 'url';
 import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
-import {createMessageAttributes, IMessageAttributes} from './utils/attributeUtils';
+import {createMessageAttributes, IRequestMessageAttributes} from './utils/attributeUtils';
 import {isString} from 'ts-type-guards';
 import {GZIP_MARKER, compressMessage} from './utils/gzipUtils';
 import {S3_MARKER, uploadBlob} from './utils/s3Utils';
@@ -158,8 +158,7 @@ export class Squiss extends EventEmitter implements ISquiss {
         const {QueueUrl} = await this.sqs.getQueueUrl(params);
         this._queueUrl = QueueUrl!;
         if (this._opts.correctQueueUrl) {
-            const endpoint = await this.sqs.getEndpoint();
-            const newUrl = url.parse(endpoint);
+            const newUrl = await this.sqs.getEndpoint();
             const parsedQueueUrl = url.parse(this._queueUrl);
             newUrl.pathname = parsedQueueUrl.pathname;
             this._queueUrl = url.format(newUrl);
@@ -241,7 +240,7 @@ export class Squiss extends EventEmitter implements ISquiss {
             });
     }
 
-    public async sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    public async sendMessage(message: IMessageToSend, delay?: number, attributes?: IRequestMessageAttributes)
         : Promise<SendMessageResponse> {
         const [rawParams, queueUrl] = await Promise.all([
             this._prepareMessageRequest(message, delay, attributes),
@@ -255,7 +254,7 @@ export class Squiss extends EventEmitter implements ISquiss {
     }
 
     public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
-                        attributes?: IMessageAttributes | IMessageAttributes[])
+                        attributes?: IRequestMessageAttributes | IRequestMessageAttributes[])
         : Promise<SendMessageBatchResponse> {
         return this.getQueueMaximumMessageSize()
             .then((queueMaximumMessageSize) => {
@@ -468,7 +467,7 @@ export class Squiss extends EventEmitter implements ISquiss {
             });
     }
 
-    private _prepareMessageParams(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes) {
+    private _prepareMessageParams(message: IMessageToSend, delay?: number, attributes?: IRequestMessageAttributes) {
         const messageStr = isString(message) ? message : JSON.stringify(message);
         const params: ISendMessageRequest = {MessageBody: messageStr, DelaySeconds: delay};
         attributes = Object.assign({}, attributes);
@@ -515,7 +514,8 @@ export class Squiss extends EventEmitter implements ISquiss {
             });
     }
 
-    private async _prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
+    private async _prepareMessageRequest(message: IMessageToSend, delay?: number,
+                                         attributes?: IRequestMessageAttributes)
         : Promise<ISendMessageRequest> {
         if (attributes && attributes[GZIP_MARKER]) {
             throw new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`);
@@ -536,23 +536,32 @@ export class Squiss extends EventEmitter implements ISquiss {
         }, acc);
         if (data.Failed && data.Failed.length) {
             data.Failed.forEach((fail) => {
-                this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
-                itemById[fail.Id].msg.emit('delError', fail);
-                itemById[fail.Id].reject(fail);
+                const id = fail.Id;
+                if (!id) {
+                    throw new Error('No id returned in failed message response');
+                }
+                this.emit('delError', {error: fail, message: itemById[id].msg});
+                itemById[id].msg.emit('delError', fail);
+                itemById[id].reject(fail);
             });
         }
         if (data.Successful && data.Successful.length) {
             data.Successful.forEach((success) => {
-                const msg = itemById[success.Id].msg;
-                this.emit('deleted', {msg, successId: success.Id});
-                msg.emit('deleted', success.Id);
-                itemById[success.Id].resolve();
+                const id = success.Id;
+                if (!id) {
+                    throw new Error('No id returned in success message response');
+                }
+                const msg = itemById[id].msg;
+                this.emit('deleted', {msg, successId: id});
+                msg.emit('deleted', id);
+                itemById[id].resolve();
             });
         }
     }
 
     private _prepareMessagesToSend(messages: IMessageToSend[] | IMessageToSend, queueMaximumMessageSize: number,
-                                   delay?: number, attributes?: IMessageAttributes | IMessageAttributes[]) {
+                                   delay?: number,
+                                   attributes?: IRequestMessageAttributes | IRequestMessageAttributes[]) {
         const msgs: IMessageToSend[] = Array.isArray(messages) ? messages : [messages];
         const defaultAttributes = (attributes && !Array.isArray(attributes)) ? attributes : undefined;
         const arrayAttributes = (attributes && Array.isArray(attributes)) ? attributes : [];

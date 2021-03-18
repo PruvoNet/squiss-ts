@@ -1,4 +1,4 @@
 {
     "extends": "@istanbuljs/nyc-config-typescript",
-    "exclude": ["packages/*/src/test/**", "mocha-setup.ts", "packages/core/src/gzipHandlers.ts"]
+    "exclude": ["packages/*/src/test/**", "mocha-setup.ts", "packages/core/src/utils/gzipHandlers.ts"]
 }

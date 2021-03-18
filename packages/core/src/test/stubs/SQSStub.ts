@@ -7,6 +7,8 @@ import {
     SQSFacade,
     SQSMessage
 } from '../../facades/SQSFacade';
+import {UrlObject} from 'url';
+import * as url from 'url';
 
 export class SQSStub extends EventEmitter implements SQSFacade {
 
@@ -24,8 +26,8 @@ export class SQSStub extends EventEmitter implements SQSFacade {
         }
     }
 
-    public async getEndpoint() {
-        return 'http://foo.bar';
+    public async getEndpoint(): Promise<UrlObject> {
+        return url.parse('http://foo.bar');
     }
 
     public async createQueue(params: CreateQueueRequest) {

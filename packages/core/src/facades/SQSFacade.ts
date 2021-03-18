@@ -1,3 +1,5 @@
+import {UrlObject} from 'url';
+
 export type QueueAttributeName =
     'All'
     | 'Policy'
@@ -102,32 +104,42 @@ export interface PurgeQueueRequest {
     QueueUrl: string;
 }
 
-export type Binary = Buffer | Uint8Array | Blob | string;
+export type Binary = Buffer | Uint8Array | {} | string;
+export type RequestBinary = Uint8Array;
 
 export interface MessageAttributeValue {
     StringValue?: string;
     BinaryValue?: Binary;
     StringListValues?: string[];
     BinaryListValues?: Binary[];
+    DataType?: string;
+}
+
+export interface RequestMessageAttributeValue {
+    StringValue?: string;
+    BinaryValue?: RequestBinary;
+    StringListValues?: string[];
+    BinaryListValues?: RequestBinary[];
     DataType: string;
 }
 
 export interface MessageSystemAttributeValue {
     StringValue?: string;
-    BinaryValue?: Binary;
+    BinaryValue?: RequestBinary;
     StringListValues?: string[];
-    BinaryListValues?: Binary[];
+    BinaryListValues?: RequestBinary[];
     DataType: string;
 }
 
 export type MessageBodyAttributeMap = Record<string, MessageAttributeValue>;
+export type RequestMessageBodyAttributeMap = Record<string, RequestMessageAttributeValue>;
 export type MessageBodySystemAttributeMap = Record<string, MessageSystemAttributeValue>;
 
 export interface SendMessageRequest {
     QueueUrl: string;
     MessageBody: string;
     DelaySeconds?: number;
-    MessageAttributes?: MessageBodyAttributeMap;
+    MessageAttributes?: RequestMessageBodyAttributeMap;
     MessageDeduplicationId?: string;
     MessageGroupId?: string;
 }
@@ -151,13 +163,13 @@ export interface DeleteMessageBatchRequest {
 }
 
 export interface DeleteMessageBatchResultEntry {
-    Id: string;
+    Id?: string;
 }
 
 export interface BatchResultErrorEntry {
-    Id: string;
-    SenderFault: boolean;
-    Code: string;
+    Id?: string;
+    SenderFault?: boolean;
+    Code?: string;
     Message?: string;
 }
 
@@ -170,7 +182,7 @@ export interface SendMessageBatchRequestEntry {
     Id: string;
     MessageBody: string;
     DelaySeconds?: number;
-    MessageAttributes?: MessageBodyAttributeMap;
+    MessageAttributes?: RequestMessageBodyAttributeMap;
     MessageSystemAttributes?: MessageBodySystemAttributeMap;
     MessageDeduplicationId?: string;
     MessageGroupId?: string;
@@ -182,9 +194,9 @@ export interface SendMessageBatchRequest {
 }
 
 export interface SendMessageBatchResultEntry {
-    Id: string;
-    MessageId: string;
-    MD5OfMessageBody: string;
+    Id?: string;
+    MessageId?: string;
+    MD5OfMessageBody?: string;
     MD5OfMessageAttributes?: string;
     MD5OfMessageSystemAttributes?: string;
     SequenceNumber?: string;
@@ -207,5 +219,5 @@ export interface SQSFacade {
     sendMessage: (request: SendMessageRequest) => Promise<SendMessageResponse>;
     sendMessageBatch: (request: SendMessageBatchRequest) => Promise<SendMessageBatchResponse>;
     deleteMessageBatch: (request: DeleteMessageBatchRequest) => Promise<DeleteMessageBatchResponse>;
-    getEndpoint: () => Promise<string>;
+    getEndpoint: () => Promise<UrlObject>;
 }

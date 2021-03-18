@@ -1,19 +1,31 @@
-
 import {isBoolean, isNumber, isString} from 'ts-type-guards';
-import {Binary, MessageAttributeValue, MessageBodyAttributeMap} from '../facades/SQSFacade';
+import {
+    Binary,
+    MessageAttributeValue,
+    MessageBodyAttributeMap, RequestBinary, RequestMessageAttributeValue,
+    RequestMessageBodyAttributeMap
+} from '../facades/SQSFacade';
 
 const EMPTY_OBJ: Record<string, any> = {};
 const STRING_TYPE = 'String';
 const NUMBER_TYPE = 'Number';
 const BINARY_TYPE = 'Binary';
 
-export type IMessageAttribute = number | string | Binary | boolean | undefined;
+export type IBaseMessageAttribute = number | string | boolean | undefined;
+export type IMessageAttribute = IBaseMessageAttribute | Binary;
+export type IRequestMessageAttribute = IBaseMessageAttribute | RequestBinary;
 
-export interface IMessageAttributes {
+export interface IBaseMessageAttributes {
     FIFO_MessageDeduplicationId?: string;
     FIFO_MessageGroupId?: string;
+}
 
+export interface IMessageAttributes extends IBaseMessageAttributes {
     [k: string]: IMessageAttribute;
+}
+
+export interface IRequestMessageAttributes extends IBaseMessageAttributes {
+    [k: string]: IRequestMessageAttribute;
 }
 
 export const parseMessageAttributes = (messageAttributes: MessageBodyAttributeMap | undefined)
@@ -40,19 +52,19 @@ const parseAttributeValue = (unparsedAttribute: MessageAttributeValue): IMessage
     }
 };
 
-export const createMessageAttributes = (messageAttributes: IMessageAttributes)
-    : MessageBodyAttributeMap | undefined => {
+export const createMessageAttributes = (messageAttributes: IRequestMessageAttributes)
+    : RequestMessageBodyAttributeMap | undefined => {
     const keys = Object.keys(messageAttributes);
     if (keys.length === 0) {
         return;
     }
-    return Object.keys(messageAttributes).reduce((parsedAttributes: MessageBodyAttributeMap, name: string) => {
+    return Object.keys(messageAttributes).reduce((parsedAttributes: RequestMessageBodyAttributeMap, name: string) => {
         parsedAttributes[name] = createAttributeValue(messageAttributes[name]);
         return parsedAttributes;
     }, {});
 };
 
-const createAttributeValue = (unparsedAttribute: IMessageAttribute): MessageAttributeValue => {
+const createAttributeValue = (unparsedAttribute: IRequestMessageAttribute): RequestMessageAttributeValue => {
     if (unparsedAttribute === undefined || unparsedAttribute === null) {
         unparsedAttribute = '';
     }
