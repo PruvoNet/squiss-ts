@@ -18,9 +18,9 @@
     "strictFunctionTypes": true,
     "alwaysStrict": true,
     "noImplicitUseStrict": false,
+    "declarationMap": true,
     "preserveSymlinks": true,
     "sourceMap": true,
-    "outDir": "./dist",
     "lib": [
       "es6",
       "dom"

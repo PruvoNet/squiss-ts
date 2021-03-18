@@ -1,0 +1,11 @@
+{
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/squiss-ts" },
+    { "path": "./packages/squiss-ts-bc" },
+  ],
+  "exclude": [
+    "mocha-setup.ts",
+    "packages"
+  ]
+}

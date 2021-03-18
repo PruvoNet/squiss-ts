@@ -1,9 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "clean": "lerna run --parallel clean && rm -rf .nyc_output *.log coverage",
+    "clean": "yarn compile:clean && lerna run --parallel clean && rm -rf dist .nyc_output *.log coverage",
     "bootstrap": "lerna bootstrap",
-    "compile": "lerna run compile",
+    "compile:clean": "tsc --build --clean tsconfig.build.json",
+    "compile": "tsc --build tsconfig.build.json",
+    "compile:force": "tsc --build --force tsconfig.build.json",
     "build": "yarn lint && yarn compile",
     "build:fresh": "yarn clean && yarn build",
     "test": "yarn lint && yarn test:cover",
