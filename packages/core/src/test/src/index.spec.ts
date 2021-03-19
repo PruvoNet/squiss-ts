@@ -938,7 +938,7 @@ describe('index', () => {
                 messageGzip: testMessageGzip,
             });
             return inst.getQueueUrl().then((url: string) => {
-                url.should.equal('http://foo.bar/queues/foo');
+                url.should.equal('https://foo.bar/queues/foo');
             });
         });
     });

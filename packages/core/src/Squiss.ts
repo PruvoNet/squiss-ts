@@ -156,7 +156,7 @@ export class Squiss extends EventEmitter implements ISquiss {
             params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString();
         }
         const {QueueUrl} = await this.sqs.getQueueUrl(params);
-        this._queueUrl = QueueUrl!;
+        this._queueUrl = QueueUrl;
         if (this._opts.correctQueueUrl) {
             const newUrl = await this.sqs.getEndpoint();
             const parsedQueueUrl = url.parse(this._queueUrl);
@@ -618,6 +618,6 @@ export class Squiss extends EventEmitter implements ISquiss {
 
     private _getMaxMessagesToGet() {
         return !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
-            Math.min(this._opts.maxInFlight! - this._inFlight, this._opts.receiveBatchSize!);
+            Math.min(this._opts.maxInFlight - this._inFlight, this._opts.receiveBatchSize!);
     }
 }

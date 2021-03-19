@@ -44,6 +44,12 @@ function getSQSMsg(body?: string): SQSMessage {
     };
 }
 
+const validateMessage = (msg: Message) => () => {
+    msg.should.have.property('body');
+    msg.body.should.be.an('object');
+    msg.body.should.have.property('i').equal(1);
+}
+
 const snsMsg = {
     Type: 'Notification',
     MessageId: 'some-id',
@@ -99,9 +105,9 @@ describe('Message', () => {
         return msg.parse()
             .then(() => {
                 msg.should.have.property('body');
-                msg.body!.should.be.an('object');
-                msg.body!.should.have.property('Message').equal('foo');
-                msg.body!.should.have.property('bar').equal('baz');
+                msg.body.should.be.an('object');
+                msg.body.should.have.property('Message').equal('foo');
+                msg.body.should.have.property('bar').equal('baz');
                 msg.attributes.should.be.eql({
                     SomeNumber: 1,
                     SomeString: 's',
@@ -130,11 +136,7 @@ describe('Message', () => {
             messageGzip: testMessageGzip,
         });
         return msg.parse()
-            .then(() => {
-                msg.should.have.property('body');
-                msg.body!.should.be.an('object');
-                msg.body!.should.have.property('i').equal(1);
-            });
+            .then(validateMessage(msg));
     });
     it('parses gzipped JSON', () => {
         const rawMsg = getSQSMsg('iwOAeyJpIjogMX0D');
@@ -151,11 +153,7 @@ describe('Message', () => {
             messageGzip: testMessageGzip,
         });
         return msg.parse()
-            .then(() => {
-                msg.should.have.property('body');
-                msg.body!.should.be.an('object');
-                msg.body!.should.have.property('i').equal(1);
-            });
+            .then(validateMessage(msg));
     });
     it('parses gzipped S3 JSON', () => {
         const bucket = 'my_bucket';
@@ -181,11 +179,7 @@ describe('Message', () => {
             messageGzip: testMessageGzip,
         });
         return msg.parse()
-            .then(() => {
-                msg.should.have.property('body');
-                msg.body!.should.be.an('object');
-                msg.body!.should.have.property('i').equal(1);
-            });
+            .then(validateMessage(msg));
     });
     it('parses gzipped plain', () => {
         const rawMsg = getSQSMsg('iwOAeyJpIjogMX0D');
@@ -203,11 +197,11 @@ describe('Message', () => {
         return msg.parse()
             .then(() => {
                 msg.should.have.property('body');
-                msg.body!.should.eql('{"i": 1}');
+                msg.body.should.eql('{"i": 1}');
             });
     });
     it('not parse empty gzipped body', () => {
-        const rawMsg = getSQSMsg(undefined);
+        const rawMsg = getSQSMsg();
         rawMsg.MessageAttributes!.__SQS_GZIP__ = {
             DataType: 'Number',
             StringValue: '1',
@@ -236,7 +230,7 @@ describe('Message', () => {
         return msg.parse()
             .then(() => {
                 msg.should.have.property('body');
-                msg.body!.should.be.an('object');
+                msg.body.should.be.an('object');
             });
     });
     it('not parse empty body', () => {
@@ -310,9 +304,7 @@ describe('Message', () => {
         });
         msg.parse()
             .then(() => {
-                msg.should.have.property('body');
-                msg.body!.should.be.an('object');
-                msg.body!.should.have.property('i').equal(1);
+                validateMessage(msg)();
                 msg.del();
             });
     });
@@ -361,9 +353,7 @@ describe('Message', () => {
         });
         msg.parse()
             .then(() => {
-                msg.should.have.property('body');
-                msg.body!.should.be.an('object');
-                msg.body!.should.have.property('i').equal(1);
+                validateMessage(msg)();
                 msg.del();
             });
     });

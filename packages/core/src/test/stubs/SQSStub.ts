@@ -7,7 +7,6 @@ import {
     SQSFacade,
     SQSMessage
 } from '../../facades/SQSFacade';
-import {UrlObject} from 'url';
 import * as url from 'url';
 
 export class SQSStub extends EventEmitter implements SQSFacade {
@@ -26,8 +25,8 @@ export class SQSStub extends EventEmitter implements SQSFacade {
         }
     }
 
-    public async getEndpoint(): Promise<UrlObject> {
-        return url.parse('http://foo.bar');
+    public async getEndpoint(): Promise<url.UrlObject> {
+        return url.parse('https://foo.bar');
     }
 
     public async createQueue(params: CreateQueueRequest) {
@@ -88,8 +87,8 @@ export class SQSStub extends EventEmitter implements SQSFacade {
                 if (msgs.length) {
                     return resolve({Messages: msgs});
                 }
-                // tslint:disable-next-line
                 let removeListeners = () => {
+                    // Intentional empty
                 };
                 const timeout = setTimeout(() => {
                     removeListeners();

@@ -3,6 +3,12 @@
 ![CI](https://github.com/PruvoNet/squiss-ts/workflows/CI/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/PruvoNet/squiss-ts/branch/master/graph/badge.svg)](https://codecov.io/gh/PruvoNet/squiss-ts)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=security_rating)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=bugs)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=code_smells)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=sqale_index)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
 
 <p align="center">
   <a href="https://squiss-ts.pruvo.com"><img src="https://github.com/PruvoNet/squiss-ts/blob/docs/source/images/logo.png?raw=true" /></a>
