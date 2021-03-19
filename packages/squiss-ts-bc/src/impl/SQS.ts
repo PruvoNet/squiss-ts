@@ -21,13 +21,12 @@ import {
 import * as url from 'url';
 import {SQS} from 'aws-sdk';
 import {isString} from 'ts-type-guards';
-import {UrlObject} from 'url';
 
 class SQSImpl implements SQSFacade {
     constructor(private readonly client: SQS) {
     }
 
-    public async getEndpoint(): Promise<UrlObject> {
+    public async getEndpoint(): Promise<url.UrlObject> {
         const endpoint = this.client.config.endpoint;
         if (!endpoint) {
             throw new Error('Failed to get queue endpoint');

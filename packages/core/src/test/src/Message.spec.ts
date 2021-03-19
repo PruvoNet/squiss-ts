@@ -236,7 +236,7 @@ describe('Message', () => {
     it('not parse empty body', () => {
         const msg = new Message({
             squiss: getSquissStub(),
-            msg: getSQSMsg(undefined),
+            msg: getSQSMsg(),
             bodyFormat: 'json',
             s3Retriever: getS3Stub(),
             s3Retain: false,
