@@ -2,9 +2,9 @@ import {messageGzip} from '../gzip';
 
 const {compressMessage, decompressMessage} = messageGzip;
 
-describe('gzip utils', () => {
+describe('gzip', () => {
 
-    it('should compress message', () => {
+    it('should compress message 1', () => {
         return compressMessage('{"i": 1}')
             .then((gzipped) => {
                 gzipped.should.eql('iwOAeyJpIjogMX0D');

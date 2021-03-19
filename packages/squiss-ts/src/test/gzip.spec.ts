@@ -2,7 +2,7 @@ import {messageGzip} from '../gzip';
 
 const {compressMessage, decompressMessage} = messageGzip;
 
-describe('gzip utils', () => {
+describe('gzip', () => {
 
     it('should compress message', () => {
         return compressMessage('{"i": 1}')

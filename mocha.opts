@@ -2,4 +2,4 @@
 --require source-map-support/register
 --recursive
 --exit
-packages/*/src/test/**/*.spec.ts
+
