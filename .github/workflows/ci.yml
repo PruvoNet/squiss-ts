@@ -68,7 +68,10 @@ jobs:
 
       - name: Verify types
         if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
-        run: yarn run build
+        run: yarn run lint
+
+      - name: Compile
+        run: yarn run compile
 
       - name: Run unit tests with coverage
         if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
