@@ -1,7 +1,7 @@
 [![Npm Version](https://img.shields.io/npm/v/@squiss/squiss-ts.svg?style=popout)](https://www.npmjs.com/package/@squiss/squiss-ts)
 ![node](https://img.shields.io/node/v-lts/@squiss/squiss-ts)
 ![CI](https://github.com/PruvoNet/squiss-ts/workflows/CI/badge.svg?branch=master)
-[![codecov](https://codecov.io/gh/PruvoNet/squiss-ts/branch/master/graph/badge.svg)](https://codecov.io/gh/PruvoNet/squiss-ts)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=coverage)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
 [![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg)](https://snyk.io/test/github/PruvoNet/squiss-ts)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=security_rating)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=bugs)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
