@@ -148,9 +148,6 @@ describe('index', () => {
                 SQS: getSQSStub, queueUrl: 'foo',
                 messageGzip: testMessageGzip,
             });
-            // @ts-ignore
-            inst._getBatch = () => {
-            };
             inst.running.should.eq(false);
             inst.start();
             inst.running.should.eq(true);
@@ -161,9 +158,6 @@ describe('index', () => {
                 SQS: getSQSStub, queueUrl: 'foo',
                 messageGzip: testMessageGzip,
             });
-            // @ts-ignore
-            inst._getBatch = () => {
-            };
             inst.running.should.eq(false);
             inst.start();
             inst.start();
@@ -771,7 +765,7 @@ describe('index', () => {
             let message: Message;
             inst.on('message', (msg: Message) => {
                 message = msg;
-                msg!.on('deleted', msgSpyMessage);
+                msg.on('deleted', msgSpyMessage);
                 msg.del();
             });
             inst.on('deleted', msgSpySquiss);
@@ -860,7 +854,7 @@ describe('index', () => {
                 MessageId: 'foo',
                 ReceiptHandle: 'bar',
             };
-            inst.deleteMessage(msg as Message);
+            inst.deleteMessage(msg);
             return wait().then(() => {
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith(sinon.match.instanceOf(Error));
@@ -878,6 +872,7 @@ describe('index', () => {
                 return {
                     promise: () => Promise.reject(new Error('test')),
                     abort: () => {
+                        // Empty
                     },
                 };
             });
@@ -902,6 +897,7 @@ describe('index', () => {
                 return {
                     promise: () => Promise.reject(new Error('test')),
                     abort: () => {
+                        // Empty
                     },
                 };
             }));
@@ -960,7 +956,7 @@ describe('index', () => {
             });
             const spy = sinon.spy(sqsStub, 'createQueue');
             return inst.createQueue().then((queueUrl: string) => {
-                queueUrl!.should.be.a('string');
+                queueUrl.should.be.a('string');
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueName: 'foo',
@@ -982,7 +978,7 @@ describe('index', () => {
             });
             const spy = sinon.spy(sqsStub, 'createQueue');
             return inst.createQueue().then((queueUrl: string) => {
-                queueUrl!.should.be.a('string');
+                queueUrl.should.be.a('string');
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueName: 'foo',
@@ -1012,7 +1008,7 @@ describe('index', () => {
             });
             const spy = sinon.spy(sqsStub, 'createQueue');
             return inst.createQueue().then((queueUrl: string) => {
-                queueUrl!.should.be.a('string');
+                queueUrl.should.be.a('string');
                 spy.should.be.calledOnce();
                 spy.should.be.calledWith({
                     QueueName: 'foo',
