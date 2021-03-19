@@ -62,7 +62,7 @@ jobs:
 
       - name: Install dependencies and build
         run: |
-          yarn --frozen-lockfile
+          yarn --ignore-engines --frozen-lockfile
           yarn run check-clean-workspace-after-install
           yarn run bootstrap
 
@@ -141,7 +141,7 @@ jobs:
 
       - name: Install dependencies and build
         run: |
-          yarn --frozen-lockfile
+          yarn --ignore-engines --frozen-lockfile
           yarn run check-clean-workspace-after-install
           yarn run bootstrap
           yarn run build
