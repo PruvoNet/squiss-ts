@@ -1,9 +1,8 @@
 [![Npm Version](https://img.shields.io/npm/v/@squiss/core.svg?style=popout)](https://www.npmjs.com/package/@squiss/core)
 ![node](https://img.shields.io/node/v-lts/@squiss/core)
-[![Build Status](https://travis-ci.com/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.com/PruvoNet/squiss-ts)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/test_coverage)](https://codeclimate.com/github/PruvoNet/squiss-ts/test_coverage)
-[![Maintainability](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
-[![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
+![CI](https://github.com/PruvoNet/squiss-ts/workflows/CI/badge.svg?branch=master)
+[![codecov](https://codecov.io/gh/PruvoNet/squiss-ts/branch/master/graph/badge.svg)](https://codecov.io/gh/PruvoNet/squiss-ts)
+[![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg)](https://snyk.io/test/github/PruvoNet/squiss-ts)
 
 <p align="center">
   <a href="https://squiss-ts.pruvo.com"><img src="https://github.com/PruvoNet/squiss-ts/blob/docs/source/images/logo.png?raw=true" /></a>
