@@ -2,7 +2,7 @@
 ![node](https://img.shields.io/node/v-lts/@squiss/core)
 ![CI](https://github.com/PruvoNet/squiss-ts/workflows/CI/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/PruvoNet/squiss-ts/branch/master/graph/badge.svg)](https://codecov.io/gh/PruvoNet/squiss-ts)
-[![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg)](https://snyk.io/test/github/PruvoNet/squiss-ts)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=PruvoNet_squiss-ts&metric=security_rating)](https://sonarcloud.io/dashboard?id=PruvoNet_squiss-ts)
 
 <p align="center">
   <a href="https://squiss-ts.pruvo.com"><img src="https://github.com/PruvoNet/squiss-ts/blob/docs/source/images/logo.png?raw=true" /></a>

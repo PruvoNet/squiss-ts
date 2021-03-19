@@ -98,13 +98,11 @@ jobs:
           name: coverage
           path: coverage
 
-      - name: Snyk security check
-        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
-        uses: snyk/actions/node@master
-        with:
-          args: --all-projects --detection-depth=3
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Run unit tests backawrad compatabile
         if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS) && contains(env.BC_NODE_VERSIONS, matrix.node-version)"
