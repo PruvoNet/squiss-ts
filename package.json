@@ -14,7 +14,8 @@
     "test:unit:bc": "mocha --opts mocha.opts --require ts-node/register --require ./mocha-setup.ts --exclude **/packages/squiss-ts/src/test/**/*.spec.ts **/packages/*/src/test/**/*.spec.ts",
     "test:cover": "nyc --reporter=lcov --reporter=text-summary yarn test:unit",
     "test:cover:bc": "nyc --reporter=lcov --reporter=text-summary yarn test:unit:bc",
-    "lint": "tslint -c tslint.json 'packages/*/src/**/*.ts' 'packages/*/test/**/*.ts'"
+    "lint": "tslint -c tslint.json 'packages/*/src/**/*.ts' 'packages/*/test/**/*.ts'",
+    "check-clean-workspace-after-install": "git diff --quiet --exit-code"
   },
   "workspaces": [
     "packages/**"
