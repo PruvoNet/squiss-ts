@@ -1,5 +1,5 @@
 import {ISquiss, ISquissOptions} from './types/ISquiss';
-import {IAwsConfig} from './types/main';
+import {IAwsConfig} from './types/awsConfig';
 import {Constructor, isFacadeConfig} from './utils/utils';
 import {Squiss} from './impl/Squiss';
 import {MessageGzip} from './utils/gzipUtils';

@@ -15,7 +15,10 @@
     "test:cover": "nyc --reporter=lcov --reporter=text-summary yarn test:unit",
     "test:cover:bc": "nyc --reporter=lcov --reporter=text-summary yarn test:unit:bc",
     "lint": "tslint -c tslint.json 'packages/*/src/**/*.ts' 'packages/*/test/**/*.ts'",
-    "check-clean-workspace-after-install": "git diff --quiet --exit-code"
+    "check-clean-workspace-after-install": "git diff --quiet --exit-code",
+    "docs:build": "cd packages/docs && yarn run build",
+    "docs:dev": "cd packages/docs && yarn run dev",
+    "docs:serve": "cd packages/docs && yarn run serve"
   },
   "workspaces": [
     "packages/**"

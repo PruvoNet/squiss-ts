@@ -1,6 +1,6 @@
 {
   "name": "@squiss/squiss-ts-bc",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "High-volume SQS poller",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -47,7 +47,7 @@
   },
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
-    "@squiss/core": "^1.0.0",
+    "@squiss/core": "^0.0.1",
     "aws-sdk": "^2.866.0",
     "ts-type-guards": "^0.7.0",
     "iltorb": "2.4.3"

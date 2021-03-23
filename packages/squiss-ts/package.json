@@ -1,6 +1,6 @@
 {
   "name": "@squiss/squiss-ts",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "High-volume SQS poller",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -50,7 +50,7 @@
     "@aws-sdk/abort-controller": "^3.6.1",
     "@aws-sdk/client-s3": "^3.8.1",
     "@aws-sdk/client-sqs": "^3.8.1",
-    "@squiss/core": "^1.0.0"
+    "@squiss/core": "^0.0.1"
   },
   "devDependencies": {}
 }
