@@ -847,6 +847,55 @@ describe('Squiss', () => {
             });
             return Promise.all([deletePromise, spyPromise]);
         });
+        it('emits error when no id is returned in failed to delete message', () => {
+            const spy = sinon.spy();
+            inst = new SquissPatched({
+                S3: getS3Stub,
+                SQS: new SQSStub(1, undefined, {
+                    noIdInFailedToDeleteMessage: true,
+                    failToDeleteMessage: true,
+                }), queueUrl: 'foo', deleteBatchSize: 1,
+                messageGzip: testMessageGzip,
+            });
+            inst.on('error', spy);
+            const msg = new MessagePatched({
+                msg: {
+                    MessageId: 'foo',
+                    ReceiptHandle: 'bar',
+                    Body: 'baz',
+                },
+            } as IMessageOpts);
+            inst.deleteMessage(msg)
+            return wait().then(() => {
+                spy.should.be.calledOnce();
+                spy.should.be.calledWith(sinon.match.instanceOf(Error));
+                spy.getCall(0).firstArg.message.should.eql('No id returned in failed message response')
+            });
+        });
+        it('emits error when no id is returned in deleted message', () => {
+            const spy = sinon.spy();
+            inst = new SquissPatched({
+                S3: getS3Stub,
+                SQS: new SQSStub(2, undefined, {
+                    noIdInDeletedMessage: true,
+                }), queueUrl: 'foo', deleteBatchSize: 1,
+                messageGzip: testMessageGzip,
+            });
+            inst.on('error', spy);
+            const msg = new MessagePatched({
+                msg: {
+                    MessageId: 'foo',
+                    ReceiptHandle: '1',
+                    Body: 'baz',
+                },
+            } as IMessageOpts);
+            inst.deleteMessage(msg)
+            return wait().then(() => {
+                spy.should.be.calledOnce();
+                spy.should.be.calledWith(sinon.match.instanceOf(Error));
+                spy.getCall(0).firstArg.message.should.eql('No id returned in success message response')
+            });
+        });
         it('emits error when delete call fails', () => {
             const spy = sinon.spy();
             const sqsStub = new SQSStub(1);

@@ -9,13 +9,19 @@ import {
 } from '../../types/SQSFacade';
 import * as url from 'url';
 
+export interface IBehaviourConfig {
+    noIdInFailedToDeleteMessage?: boolean;
+    noIdInDeletedMessage?: boolean;
+    failToDeleteMessage?: boolean;
+}
+
 export class SQSStub extends EventEmitter implements SQSFacade {
 
     public msgs: SQSMessage[];
     public timeout: number;
     public msgCount: number;
 
-    constructor(msgCount?: number, timeout?: number) {
+    constructor(msgCount?: number, timeout?: number, public behaviourConfig?: IBehaviourConfig) {
         super();
         this.msgs = [];
         this.timeout = timeout === undefined ? 20 : timeout;
@@ -39,8 +45,20 @@ export class SQSStub extends EventEmitter implements SQSFacade {
             Failed: [],
         };
         params.Entries.forEach((entry) => {
+            if (this.behaviourConfig?.failToDeleteMessage) {
+                res.Failed.push({
+                    Id: this.behaviourConfig?.noIdInFailedToDeleteMessage ? undefined : entry.Id,
+                    SenderFault: true,
+                    Code: '500',
+                    Message: 'Internal Error',
+                });
+            }
             if (parseInt(entry.ReceiptHandle, 10) < this.msgCount) {
-                res.Successful.push({Id: entry.Id});
+                if (this.behaviourConfig?.noIdInDeletedMessage) {
+                    res.Successful.push({});
+                } else {
+                    res.Successful.push({Id: entry.Id});
+                }
             } else {
                 res.Failed.push({
                     Id: entry.Id,
