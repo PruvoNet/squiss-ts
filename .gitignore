@@ -36,6 +36,7 @@ build/Release
 node_modules/
 .idea/
 dist/
+lib/
 build/
 jspm_packages/
 

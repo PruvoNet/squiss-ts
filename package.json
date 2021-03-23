@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "clean": "yarn compile:clean && lerna run --parallel clean && rm -rf dist .nyc_output *.log coverage",
+    "clean": "yarn compile:clean && lerna run --parallel clean && rm -rf lib .nyc_output *.log coverage",
     "bootstrap": "lerna bootstrap",
     "compile:clean": "tsc --build --clean tsconfig.build.json",
     "compile": "tsc --build tsconfig.build.json",

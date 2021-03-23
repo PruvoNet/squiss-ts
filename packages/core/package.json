@@ -2,14 +2,14 @@
   "name": "@squiss/core",
   "version": "1.0.0",
   "description": "High-volume SQS poller - core",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "engines": {
     "node": "^6 || ^8 || ^10 || ^12 || ^14 || ^15"
   },
   "scripts": {
     "compile": "tsc",
-    "clean": "rm -rf dist .nyc_output *.log coverage",
+    "clean": "rm -rf lib .nyc_output *.log coverage",
     "build": "yarn lint && yarn compile",
     "build:fresh": "yarn clean && yarn build",
     "test": "yarn lint && yarn test:cover",
@@ -22,8 +22,8 @@
     "url": "git+https://github.com/PruvoNet/squiss-ts.git"
   },
   "files": [
-    "/dist/*.d.ts",
-    "/dist/*.js"
+    "/lib/*.d.ts",
+    "/lib/*.js"
   ],
   "keywords": [
     "aws",

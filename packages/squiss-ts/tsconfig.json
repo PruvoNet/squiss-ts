@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "outDir": "./dist",
+    "outDir": "./lib",
     "composite": true
   },
   "references": [
@@ -14,7 +14,7 @@
     "src/**/*.ts"
   ],
   "exclude": [
-    "dist",
+    "lib",
     "../../node_modules"
   ]
 }

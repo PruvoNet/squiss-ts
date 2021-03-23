@@ -73,6 +73,14 @@ jobs:
       - name: Compile
         run: yarn run compile
 
+      - name: Run unit tests backawrad compatabile
+        if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS) && contains(env.BC_NODE_VERSIONS, matrix.node-version)"
+        run: yarn run test:unit:bc
+
+      - name: Run unit tests
+        if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS) && !contains(env.BC_NODE_VERSIONS, matrix.node-version)"
+        run: yarn run test:unit
+
       - name: Run unit tests with coverage
         if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
         run: yarn run test:cover
@@ -83,21 +91,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      - name: Upload coverage reports artifact
-        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
-        uses: actions/upload-artifact@v1
-        with:
-          name: coverage
-          path: coverage
-
-      - name: Run unit tests backawrad compatabile
-        if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS) && contains(env.BC_NODE_VERSIONS, matrix.node-version)"
-        run: yarn run test:unit:bc
-
-      - name: Run unit tests
-        if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS) && !contains(env.BC_NODE_VERSIONS, matrix.node-version)"
-        run: yarn run test:unit
 
   publish_version:
     name: Publish
