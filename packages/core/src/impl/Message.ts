@@ -1,11 +1,11 @@
-
-import {BodyFormat, ISquiss, S3Facade} from './index';
-import {IMessageAttributes, parseMessageAttributes} from './utils/attributeUtils';
+import {IMessageAttributes, parseMessageAttributes} from '../utils/attributeUtils';
 import {EventEmitter} from 'events';
-import {GZIP_MARKER, MessageGzip} from './utils/gzipUtils';
-import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './utils/s3Utils';
-import {StrictEventEmitter} from './eventEmitterTypesHelper';
-import {BatchResultErrorEntry, SQSMessage} from './facades/SQSFacade';
+import {GZIP_MARKER, MessageGzip} from '../utils/gzipUtils';
+import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from '../utils/s3Utils';
+import {SQSMessage} from '../types/SQSFacade';
+import {BodyFormat, ISquiss} from '../types/ISquiss';
+import {S3Facade} from '../types/S3Facade';
+import {IMessage} from '../types/IMessage';
 
 const EMPTY_BODY = '{}';
 
@@ -25,25 +25,7 @@ interface SNSBody {
     TopicArn: string;
 }
 
-interface IMessageEvents {
-    delQueued: void;
-    handled: void;
-    released: void;
-    timeoutReached: void;
-    extendingTimeout: void;
-    timeoutExtended: void;
-    keep: void;
-    delError: BatchResultErrorEntry;
-    deleted: string;
-    autoExtendFail: Error;
-    autoExtendError: Error;
-    s3Download: IS3Upload;
-    s3Delete: IS3Upload;
-}
-
-type MessageEmitter = StrictEventEmitter<EventEmitter, IMessageEvents>;
-
-export class Message extends (EventEmitter as new() => MessageEmitter) {
+export class Message extends EventEmitter implements IMessage {
 
     private static formatMessage(msg: string | undefined, format: BodyFormat) {
         if (format === 'json') {

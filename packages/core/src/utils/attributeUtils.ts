@@ -4,7 +4,7 @@ import {
     MessageAttributeValue,
     MessageBodyAttributeMap, RequestBinary, RequestMessageAttributeValue,
     RequestMessageBodyAttributeMap
-} from '../facades/SQSFacade';
+} from '../types/SQSFacade';
 
 const EMPTY_OBJ: Record<string, any> = {};
 const STRING_TYPE = 'String';

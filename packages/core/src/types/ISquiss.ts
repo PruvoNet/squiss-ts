@@ -1,37 +1,34 @@
-
-import {Message} from './Message';
-import {IS3Upload} from './utils/s3Utils';
-import {StrictEventEmitter} from './eventEmitterTypesHelper';
+import {IS3Upload} from '../utils/s3Utils';
+import {StrictEventEmitter} from './eventEmitter';
 import {EventEmitter} from 'events';
-import {S3Facade} from './facades/S3Facade';
+import {IMessageAttributes} from '../utils/attributeUtils';
 import {
     BatchResultErrorEntry,
     SendMessageBatchRequestEntry,
     SendMessageBatchResponse,
-    SendMessageResponse,
-    SQSFacade
-} from './facades/SQSFacade';
-import {IMessageAttributes} from './utils/attributeUtils';
-import {TimeoutExtender} from './TimeoutExtender';
-import {MessageGzip} from './utils/gzipUtils';
+    SendMessageResponse, SQSFacade
+} from './SQSFacade';
+import {S3Facade} from './S3Facade';
+import {MessageGzip} from '../utils/gzipUtils';
+import {IMessage} from './IMessage';
 
 export interface IMessageDeletedEventPayload {
-    msg: Message;
+    msg: IMessage;
     successId: string;
 }
 
 export interface IMessageErrorEventPayload {
-    message: Message;
+    message: IMessage;
     error: Error;
 }
 
 export interface IMessageDeleteErrorEventPayload {
-    message: Message;
+    message: IMessage;
     error: BatchResultErrorEntry;
 }
 
 export interface IMessageS3EventPayload {
-    message: Message;
+    message: IMessage;
     data: IS3Upload;
 }
 
@@ -84,7 +81,7 @@ export interface ISquissOptions {
 }
 
 export interface IDeleteQueueItem {
-    msg: Message;
+    msg: IMessage;
     Id: string;
     ReceiptHandle: string;
     resolve: () => void;
@@ -95,41 +92,15 @@ export interface IDeleteQueueItemById {
     [k: string]: IDeleteQueueItem;
 }
 
-export const optDefaults: Partial<ISquissOptions> = {
-    receiveBatchSize: 10,
-    receiveAttributes: ['All'],
-    receiveSqsAttributes: ['All'],
-    minReceiveBatchSize: 1,
-    receiveWaitTimeSecs: 20,
-    deleteBatchSize: 10,
-    deleteWaitMs: 2000,
-    maxInFlight: 100,
-    unwrapSns: false,
-    bodyFormat: 'plain',
-    correctQueueUrl: false,
-    pollRetryMs: 2000,
-    activePollIntervalMs: 0,
-    idlePollIntervalMs: 0,
-    delaySecs: 0,
-    gzip: false,
-    minGzipSize: 0,
-    s3Fallback: false,
-    s3Retain: false,
-    s3Prefix: '',
-    maxMessageBytes: 262144,
-    messageRetentionSecs: 345600,
-    autoExtendTimeout: false,
-};
-
 export interface ISquissEvents {
-    delQueued: Message;
-    handled: Message;
-    released: Message;
-    timeoutReached: Message;
-    extendingTimeout: Message;
-    timeoutExtended: Message;
-    message: Message;
-    keep: Message;
+    delQueued: IMessage;
+    handled: IMessage;
+    released: IMessage;
+    timeoutReached: IMessage;
+    extendingTimeout: IMessage;
+    timeoutExtended: IMessage;
+    message: IMessage;
+    keep: IMessage;
     drained: void;
     queueEmpty: void;
     maxInFlight: void;
@@ -145,19 +116,17 @@ export interface ISquissEvents {
     s3Upload: IS3Upload;
 }
 
-export type SquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
+export type ISquissEmitter = StrictEventEmitter<EventEmitter, ISquissEvents>;
 
-export interface ISquiss extends SquissEmitter {
-    // TODO remove
-    _timeoutExtender: TimeoutExtender | undefined;
-    inFlight: number;
-    running: boolean;
+export interface ISquiss extends ISquissEmitter {
+    readonly inFlight: number;
+    readonly running: boolean;
 
-    changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void>;
+    changeMessageVisibility(msg: IMessage | string, timeoutInSeconds: number): Promise<void>;
 
     createQueue(): Promise<string>;
 
-    deleteMessage(msg: Message): Promise<void>;
+    deleteMessage(msg: IMessage): Promise<void>;
 
     deleteQueue(): Promise<void>;
 
@@ -167,9 +136,9 @@ export interface ISquiss extends SquissEmitter {
 
     getQueueMaximumMessageSize(): Promise<number>;
 
-    handledMessage(msg: Message): void;
+    handledMessage(msg: IMessage): void;
 
-    releaseMessage(msg: Message): Promise<void>;
+    releaseMessage(msg: IMessage): Promise<void>;
 
     purgeQueue(): Promise<void>;
 

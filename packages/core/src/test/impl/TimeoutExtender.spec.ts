@@ -1,12 +1,12 @@
 
-import {Message} from '../../index';
-import {TimeoutExtender} from '../../TimeoutExtender';
+import {TimeoutExtender} from '../../impl/TimeoutExtender';
 import {SquissStub} from '../stubs/SquissStub';
 import delay from 'delay';
 // @ts-ignore
 import * as sinon from 'sinon';
 import {S3Stub} from '../stubs/S3Stub';
 import {testMessageGzip} from '../stubs/identityGzipUtils';
+import {Message} from '../../impl/Message';
 
 const getSquissStub = () => {
   return new SquissStub();

@@ -1,18 +1,11 @@
 import {S3} from 'aws-sdk';
-import {
-    DeleteObjectRequest,
-    S3Facade,
-    GetObjectRequest,
-    GetObjectResponse,
-    PutObjectRequest,
-    buildLazyGetter, classGetter,
-} from '@squiss/core';
+import {Types, utils} from '@squiss/core';
 
-class S3Impl implements S3Facade {
+class S3Impl implements Types.S3Facade {
     constructor(private readonly client: S3) {
     }
 
-    public async deleteObject(request: DeleteObjectRequest): Promise<void> {
+    public async deleteObject(request: Types.DeleteObjectRequest): Promise<void> {
         await this.client.deleteObject({
             ...request,
             Bucket: request.Bucket,
@@ -20,7 +13,7 @@ class S3Impl implements S3Facade {
         }).promise();
     }
 
-    public async getObject(request: GetObjectRequest): Promise<GetObjectResponse> {
+    public async getObject(request: Types.GetObjectRequest): Promise<Types.GetObjectResponse> {
         const response = await this.client.getObject({
             ...request,
             Bucket: request.Bucket,
@@ -35,7 +28,7 @@ class S3Impl implements S3Facade {
         };
     }
 
-    public async putObject(request: PutObjectRequest): Promise<void> {
+    public async putObject(request: Types.PutObjectRequest): Promise<void> {
         await this.client.putObject({
             ...request,
             Bucket: request.Bucket,
@@ -48,8 +41,8 @@ class S3Impl implements S3Facade {
 
 
 export const buildS3FacadeLazyGetter = (configuration: S3.ClientConfiguration, client?: S3 | typeof S3) => {
-    return buildLazyGetter<S3Facade>(() => {
-        const instance = classGetter<S3, S3.ClientConfiguration>(S3, configuration, client);
+    return utils.buildLazyGetter<Types.S3Facade>(() => {
+        const instance = utils.classGetter<S3, S3.ClientConfiguration>(S3, configuration, client);
         return new S3Impl(instance);
     })
 }

@@ -1,10 +1,11 @@
-
-import {ISquiss, Message} from '../../index';
 import {SquissStub} from '../stubs/SquissStub';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
-import {SQSMessage} from '../../facades/SQSFacade';
+import {SQSMessage} from '../../types/SQSFacade';
 import {testMessageGzip} from '../stubs/identityGzipUtils';
+import {Message} from '../../impl/Message';
+import {IMessage} from '../../types/IMessage';
+import {ISquiss} from '../../types/ISquiss';
 
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
@@ -44,7 +45,7 @@ function getSQSMsg(body?: string): SQSMessage {
     };
 }
 
-const validateMessage = (msg: Message) => () => {
+const validateMessage = (msg: IMessage) => () => {
     msg.should.have.property('body');
     msg.body.should.be.an('object');
     msg.body.should.have.property('i').equal(1);

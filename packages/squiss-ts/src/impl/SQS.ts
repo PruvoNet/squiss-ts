@@ -1,23 +1,4 @@
-import {
-    ChangeMessageVisibilityRequest, CreateQueueRequest,
-    CreateQueueResponse,
-    DeleteMessageBatchRequest,
-    DeleteMessageBatchResponse,
-    DeleteQueueRequest,
-    GetQueueAttributesRequest,
-    GetQueueAttributesResponse,
-    GetQueueUrlRequest,
-    GetQueueUrlResponse,
-    ReceiveMessageRequest,
-    PurgeQueueRequest,
-    ReceiveMessageResponse,
-    Abortable,
-    SendMessageResponse,
-    SendMessageRequest,
-    SendMessageBatchRequest,
-    SendMessageBatchResponse,
-    SQSFacade, buildLazyGetter, classGetter, IQueueAttributes
-} from '@squiss/core';
+import {Types, utils} from '@squiss/core';
 import {
     ChangeMessageVisibilityCommand,
     CreateQueueCommand,
@@ -33,7 +14,7 @@ import {
 import {UrlObject} from 'url';
 import {AbortController} from '@aws-sdk/abort-controller';
 
-class SQSImpl implements SQSFacade {
+class SQSImpl implements Types.SQSFacade {
     constructor(private readonly client: SQSClient) {
     }
 
@@ -49,7 +30,7 @@ class SQSImpl implements SQSFacade {
         };
     }
 
-    public async changeMessageVisibility(request: ChangeMessageVisibilityRequest): Promise<void> {
+    public async changeMessageVisibility(request: Types.ChangeMessageVisibilityRequest): Promise<void> {
         const command = new ChangeMessageVisibilityCommand({
             ...request,
             QueueUrl: request.QueueUrl,
@@ -59,7 +40,7 @@ class SQSImpl implements SQSFacade {
         await this.client.send(command);
     }
 
-    public async createQueue(request: CreateQueueRequest): Promise<CreateQueueResponse> {
+    public async createQueue(request: Types.CreateQueueRequest): Promise<Types.CreateQueueResponse> {
         const command = new CreateQueueCommand({
             ...request,
             QueueName: request.QueueName,
@@ -74,7 +55,8 @@ class SQSImpl implements SQSFacade {
         };
     }
 
-    public async deleteMessageBatch(request: DeleteMessageBatchRequest): Promise<DeleteMessageBatchResponse> {
+    public async deleteMessageBatch(request: Types.DeleteMessageBatchRequest)
+        : Promise<Types.DeleteMessageBatchResponse> {
         const command = new DeleteMessageBatchCommand({
             ...request,
             QueueUrl: request.QueueUrl,
@@ -87,7 +69,7 @@ class SQSImpl implements SQSFacade {
         };
     }
 
-    public async deleteQueue(request: DeleteQueueRequest): Promise<void> {
+    public async deleteQueue(request: Types.DeleteQueueRequest): Promise<void> {
         const command = new DeleteQueueCommand({
             ...request,
             QueueUrl: request.QueueUrl,
@@ -95,18 +77,18 @@ class SQSImpl implements SQSFacade {
         await this.client.send(command);
     }
 
-    public async getQueueAttributes<A extends keyof IQueueAttributes>(request: GetQueueAttributesRequest<A>)
-        : Promise<GetQueueAttributesResponse<A>> {
+    public async getQueueAttributes<A extends keyof Types.IQueueAttributes>(request: Types.GetQueueAttributesRequest<A>)
+        : Promise<Types.GetQueueAttributesResponse<A>> {
         const command = new GetQueueAttributesCommand({
             ...request,
             AttributeNames: request.AttributeNames,
             QueueUrl: request.QueueUrl,
         });
         const result = await this.client.send(command);
-        return {Attributes: result.Attributes} as GetQueueAttributesResponse<A>;
+        return {Attributes: result.Attributes} as Types.GetQueueAttributesResponse<A>;
     }
 
-    public async getQueueUrl(request: GetQueueUrlRequest): Promise<GetQueueUrlResponse> {
+    public async getQueueUrl(request: Types.GetQueueUrlRequest): Promise<Types.GetQueueUrlResponse> {
         const command = new GetQueueUrlCommand({
             ...request,
             QueueName: request.QueueName,
@@ -121,7 +103,7 @@ class SQSImpl implements SQSFacade {
         };
     }
 
-    public async purgeQueue(request: PurgeQueueRequest): Promise<void> {
+    public async purgeQueue(request: Types.PurgeQueueRequest): Promise<void> {
         const command = new PurgeQueueCommand({
             ...request,
             QueueUrl: request.QueueUrl,
@@ -129,7 +111,7 @@ class SQSImpl implements SQSFacade {
         await this.client.send(command);
     }
 
-    public receiveMessage(request: ReceiveMessageRequest): Abortable<ReceiveMessageResponse> {
+    public receiveMessage(request: Types.ReceiveMessageRequest): Types.Abortable<Types.ReceiveMessageResponse> {
         const command = new ReceiveMessageCommand({
             ...request,
             AttributeNames: request.AttributeNames,
@@ -157,7 +139,7 @@ class SQSImpl implements SQSFacade {
         }
     }
 
-    public async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
+    public async sendMessage(request: Types.SendMessageRequest): Promise<Types.SendMessageResponse> {
         const command = new SendMessageCommand({
             ...request,
             DelaySeconds: request.DelaySeconds,
@@ -177,7 +159,7 @@ class SQSImpl implements SQSFacade {
         };
     }
 
-    public async sendMessageBatch(request: SendMessageBatchRequest): Promise<SendMessageBatchResponse> {
+    public async sendMessageBatch(request: Types.SendMessageBatchRequest): Promise<Types.SendMessageBatchResponse> {
         const command = new SendMessageBatchCommand({
             ...request,
             QueueUrl: request.QueueUrl,
@@ -192,8 +174,8 @@ class SQSImpl implements SQSFacade {
 }
 
 export const buildS3FacadeLazyGetter = (configuration: SQSClientConfig, client?: SQSClient | typeof SQSClient) => {
-    return buildLazyGetter<SQSFacade>(() => {
-        const instance = classGetter<SQSClient, SQSClientConfig>(SQSClient, configuration, client);
+    return utils.buildLazyGetter<Types.SQSFacade>(() => {
+        const instance = utils.classGetter<SQSClient, SQSClientConfig>(SQSClient, configuration, client);
         return new SQSImpl(instance);
     })
 }

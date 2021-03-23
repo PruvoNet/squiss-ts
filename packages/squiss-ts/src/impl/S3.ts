@@ -1,13 +1,6 @@
 import {DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client, S3ClientConfig} from '@aws-sdk/client-s3';
 import {Readable} from 'stream';
-import {
-    DeleteObjectRequest,
-    S3Facade,
-    GetObjectRequest,
-    GetObjectResponse,
-    PutObjectRequest,
-    buildLazyGetter, classGetter,
-} from '@squiss/core';
+import {Types, utils} from '@squiss/core';
 
 const streamToString = (stream: Readable): Promise<string> => {
     const chunks: Buffer[] = [];
@@ -18,11 +11,11 @@ const streamToString = (stream: Readable): Promise<string> => {
     });
 }
 
-class S3Impl implements S3Facade {
+class S3Impl implements Types.S3Facade {
     constructor(private readonly client: S3Client) {
     }
 
-    public async deleteObject(request: DeleteObjectRequest): Promise<void> {
+    public async deleteObject(request: Types.DeleteObjectRequest): Promise<void> {
         const command = new DeleteObjectCommand({
             ...request,
             Bucket: request.Bucket,
@@ -31,7 +24,7 @@ class S3Impl implements S3Facade {
         await this.client.send(command);
     }
 
-    public async getObject(request: GetObjectRequest): Promise<GetObjectResponse> {
+    public async getObject(request: Types.GetObjectRequest): Promise<Types.GetObjectResponse> {
         const command = new GetObjectCommand({
             ...request,
             Bucket: request.Bucket,
@@ -52,7 +45,7 @@ class S3Impl implements S3Facade {
         };
     }
 
-    public async putObject(request: PutObjectRequest): Promise<void> {
+    public async putObject(request: Types.PutObjectRequest): Promise<void> {
         const command = new PutObjectCommand({
             ...request,
             Bucket: request.Bucket,
@@ -66,8 +59,8 @@ class S3Impl implements S3Facade {
 
 
 export const buildS3FacadeLazyGetter = (configuration: S3ClientConfig, client?: S3Client | typeof S3Client) => {
-    return buildLazyGetter<S3Facade>(() => {
-        const instance = classGetter<S3Client, S3ClientConfig>(S3Client, configuration, client);
+    return utils.buildLazyGetter<Types.S3Facade>(() => {
+        const instance = utils.classGetter<S3Client, S3ClientConfig>(S3Client, configuration, client);
         return new S3Impl(instance);
     })
 }

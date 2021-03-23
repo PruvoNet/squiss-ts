@@ -1,11 +1,11 @@
-import {Message} from './Message';
 import * as LinkedList from 'linked-list';
-import {ISquiss} from './types';
+import {IMessage} from '../types/IMessage';
+import {ISquiss} from '../types/ISquiss';
 
 const MAX_MESSAGE_AGE_MS = 43200000;
 
 class Node extends LinkedList.Item {
-    constructor(public message: Message, public receivedOn: number, public timerOn: number) {
+    constructor(public message: IMessage, public receivedOn: number, public timerOn: number) {
         super();
     }
 }
@@ -43,10 +43,10 @@ export class TimeoutExtender {
         this._timer = undefined;
         this._squiss = squiss;
         this._linkedList = new LinkedList<Node>();
-        this._squiss.on('handled', (msg: Message) => {
+        this._squiss.on('handled', (msg: IMessage) => {
             return this.deleteMessage(msg);
         });
-        this._squiss.on('message', (msg: Message) => {
+        this._squiss.on('message', (msg: IMessage) => {
             return this.addMessage(msg);
         });
         this._visTimeout = this._opts.visibilityTimeoutSecs! * 1000;
@@ -54,12 +54,12 @@ export class TimeoutExtender {
         this._apiLeadMs = Math.min(this._opts.advancedCallMs!, this._visTimeout);
     }
 
-    public addMessage(message: Message) {
+    public addMessage(message: IMessage) {
         const now = Date.now();
         this._addNode(new Node(message, now, now + this._visTimeout - this._apiLeadMs));
     }
 
-    public deleteMessage(message: Message) {
+    public deleteMessage(message: IMessage) {
         const node = this._index[message.raw.MessageId!];
         if (node) {
             this._deleteNode(node);

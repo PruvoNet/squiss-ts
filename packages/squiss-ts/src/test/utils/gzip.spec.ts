@@ -1,4 +1,4 @@
-import {messageGzip} from '../gzip';
+import {messageGzip} from '../../utils/gzip';
 
 const {compressMessage, decompressMessage} = messageGzip;
 

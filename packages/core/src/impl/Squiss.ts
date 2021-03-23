@@ -2,16 +2,12 @@ import * as url from 'url';
 import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
-import {createMessageAttributes, IRequestMessageAttributes} from './utils/attributeUtils';
+import {createMessageAttributes, IRequestMessageAttributes} from '../utils/attributeUtils';
 import {isString} from 'ts-type-guards';
-import {GZIP_MARKER} from './utils/gzipUtils';
-import {S3_MARKER, uploadBlob} from './utils/s3Utils';
-import {getMessageSize} from './utils/messageSizeUtils';
-import {
-    IMessageToSend,
-    IDeleteQueueItem, IDeleteQueueItemById, optDefaults, ISquissOptions, ISendMessageRequest, ISquiss
-} from './types';
-import {S3Facade} from './facades/S3Facade';
+import {GZIP_MARKER} from '../utils/gzipUtils';
+import {S3_MARKER, uploadBlob} from '../utils/s3Utils';
+import {getMessageSize} from '../utils/messageSizeUtils';
+import {S3Facade} from '../types/S3Facade';
 import {
     Abortable,
     CreateQueueRequest,
@@ -24,8 +20,17 @@ import {
     SendMessageResponse,
     SQSFacade,
     SQSMessage, DeleteMessageBatchResponse,
-} from './facades/SQSFacade';
-import {buildLazyGetter, removeEmptyKeys} from './utils/utils';
+} from '../types/SQSFacade';
+import {buildLazyGetter, removeEmptyKeys} from '../utils/utils';
+import {IMessage} from '../types/IMessage';
+import {
+    IDeleteQueueItem,
+    IDeleteQueueItemById,
+    IMessageToSend,
+    ISendMessageRequest,
+    ISquiss,
+    ISquissOptions
+} from '../types/ISquiss';
 
 const AWS_MAX_SEND_BATCH = 10;
 
@@ -36,6 +41,32 @@ const getFromProvider = <A>(arg: A | (() => A)): A => {
         return arg;
     }
 }
+
+const optDefaults: Partial<ISquissOptions> = {
+    receiveBatchSize: 10,
+    receiveAttributes: ['All'],
+    receiveSqsAttributes: ['All'],
+    minReceiveBatchSize: 1,
+    receiveWaitTimeSecs: 20,
+    deleteBatchSize: 10,
+    deleteWaitMs: 2000,
+    maxInFlight: 100,
+    unwrapSns: false,
+    bodyFormat: 'plain',
+    correctQueueUrl: false,
+    pollRetryMs: 2000,
+    activePollIntervalMs: 0,
+    idlePollIntervalMs: 0,
+    delaySecs: 0,
+    gzip: false,
+    minGzipSize: 0,
+    s3Fallback: false,
+    s3Retain: false,
+    s3Prefix: '',
+    maxMessageBytes: 262144,
+    messageRetentionSecs: 345600,
+    autoExtendTimeout: false,
+};
 
 export class Squiss extends EventEmitter implements ISquiss {
 
@@ -49,7 +80,6 @@ export class Squiss extends EventEmitter implements ISquiss {
 
     public getS3: () => S3Facade;
 
-    // TODO remove public
     public _timeoutExtender: TimeoutExtender | undefined;
     private sqs: SQSFacade;
     private _opts: ISquissOptions;
@@ -72,12 +102,12 @@ export class Squiss extends EventEmitter implements ISquiss {
         this.getS3 = buildLazyGetter<S3Facade>(() => getFromProvider(this._opts.S3));
     }
 
-    public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void> {
+    public changeMessageVisibility(msg: IMessage | string, timeoutInSeconds: number): Promise<void> {
         let receiptHandle: string;
-        if (msg instanceof Message) {
-            receiptHandle = msg.raw.ReceiptHandle!;
-        } else {
+        if (isString(msg)) {
             receiptHandle = msg;
+        } else {
+            receiptHandle = msg.raw.ReceiptHandle!;
         }
         return this.getQueueUrl()
             .then((queueUrl) => {
@@ -114,7 +144,7 @@ export class Squiss extends EventEmitter implements ISquiss {
         });
     }
 
-    public deleteMessage(msg: Message): Promise<void> {
+    public deleteMessage(msg: IMessage): Promise<void> {
         if (!msg.raw) {
             return Promise.reject(new Error('Squiss.deleteMessage requires a Message object'));
         }
@@ -204,7 +234,7 @@ export class Squiss extends EventEmitter implements ISquiss {
         });
     }
 
-    public handledMessage(msg: Message): void {
+    public handledMessage(msg: IMessage): void {
         this._inFlight--;
         if (this._paused && this._slotsAvailable()) {
             this._paused = false;
@@ -217,7 +247,7 @@ export class Squiss extends EventEmitter implements ISquiss {
         }
     }
 
-    public releaseMessage(msg: Message): Promise<void> {
+    public releaseMessage(msg: IMessage): Promise<void> {
         this.handledMessage(msg);
         return this.changeMessageVisibility(msg, 0)
             .then((res) => {

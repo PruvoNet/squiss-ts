@@ -10,20 +10,22 @@ const stubs = {
     },
 };
 // tslint:disable-next-line
-const {Squiss: _SquissPatched, Message: _MessagePatched} = proxyquire('../../', stubs);
+const {Squiss: _SquissPatched} = proxyquire('../../impl/Squiss', stubs);
+const {Message: _MessagePatched} = proxyquire('../../impl/Message', stubs);
 
-import {ISquiss, Squiss} from '../../index';
-// TODO fix after createing facade
+import {ISquiss} from '../../types/ISquiss';
+import {Squiss} from '../../impl/Squiss';
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';
-import {IMessageOpts, Message} from '../../Message';
+import {IMessageOpts, Message} from '../../impl/Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';
 import {EventEmitter} from 'events';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
-import {SendMessageBatchResponse} from '../../facades/SQSFacade';
+import {SendMessageBatchResponse} from '../../types/SQSFacade';
 import {testMessageGzip} from '../stubs/identityGzipUtils';
+import {IMessage} from '../../types/IMessage';
 
 // tslint:disable-next-line:variable-name
 const SquissPatched: typeof Squiss = _SquissPatched;
@@ -31,6 +33,7 @@ const SquissPatched: typeof Squiss = _SquissPatched;
 const MessagePatched: typeof Message = _MessagePatched;
 const should = chai.should();
 let inst: ISquiss;
+let _inst: Squiss;
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
 const getS3Stub = (blobs?: Blobs) => {
@@ -49,13 +52,18 @@ const generateLargeMessage = (length: number) => {
     return result;
 };
 
-describe('index', () => {
+describe('Squiss', () => {
     afterEach(() => {
         if (inst) {
             inst.stop();
         }
+        if (_inst) {
+            _inst.stop();
+        }
         // @ts-ignore
         inst = null;
+        // @ts-ignore
+        _inst = null;
     });
     describe('constructor', () => {
         it('creates a new SquissPatched instance', () => {
@@ -206,7 +214,7 @@ describe('index', () => {
                 messageGzip: testMessageGzip,
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
-            inst.on('message', (m: Message) => {
+            inst.on('message', (m: IMessage) => {
                 batches[batches.length - 1].num++;
                 m.del();
             });
@@ -230,7 +238,7 @@ describe('index', () => {
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
-            inst.on('message', (m: Message) => {
+            inst.on('message', (m: IMessage) => {
                 batches[batches.length - 1].num++;
             });
             inst.start();
@@ -252,7 +260,7 @@ describe('index', () => {
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
-            inst.on('message', (m: Message) => {
+            inst.on('message', (m: IMessage) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num === 5) {
                     m.del();
@@ -282,7 +290,7 @@ describe('index', () => {
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
-            inst.on('message', (m: Message) => {
+            inst.on('message', (m: IMessage) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num >= 14) {
                     m.del();
@@ -312,7 +320,7 @@ describe('index', () => {
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
-            inst.on('message', (m: Message) => {
+            inst.on('message', (m: IMessage) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num === 5) {
                     m.del();
@@ -337,7 +345,7 @@ describe('index', () => {
             });
             inst.on('gotMessages', (count: number) => batches.push({total: count, num: 0}));
             inst.once('queueEmpty', spy);
-            inst.on('message', (m: Message) => {
+            inst.on('message', (m: IMessage) => {
                 batches[batches.length - 1].num++;
                 if (batches.length === 2 && batches[batches.length - 1].num === 5) {
                     m.del();
@@ -447,7 +455,7 @@ describe('index', () => {
                 messageGzip: testMessageGzip,
             });
             inst.on('aborted', spy);
-            inst.on('message', (msg: Message) => {
+            inst.on('message', (msg: IMessage) => {
                 setTimeout(() => {
                     msg.del();
                 }, 1000);
@@ -469,7 +477,7 @@ describe('index', () => {
                 messageGzip: testMessageGzip,
             });
             inst.on('aborted', spy);
-            inst.on('message', (msg: Message) => {
+            inst.on('message', (msg: IMessage) => {
                 setTimeout(() => {
                     msg.del();
                 }, 1000);
@@ -519,13 +527,13 @@ describe('index', () => {
             });
         });
         it('reports the correct number of inFlight messages', () => {
-            const msgs: Message[] = [];
+            const msgs: IMessage[] = [];
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(5), queueUrl: 'foo', deleteWaitMs: 1,
                 messageGzip: testMessageGzip,
             });
-            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.on('message', (msg: IMessage) => msgs.push(msg));
             inst.start();
             return wait().then(() => {
                 inst.inFlight.should.equal(5);
@@ -671,14 +679,14 @@ describe('index', () => {
     describe('Deleting', () => {
         it('deletes messages using internal API', () => {
             const sqsStub = new SQSStub(5);
-            const msgs: Message[] = [];
+            const msgs: IMessage[] = [];
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteWaitMs: 1,
                 messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
-            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.on('message', (msg: IMessage) => msgs.push(msg));
             inst.start();
             let promise: Promise<void>;
             return wait().then(() => {
@@ -692,14 +700,14 @@ describe('index', () => {
         });
         it('deletes messages using Message API', () => {
             const sqsStub = new SQSStub(5);
-            const msgs: Message[] = [];
+            const msgs: IMessage[] = [];
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: sqsStub, queueUrl: 'foo', deleteWaitMs: 1,
                 messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
-            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.on('message', (msg: IMessage) => msgs.push(msg));
             inst.start();
             return wait().then(() => {
                 msgs.should.have.length(5);
@@ -717,7 +725,7 @@ describe('index', () => {
                 messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
-            inst.on('message', (msg: Message) => msg.del());
+            inst.on('message', (msg: IMessage) => msg.del());
             inst.start();
             return wait().then(() => {
                 spy.should.be.calledTwice();
@@ -731,7 +739,7 @@ describe('index', () => {
                 messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
-            inst.on('message', (msg: Message) => {
+            inst.on('message', (msg: IMessage) => {
                 inst.deleteMessage(msg);
                 inst.deleteMessage(msg);
             });
@@ -748,7 +756,7 @@ describe('index', () => {
                 messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(sqsStub, 'deleteMessageBatch');
-            inst.on('message', (msg: Message) => msg.del());
+            inst.on('message', (msg: IMessage) => msg.del());
             inst.start();
             return wait().then(() => {
                 spy.should.have.callCount(5);
@@ -762,8 +770,8 @@ describe('index', () => {
                 SQS: new SQSStub(1), queueUrl: 'foo', deleteBatchSize: 1,
                 messageGzip: testMessageGzip,
             });
-            let message: Message;
-            inst.on('message', (msg: Message) => {
+            let message: IMessage;
+            inst.on('message', (msg: IMessage) => {
                 message = msg;
                 msg.on('deleted', msgSpyMessage);
                 msg.del();
@@ -778,14 +786,14 @@ describe('index', () => {
             });
         });
         it('delWaitTime timeout should be cleared after timeout runs', () => {
-            const msgs: Message[] = [];
+            const msgs: IMessage[] = [];
             inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(2), queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10,
                 messageGzip: testMessageGzip,
             });
             const spy = sinon.spy(inst, '_deleteMessages');
-            inst.on('message', (msg: Message) => msgs.push(msg));
+            inst.on('message', (msg: IMessage) => msgs.push(msg));
             inst.start();
             return wait().then(() => {
                 inst.stop();
@@ -1246,7 +1254,8 @@ describe('index', () => {
             });
             const handledSpy = sinon.spy(inst, 'handledMessage');
             const visibilitySpy = sinon.spy(inst, 'changeMessageVisibility');
-            const msg = new EventEmitter() as Message;
+            const msg = new EventEmitter() as IMessage;
+            (msg as any).raw = {};
             return inst.releaseMessage(msg).then(() => {
                 handledSpy.should.be.calledOnce();
                 visibilitySpy.should.be.calledOnce();
@@ -2084,21 +2093,21 @@ describe('index', () => {
     });
     describe('auto-extensions', () => {
         it('initializes a TimeoutExtender', () => {
-            inst = new SquissPatched({
+            _inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(), queueUrl: 'foo', autoExtendTimeout: true,
                 messageGzip: testMessageGzip,
             });
-            return inst.start().then(() => {
-                should.exist(inst._timeoutExtender);
-                inst._timeoutExtender!.should.not.equal(null);
-                inst._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(31);
-                inst._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(43200);
-                inst._timeoutExtender!._opts.advancedCallMs!.should.equal(5000);
+            return _inst.start().then(() => {
+                should.exist(_inst._timeoutExtender);
+                _inst._timeoutExtender!.should.not.equal(null);
+                _inst._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(31);
+                _inst._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(43200);
+                _inst._timeoutExtender!._opts.advancedCallMs!.should.equal(5000);
             });
         });
         it('constructs a TimeoutExtender with custom options', () => {
-            inst = new SquissPatched({
+            _inst = new SquissPatched({
                 S3: getS3Stub,
                 SQS: new SQSStub(),
                 queueUrl: 'foo',
@@ -2108,12 +2117,12 @@ describe('index', () => {
                 advancedCallMs: 4500,
                 messageGzip: testMessageGzip,
             });
-            return inst.start().then(() => {
-                should.exist(inst._timeoutExtender);
-                inst._timeoutExtender!.should.not.equal(null);
-                inst._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(53);
-                inst._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(400);
-                inst._timeoutExtender!._opts.advancedCallMs!.should.equal(4500);
+            return _inst.start().then(() => {
+                should.exist(_inst._timeoutExtender);
+                _inst._timeoutExtender!.should.not.equal(null);
+                _inst._timeoutExtender!._opts.visibilityTimeoutSecs!.should.equal(53);
+                _inst._timeoutExtender!._opts.noExtensionsAfterSecs!.should.equal(400);
+                _inst._timeoutExtender!._opts.advancedCallMs!.should.equal(4500);
             });
         });
     });

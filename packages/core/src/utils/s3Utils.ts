@@ -1,7 +1,7 @@
 
 import {v4 as uuidv4} from 'uuid';
 import {getSizeInBytes} from './messageSizeUtils';
-import {S3Facade} from '../facades/S3Facade';
+import {S3Facade} from '../types/S3Facade';
 
 export const S3_MARKER = '__SQS_S3__';
 

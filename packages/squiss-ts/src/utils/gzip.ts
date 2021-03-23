@@ -1,11 +1,11 @@
 import {brotliCompress, brotliDecompress} from 'zlib';
 import {promisify} from 'util';
-import {getMessageGzip, MessageGzip} from '@squiss/core';
+import {utils} from '@squiss/core';
 
 const compress = promisify(brotliCompress);
 const decompress = promisify(brotliDecompress);
 
-export const messageGzip: MessageGzip = getMessageGzip({
+export const messageGzip: utils.MessageGzip = utils.getMessageGzip({
     compress,
     decompress,
 })

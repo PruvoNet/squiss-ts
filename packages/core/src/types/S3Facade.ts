@@ -1,4 +1,3 @@
-
 export interface PutObjectRequest {
     Body: string;
     Bucket: string;

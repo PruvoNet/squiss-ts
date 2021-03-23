@@ -1,10 +1,10 @@
 
 import {EventEmitter} from 'events';
-import {IMessageToSend, ISquiss} from '../../types';
-import {Message} from '../../Message';
-import {S3Facade} from '../../facades/S3Facade';
-import {IMessageAttributes, SendMessageBatchResponse, SendMessageResponse} from '../../index';
-import {TimeoutExtender} from '../../TimeoutExtender';
+import {S3Facade} from '../../types/S3Facade';
+import {IMessageToSend, ISquiss} from '../../types/ISquiss';
+import {IMessage} from '../../types/IMessage';
+import {SendMessageBatchResponse, SendMessageResponse} from '../../types/SQSFacade';
+import {IMessageAttributes} from '../../utils/attributeUtils';
 
 export class SquissStub extends EventEmitter implements ISquiss {
     public changeMessageVisibility() {
@@ -27,7 +27,7 @@ export class SquissStub extends EventEmitter implements ISquiss {
         return Promise.resolve('');
     }
 
-    deleteMessage(msg: Message): Promise<void> {
+    deleteMessage(msg: IMessage): Promise<void> {
         return Promise.resolve(undefined);
     }
 
@@ -55,7 +55,7 @@ export class SquissStub extends EventEmitter implements ISquiss {
         return Promise.resolve(undefined);
     }
 
-    releaseMessage(msg: Message): Promise<void> {
+    releaseMessage(msg: IMessage): Promise<void> {
         return Promise.resolve(undefined);
     }
 
@@ -76,7 +76,4 @@ export class SquissStub extends EventEmitter implements ISquiss {
     stop(soft?: boolean, timeout?: number): Promise<boolean> {
         return Promise.resolve(false);
     }
-
-    // TODO remove it
-    _timeoutExtender: TimeoutExtender | undefined;
 }

@@ -6,7 +6,7 @@ import {
     PutObjectRequest,
     GetObjectResponse,
     DeleteObjectRequest
-} from '../../facades/S3Facade';
+} from '../../types/S3Facade';
 
 export interface Blobs {
     [k: string]: { [k: string]: string };

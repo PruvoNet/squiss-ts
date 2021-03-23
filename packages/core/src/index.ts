@@ -1,8 +1,3 @@
-export * from './facades/S3Facade';
-export * from './facades/SQSFacade';
-export * from './Squiss';
-export * from './types';
-export * from './utils/attributeUtils';
-export * from './Message';
-export * from './utils/utils';
-export * from './utils/gzipUtils';
+export * as utils from './utils/_api';
+export * as Types from './types/_api';
+export {Squiss} from './impl/Squiss'

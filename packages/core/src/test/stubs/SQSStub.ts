@@ -6,7 +6,7 @@ import {
     GetQueueUrlRequest, ReceiveMessageRequest, SendMessageBatchRequest, SendMessageBatchResponse, SendMessageRequest,
     SQSFacade,
     SQSMessage
-} from '../../facades/SQSFacade';
+} from '../../types/SQSFacade';
 import * as url from 'url';
 
 export class SQSStub extends EventEmitter implements SQSFacade {
