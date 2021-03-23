@@ -28,7 +28,7 @@ import {
     IDeleteQueueItemById,
     IMessageToSend,
     ISendMessageRequest,
-    ISquiss,
+    ISquiss, ISquissInjectOptions,
     ISquissOptions
 } from '../types/ISquiss';
 
@@ -82,7 +82,7 @@ export class Squiss extends EventEmitter implements ISquiss {
 
     public _timeoutExtender: TimeoutExtender | undefined;
     private sqs: SQSFacade;
-    private _opts: ISquissOptions;
+    private _opts: ISquissOptions & ISquissInjectOptions;
     private _running = false;
     private _paused = true;
     private _inFlight = 0;
@@ -93,7 +93,7 @@ export class Squiss extends EventEmitter implements ISquiss {
     private _delTimer: any;
     private _activeReq: Abortable<ReceiveMessageResponse> | undefined;
 
-    constructor(opts: ISquissOptions) {
+    constructor(opts: ISquissOptions & ISquissInjectOptions) {
         super();
         this._opts = Object.assign({}, optDefaults, opts);
         this._initOpts();

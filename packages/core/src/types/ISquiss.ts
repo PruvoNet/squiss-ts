@@ -43,9 +43,6 @@ export type IMessageToSend = IObject | string;
 export type BodyFormat = 'json' | 'plain' | undefined;
 
 export interface ISquissOptions {
-    SQS: SQSFacade | (() => SQSFacade);
-    S3: S3Facade | (() => S3Facade);
-    messageGzip: MessageGzip;
     receiveBatchSize?: number;
     receiveAttributes?: string[];
     receiveSqsAttributes?: string[];
@@ -78,6 +75,12 @@ export interface ISquissOptions {
     s3Retain?: boolean;
     s3Prefix?: string;
     minS3Size?: number;
+}
+
+export interface ISquissInjectOptions {
+    SQS: SQSFacade | (() => SQSFacade);
+    S3: S3Facade | (() => S3Facade);
+    messageGzip: MessageGzip;
 }
 
 export interface IDeleteQueueItem {

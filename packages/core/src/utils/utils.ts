@@ -7,6 +7,10 @@ export const removeEmptyKeys = <T extends object>(obj: T): T => {
     return obj;
 };
 
+export const isFacadeConfig = <T>(x?: unknown): x is { facade: T } => {
+    return Boolean(x && (x as any).facade);
+}
+
 export const buildLazyGetter = <A>(init: () => A) => {
     let product: A | undefined;
     return (): A => {

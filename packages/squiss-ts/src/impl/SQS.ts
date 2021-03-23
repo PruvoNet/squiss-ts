@@ -173,7 +173,7 @@ class SQSImpl implements Types.SQSFacade {
     }
 }
 
-export const buildS3FacadeLazyGetter = (configuration: SQSClientConfig, client?: SQSClient | typeof SQSClient) => {
+export const buildSQSFacadeLazyGetter = (configuration: SQSClientConfig, client?: SQSClient | typeof SQSClient) => {
     return utils.buildLazyGetter<Types.SQSFacade>(() => {
         const instance = utils.classGetter<SQSClient, SQSClientConfig>(SQSClient, configuration, client);
         return new SQSImpl(instance);
