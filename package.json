@@ -10,12 +10,12 @@
   "scripts": {
     "postinstall": "node -e \"const semver = require('semver');process.exit(semver.lt(process.version, '10.16.0'));\" || npm install --no-save iltorb@2.4.3",
     "clean": "rm -rf node_modules build coverage dist",
-    "build": "npm run lint && npm run buildDist",
-    "buildDist": "rm -rf dist/* && ./node_modules/.bin/tsc",
+    "build": "npm run lint && npm run compile",
+    "compile": "./node_modules/.bin/tsc",
     "test": "npm run lint && npm run mocha",
     "mocha": "node --preserve-symlinks -r source-map-support/register node_modules/mocha/bin/_mocha --opts src/test/mocha.opts",
-    "cover": "rm -rf coverage && nyc --reporter=lcov --reporter=text-summary npm run test",
-    "lint": "tslint -c tslint.json 'src/**/*.ts' 'test/**/*.ts'"
+    "cover": "nyc --reporter=lcov --reporter=text-summary npm run test",
+    "lint": "tslint -c tslint.json \"src/**/*.ts\" \"test/**/*.ts\""
   },
   "repository": {
     "type": "git",
