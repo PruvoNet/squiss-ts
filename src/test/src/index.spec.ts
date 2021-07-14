@@ -18,7 +18,8 @@ import * as AWS from 'aws-sdk';
 import {ISquissOptions, Squiss} from '../../';
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';
-import {IMessageOpts, Message } from '../../Message';
+import {Message } from '../../';
+import {IMessageOpts } from '../../Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';

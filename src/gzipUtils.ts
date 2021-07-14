@@ -9,6 +9,7 @@ type Compress = (buf: Buffer) => Promise<Buffer>;
 let compress: Compress;
 let decompress: Compress;
 
+/* istanbul ignore next */
 if (gte(process.version, '10.16.0')) {
     const {brotliCompress, brotliDecompress} = require('zlib');
     const {promisify} = require('util');

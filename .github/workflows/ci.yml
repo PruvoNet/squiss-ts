@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  release:
+    types: [published]
+  pull_request:
+    branches:
+      - '**'
+
+env:
+  PRIMARY_NODE_VERSION: 16.x
+  PRIMARY_OS: ubuntu-latest
+  REGISTRY: https://registry.npmjs.org/
+
+jobs:
+  test:
+    name: CI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [6.x, 8.x, 10.x, 12.x, 14.x, 16.x]
+
+    steps:
+
+      - name: Echo env variables
+        run: |
+          echo ref: ${{ github.event.client_payload.ref || github.ref }}
+          echo sha: ${{ github.event.client_payload.sha || github.sha }}
+          echo head ref: ${{ github.event.client_payload.head_ref || github.head_ref }}
+          echo base ref: ${{ github.event.client_payload.base_ref || github.base_ref }}
+          echo action: ${{ github.action }}
+          echo event: ${{ github.event_name }}
+
+      - uses: actions/checkout@v2
+        name: Checkout
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies and build
+        run: |
+          npm install
+          npm run build
+
+      - name: Snyk security check
+        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run unit tests with coverage
+        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
+        uses: paambaati/codeclimate-action@v2.2.4
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        with:
+          coverageCommand: npm run cover
+
+      - name: Run unit tests
+        if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS)"
+        run: npm run test
+
+  publish_version:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: fetch
+        run: |
+          git fetch --prune --unshallow
+
+      - name: Use Node.js 6.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: 6.x
+          registry-url: ${{ env.REGISTRY }}
+          cache: 'npm'
+
+      - name: Install dependencies and build
+        run: |
+          npm install
+          npm run build
+
+      - name: Publish
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_AUTH_TOKEN }}
+          registry: ${{ env.REGISTRY }}
