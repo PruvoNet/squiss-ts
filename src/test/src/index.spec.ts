@@ -715,7 +715,10 @@ describe('index', () => {
           Body: 'baz',
         },
       } as IMessageOpts);
-      inst!.deleteMessage(msg);
+      inst!.deleteMessage(msg)
+          .catch(() => {
+            // DO NOTHING
+          });
       return wait().then(() => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith(
