@@ -18,7 +18,8 @@ import * as AWS from 'aws-sdk';
 import {ISquissOptions, Squiss} from '../../';
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';
-import {IMessageOpts, Message } from '../../Message';
+import {Message } from '../../';
+import {IMessageOpts } from '../../Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';
@@ -714,7 +715,10 @@ describe('index', () => {
           Body: 'baz',
         },
       } as IMessageOpts);
-      inst!.deleteMessage(msg);
+      inst!.deleteMessage(msg)
+          .catch(() => {
+            // DO NOTHING
+          });
       return wait().then(() => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith(

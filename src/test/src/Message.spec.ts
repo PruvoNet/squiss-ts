@@ -1,8 +1,7 @@
 'use strict';
 
-import {Message, Squiss} from '../../';
+import {IMessageAttributes, Message, Squiss, SQS, S3} from '../../';
 import {SquissStub} from '../stubs/SquissStub';
-import {SQS, S3} from 'aws-sdk';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
 
@@ -67,6 +66,9 @@ describe('Message', () => {
       s3Retriever: getS3Stub(),
       s3Retain: false,
     });
+    const attributes: IMessageAttributes = msg.attributes;
+    attributes.should.have.property('SomeNumber').equal(1);
+    attributes.should.have.property('SomeString').equal('s');
     msg.should.have.property('body').equal('foo');
     msg.should.have.property('subject').equal('some-subject');
     msg.should.have.property('topicArn').equal(snsMsg.TopicArn);

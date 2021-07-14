@@ -41,7 +41,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _queueMaximumMessageSize = 0;
     private _queueUrl: string;
     private _delQueue = new Map<string, IDeleteQueueItem>();
-    private _delTimer: number | undefined;
+    private _delTimer: any;
     private _activeReq: AWS.Request<SQS.Types.ReceiveMessageResult, AWS.AWSError> | undefined;
 
     constructor(opts?: ISquissOptions | undefined) {
@@ -145,7 +145,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return this.sqs.getQueueUrl(params).promise().then((data) => {
             this._queueUrl = data.QueueUrl!;
             if (this._opts.correctQueueUrl) {
-                const newUrl = url.parse(this.sqs.config.endpoint!);
+                const newUrl = url.parse(this.sqs.config.endpoint as string);
                 const parsedQueueUrl = url.parse(this._queueUrl);
                 newUrl.pathname = parsedQueueUrl.pathname;
                 this._queueUrl = url.format(newUrl);
