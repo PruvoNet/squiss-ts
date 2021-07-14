@@ -44,7 +44,18 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: |
+          echo "::set-output name=dir::$(npm config get cache)"
+
+      - uses: actions/cache@v2
+        id: npm-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ matrix.os }}-${{ matrix.node-version }}-node
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.node-version }}-node
 
       - name: Install dependencies and build
         run: |
@@ -71,7 +82,11 @@ jobs:
 
   publish_version:
     name: Publish
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [6.x]
     needs: [test]
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
@@ -83,12 +98,24 @@ jobs:
         run: |
           git fetch --prune --unshallow
 
-      - name: Use Node.js 6.x
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2
         with:
-          node-version: 6.x
+          node-version: ${{ matrix.node-version }}
           registry-url: ${{ env.REGISTRY }}
-          cache: 'npm'
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: |
+          echo "::set-output name=dir::$(npm config get cache)"
+
+      - uses: actions/cache@v2
+        id: npm-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ matrix.os }}-${{ matrix.node-version }}-node
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.node-version }}-node
 
       - name: Install dependencies and build
         run: |
