@@ -14,8 +14,7 @@ jobs:
   test:
     name: CI
     runs-on: ubuntu-latest
-    container:
-      image: docker:stable
+
     steps:
       - name: Echo env variables
         run: |
