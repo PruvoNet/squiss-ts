@@ -18,7 +18,8 @@ jobs:
       image: docker:stable
     steps:
       - uses: actions/checkout@v2
-
+        run: |
+          docker ps -a
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
 
