@@ -66,7 +66,7 @@ describe('index', () => {
       let errored = false;
       try {
         new SquissPatched();
-      } catch (e) {
+      } catch (e: any) {
         should.exist(e);
         e.should.be.instanceOf(Error);
         errored = true;
@@ -77,7 +77,7 @@ describe('index', () => {
       let errored = false;
       try {
         new SquissPatched({queueUrl: 'foo', s3Fallback: true});
-      } catch (e) {
+      } catch (e: any) {
         should.exist(e);
         e.should.be.instanceOf(Error);
         errored = true;
