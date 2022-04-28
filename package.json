@@ -49,7 +49,7 @@
   "dependencies": {
     "aws-sdk": "^2.720.0",
     "linked-list": "^2.1.0",
-    "semver": "7.3.5",
+    "semver": "7.3.6",
     "ts-type-guards": "^0.7.0",
     "uuid": "^8.3.2"
   },
