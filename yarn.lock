@@ -281,10 +281,10 @@ assertion-error@^1.1.0:
   resolved "https://registry.yarnpkg.com/assertion-error/-/assertion-error-1.1.0.tgz#e60b6b0e8f301bd97e5375215bda406c85118c0b"
   integrity sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw==
 
-aws-sdk@2.788.0:
-  version "2.788.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.788.0.tgz#020f84975db9623d0a434105991e7074c488693f"
-  integrity sha512-UKc+4MFRezIkgk668mylj7MpVD2dCtiDBppgx05SwYSDGT60bixrKv3nE/YJK+gAv53CWVf7WL6hNv76+TWkTA==
+aws-sdk@2.814.0:
+  version "2.814.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.814.0.tgz#7a1c36006e0b5826f14bd2511b1d229ef6814bb0"
+  integrity sha512-empd1m/J/MAkL6d9OeRpmg9thobULu0wk4v8W3JToaxGi2TD7PIdvE6yliZKyOVAdJINhBWEBhxR4OUIHhcGbQ==
   dependencies:
     buffer "4.9.2"
     events "1.1.1"
