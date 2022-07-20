@@ -14,7 +14,7 @@
     "compile": "tsc",
     "test": "yarn lint && yarn mocha",
     "mocha": "_mocha --opts src/test/mocha.opts",
-    "cover": "nyc --reporter=lcov --reporter=text-summary yarn test",
+    "cover": "nyc --reporter=lcov --reporter=text-summary npm run mocha",
     "lint": "tslint -c tslint.json \"src/**/*.ts\" \"test/**/*.ts\""
   },
   "repository": {
