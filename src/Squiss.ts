@@ -7,7 +7,8 @@ import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
-import {SQS, S3} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs'
+import * as S3 from 'aws-sdk/clients/s3'
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
 import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';

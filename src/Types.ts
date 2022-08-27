@@ -1,7 +1,9 @@
 'use strict';
 
 import {Message} from './Message';
-import {AWSError, SQS, S3} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs'
+import * as S3 from 'aws-sdk/clients/s3'
+import {AWSError} from 'aws-sdk/lib/error'
 import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {IS3Upload} from './s3Utils';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
