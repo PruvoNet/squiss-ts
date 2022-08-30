@@ -1,7 +1,7 @@
 'use strict';
 
 import {EventEmitter} from 'events';
-import {S3} from 'aws-sdk';
+import * as S3 from 'aws-sdk/clients/s3';
 
 export interface Blobs {
   [k: string]: { [k: string]: string };
