@@ -1,7 +1,7 @@
 'use strict';
 
 import {EventEmitter} from 'events';
-import {SQS} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs';
 
 export class SQSStub extends EventEmitter {
 

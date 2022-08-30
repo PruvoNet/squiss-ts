@@ -1,6 +1,6 @@
 'use strict';
 
-import {SQS} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs'
 import {isBoolean, isNumber, isString} from 'ts-type-guards';
 
 const EMPTY_OBJ = {};

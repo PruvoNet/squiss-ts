@@ -1,7 +1,7 @@
 'use strict';
 
 import {ISendMessageRequest} from './index';
-import {SQS} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs';
 
 export const getMessageSize = (message: ISendMessageRequest): number => {
     const msgAttributesSize = getMsgAttributesSize(message.MessageAttributes);

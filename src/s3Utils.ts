@@ -1,6 +1,6 @@
 'use strict';
 
-import {S3} from 'aws-sdk';
+import * as S3 from 'aws-sdk/clients/s3';
 import { v4 as uuidv4 } from 'uuid';
 import {getSizeInBytes} from './messageSizeUtils';
 

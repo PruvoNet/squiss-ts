@@ -7,7 +7,7 @@ import delay from 'delay';
 // @ts-ignore
 import * as sinon from 'sinon';
 import {S3Stub} from '../stubs/S3Stub';
-import {S3} from 'aws-sdk';
+import * as S3 from 'aws-sdk/clients/s3';
 
 const getSquissStub = () => {
   return new SquissStub() as any as Squiss;

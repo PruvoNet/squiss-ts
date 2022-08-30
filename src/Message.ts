@@ -1,6 +1,8 @@
 'use strict';
 
-import {SQS, S3, AWSError} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs'
+import * as S3 from 'aws-sdk/clients/s3'
+import {AWSError} from 'aws-sdk/lib/error'
 import {BodyFormat, Squiss} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';

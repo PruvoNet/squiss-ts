@@ -14,7 +14,6 @@ const stubs = {
 // tslint:disable-next-line
 const {Squiss: SquissPatched, Message: MessagePatched} = proxyquire('../../', stubs);
 
-import * as AWS from 'aws-sdk';
 import {ISquissOptions, Squiss} from '../../';
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';
@@ -23,13 +22,13 @@ import {IMessageOpts } from '../../Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';
-import {SQS, S3} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs'
+import * as S3 from 'aws-sdk/clients/s3'
 import {EventEmitter} from 'events';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 
 const should = chai.should();
 let inst: Squiss | null = null;
-const origSQS = AWS.SQS;
 const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
 
 const getS3Stub = (blobs?: Blobs) => {
@@ -50,8 +49,6 @@ describe('index', () => {
       inst!.stop();
     }
     inst = null;
-    // @ts-ignore
-    AWS.SQS = origSQS;
   });
   describe('constructor', () => {
     it('creates a new SquissPatched instance', () => {

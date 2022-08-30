@@ -1,17 +1,18 @@
 'use strict';
 
-import * as AWS from 'aws-sdk';
 import * as url from 'url';
 import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
-import {SQS, S3} from 'aws-sdk';
+import * as SQS from 'aws-sdk/clients/sqs'
+import * as S3 from 'aws-sdk/clients/s3'
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
 import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
-import {AWSError} from 'aws-sdk';
+import {AWSError} from 'aws-sdk/lib/error'
+import {Request} from 'aws-sdk/lib/request'
 import {
     IMessageToSend, ISendMessageRequest,
     IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter, ISquissOptions
@@ -42,7 +43,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _queueUrl: string;
     private _delQueue = new Map<string, IDeleteQueueItem>();
     private _delTimer: any;
-    private _activeReq: AWS.Request<SQS.Types.ReceiveMessageResult, AWS.AWSError> | undefined;
+    private _activeReq: Request<SQS.Types.ReceiveMessageResult, AWSError> | undefined;
 
     constructor(opts?: ISquissOptions | undefined) {
         super();

@@ -4,7 +4,7 @@ import {Squiss} from './index';
 import {Message} from './Message';
 import * as LinkedList from 'linked-list';
 import {Item} from 'linked-list';
-import {AWSError} from 'aws-sdk';
+import {AWSError} from 'aws-sdk/lib/error';
 
 const MAX_MESSAGE_AGE_MS = 43200000;
 
