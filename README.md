@@ -93,3 +93,4 @@ Squiss was originally created at [TechnologyAdvice](http://www.technologyadvice.
 
 All contributions are happily welcomed!  
 Please make all pull requests to the `master` branch from your fork and ensure tests pass locally.
+A
