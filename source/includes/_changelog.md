@@ -5,6 +5,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v4.4.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.1.1...v4.4.0)
+
+### Fixed
+
+- improved compilation time (#120) thanks @Raiszo for your contribution!
+- added support for node 18. Thanks @ted-pulsen for noticing and contributing :-)
+- fixed semver node 6 support (#113)
+- fixed windows support #110
+- Stop using travis.ci as it is not free anymore #106
+- Allow node 16 and test on it #105
+  
 ## v4.1.1
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.1.0...v4.1.1)
