@@ -64,13 +64,13 @@ jobs:
           yarn build
 
       - name: Snyk security check
-        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS && github.repository == 'PruvoNet/squiss-ts'
+        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS && !github.event.pull_request.head.repo.fork
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Run unit tests with coverage
-        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS && github.repository == 'PruvoNet/squiss-ts'
+        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS && !github.event.pull_request.head.repo.fork
         uses: paambaati/codeclimate-action@v2.7.5
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
