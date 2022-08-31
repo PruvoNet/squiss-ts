@@ -87,7 +87,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node-version: [6.x]
+        node-version: [16.x]
     needs: [test]
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
