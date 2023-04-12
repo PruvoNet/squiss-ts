@@ -58,7 +58,7 @@ const messageToSend = {
         a: 1,
         b: 2,
     },
-}
+};
 
 const propsToSend = {
     p1: 1,
