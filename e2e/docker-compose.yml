@@ -1,0 +1,16 @@
+version: '3'
+services:
+  queue:
+    image: softwaremill/elasticmq
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+
+  s3:
+    image: scireum/s3-ninja
+    ports:
+      - "9000:9000"
+    environment:
+      root: elasticmq
+      initialBuckets: test
+

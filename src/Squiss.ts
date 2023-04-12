@@ -1,4 +1,3 @@
-import * as url from 'url';
 import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
@@ -28,6 +27,8 @@ import {
     IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter, ISquissOptions
 } from './Types';
 import {removeEmptyKeys} from './Utils';
+import { URL } from 'url';
+import {Endpoint, EndpointV2} from '@aws-sdk/types';
 
 const AWS_MAX_SEND_BATCH = 10;
 
@@ -153,13 +154,34 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (this._opts.accountNumber) {
             params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString();
         }
-        return this.sqs.getQueueUrl(params).then((data) => {
+        return this.sqs.getQueueUrl(params).then(async (data) => {
             this._queueUrl = data.QueueUrl!;
             if (this._opts.correctQueueUrl) {
-                const newUrl = url.parse(this.sqs.config.endpoint as string);
-                const parsedQueueUrl = url.parse(this._queueUrl);
+                let newUrl: URL | undefined;
+                const endpoint = this.sqs.config.endpoint;
+                /* istanbul ignore else  */
+                if (typeof endpoint === 'string') {
+                    newUrl = new URL(endpoint);
+                } else if (typeof endpoint === 'function') {
+                    const retrievedEndpoint = await endpoint();
+                    if (retrievedEndpoint && typeof retrievedEndpoint === 'object') {
+                        if ('url' in retrievedEndpoint) {
+                            newUrl = new URL((retrievedEndpoint as EndpointV2).url.toString());
+                        }
+                        if ('hostname' in retrievedEndpoint) {
+                            const { protocol, hostname, port, path } = retrievedEndpoint as Endpoint;
+                            // query params are ignored in setting endpoint.
+                            newUrl = new URL(`${protocol}//${hostname}${port ? ':' + port : ''}${path}`);
+                        }
+                    }
+                }
+                /* istanbul ignore if */
+                if (!newUrl) {
+                    throw new Error(`Failed to get configured SQQ endpoint`);
+                }
+                const parsedQueueUrl = new URL(this._queueUrl);
                 newUrl.pathname = parsedQueueUrl.pathname;
-                this._queueUrl = url.format(newUrl);
+                this._queueUrl = newUrl.toString();
             }
             return this._queueUrl;
         });

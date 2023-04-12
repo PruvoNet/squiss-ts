@@ -14,7 +14,9 @@
     "test": "yarn lint && yarn mocha",
     "cover": "yarn clean && yarn nyc yarn mocha",
     "lint": "tslint -c tslint.json \"src/**/*.ts\" \"test/**/*.ts\"",
-    "benchmark": "tsc --extendedDiagnostics --incremental false"
+    "benchmark": "tsc --extendedDiagnostics --incremental false",
+    "e2e:start": "docker compose -f e2e/docker-compose.yml up &",
+    "e2e:stop": "docker compose -f e2e/docker-compose.yml down &"
   },
   "repository": {
     "type": "git",
@@ -82,7 +84,8 @@
     "check-coverage": true,
     "all": true,
     "exclude": [
-      "src/test/**"
+      "src/test/**",
+      "e2e**"
     ],
     "reporter": [
       "html",

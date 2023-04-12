@@ -31,8 +31,10 @@ Please see full documentation <a href="https://squiss-ts.pruvo.com">here</a>
 import {Squiss, Message} from 'squiss-ts';
 
 const awsConfig = {
-  accessKeyId: '<accessKeyId>',
-  secretAccessKey: '<secretAccessKey>',
+  credentials: {
+    accessKeyId: 'accessKeyId',
+    secretAccessKey: 'secretAccessKey',
+  },
   region: '<region>',
 };
 
