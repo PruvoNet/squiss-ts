@@ -16,7 +16,7 @@ To publish, run
 
 ```shell
 docker run --rm --name slate -v $(pwd)/build:/srv/slate/build -v $(pwd)/source:/srv/slate/source slatedocs/slate build
-./deploy.sh
+./deploy.sh --push-only
 ```
 
 Documentation can be found at <a href="https://github.com/lord/slate">https://github.com/lord/slate<a/>
