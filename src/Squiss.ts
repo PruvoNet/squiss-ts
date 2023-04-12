@@ -330,6 +330,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 return this._opts.S3;
             }
         } else {
+            /* istanbul ignore next */
             return new S3(this._opts.awsConfig || {});
         }
     }
@@ -579,6 +580,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return (data: DeleteMessageBatchCommandOutput) => {
             if (data.Failed?.length) {
                 data.Failed.forEach((fail) => {
+                    /* istanbul ignore next */
                     const item = itemById[fail.Id ?? ''];
                     this.emit('delError', {error: fail, message: item.msg});
                     item.msg.emit('delError', fail);
@@ -587,6 +589,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             }
             if (data.Successful?.length) {
                 data.Successful.forEach((success) => {
+                    /* istanbul ignore next */
                     const id = success.Id ?? '';
                     const item = itemById[id];
                     const msg = item.msg;

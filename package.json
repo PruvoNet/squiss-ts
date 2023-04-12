@@ -8,11 +8,11 @@
     "node": "^16 || ^18|| ^19"
   },
   "scripts": {
-    "clean": "rm -rf node_modules build coverage dist",
+    "clean": "rm -rf .nyc_output coverage dist",
     "build": "yarn lint && yarn compile",
     "compile": "tsc",
     "test": "yarn lint && yarn mocha",
-    "cover": "nyc yarn mocha",
+    "cover": "yarn clean && yarn nyc yarn mocha",
     "lint": "tslint -c tslint.json \"src/**/*.ts\" \"test/**/*.ts\"",
     "benchmark": "tsc --extendedDiagnostics --incremental false"
   },
