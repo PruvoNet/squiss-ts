@@ -7,7 +7,7 @@ See <a href="https://squiss-ts.pruvo.com">https://squiss-ts.pruvo.com<a/> for th
 To test locally, run 
 
 ```shell
-bundle exec middleman server
+docker run -p 4567:4567 --rm --name slate -v $(pwd)/build:/srv/slate/build -v $(pwd)/source:/srv/slate/source slatedocs/slate serve
 ```
 
 and go <a href="http://localhost:4567">http://localhost:4567<a/> for the published version
@@ -15,26 +15,11 @@ and go <a href="http://localhost:4567">http://localhost:4567<a/> for the publish
 To publish, run
 
 ```shell
+docker run --rm --name slate -v $(pwd)/build:/srv/slate/build -v $(pwd)/source:/srv/slate/source slatedocs/slate build
 ./deploy.sh
 ```
 
 Documentation can be found at <a href="https://github.com/lord/slate">https://github.com/lord/slate<a/>
-
-## Setup
-
-### Prerequisites
-
-You're going to need:
-
- - **Linux or macOS** — Windows may work, but is unsupported.
- - **Ruby, version 2.3.1 or newer**
- - **Bundler** — If Ruby is already installed, but the `bundle` command doesn't work, just run `gem install bundler` in a terminal.
-
-### Getting Set Up
-
-```shell
-bundle install
-```
 
 ## Updating contributes list
 

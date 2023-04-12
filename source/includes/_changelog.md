@@ -5,6 +5,34 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v5.0.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.4.1...v5.0.0)
+
+### BREAKING CHANGES
+
+- Dropped support for Node versions below 16
+- changed to sqs sdk v3, which breaks some configurations and types - SQS, S3, awsConfig (passing credentials is different)
+- all `AWSError` are now `SQSServiceException`
+- message attributes can't be Buffer (use Uint8Array instead)
+
+### Fixed
+
+- xml2js is vulnerable to prototype pollution #128
+
+### Added
+
+- Moved to aws sdk v3 #95 (also reduces the dependencies size)
+- Support for node 19
+
+## v4.4.1
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v4.4.0...v4.4.1)
+
+### Fixed
+
+- fix #125 - iltorb should not be part of the published package json
+
 ## v4.4.0
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.1.1...v4.4.0)

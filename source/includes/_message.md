@@ -206,10 +206,10 @@ message.on('timeoutExtended', () => {
 
 Emitted when a message `VisibilityTimeout` was extended with the [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature.
 
-#### autoExtendFail <`AWSError`>
+#### autoExtendFail <`SQSServiceException`>
 
 ```typescript
-message.on('autoExtendFail', (error: AWSError) => {
+message.on('autoExtendFail', (error: SQSServiceException) => {
   console.log(`failed to extend message ${error}`);
 });
 ```
@@ -217,10 +217,10 @@ message.on('autoExtendFail', (error: AWSError) => {
 Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
-#### autoExtendError <`AWSError`>
+#### autoExtendError <`SQSServiceException`>
 
 ```typescript
-message.on('autoExtendError', (error: AWSError) => {
+message.on('autoExtendError', (error: SQSServiceException) => {
   console.log(`failed to extend message ${error}`);
 });
 ```

@@ -4,8 +4,10 @@
 import {Squiss} from 'squiss-ts';
 
 const awsConfig = {
-  accessKeyId: '<accessKeyId>',
-  secretAccessKey: '<secretAccessKey>',
+  credentials: {
+    accessKeyId: 'accessKeyId',
+    secretAccessKey: 'secretAccessKey',
+  },
   region: '<region>',
 };
 
@@ -40,14 +42,16 @@ but you can use the below to fine-tune your Squiss experience
 
 ```typescript
 const awsConfig = {
-  accessKeyId: '<accessKeyId>',
-  secretAccessKey: '<secretAccessKey>',
+  credentials: {
+    accessKeyId: 'accessKeyId',
+    secretAccessKey: 'secretAccessKey',
+  },
   region: '<region>',
 };
 ```
-An object mapping to pass to the SQS constructor, configuring the aws-sdk library.  
+An object mapping to pass to the SQS constructor, configuring the `@aws-sdk/client-sqs` library.  
 This is commonly used to set the AWS region, endpoint, or the user credentials.  
-See the docs on [configuring the aws-sdk](http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html) for details.
+See the docs on [configuring client-sqs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sqs/) for details.
 
  | |
 ---------- | -------  | -------
@@ -57,7 +61,7 @@ Mandatory| False
 #### SQS
 
 An instance of the official SQS Client, or an SQS constructor function to use rather than the
-default one provided by AWS.SQS
+default one provided by `@aws-sdk/client-sqs`
 
  | |
 ---------- | -------  | -------
@@ -68,7 +72,7 @@ Default| `AWS.SQS`
 #### S3
 
 An instance of the official S3 Client, or an S3 constructor function to use rather than the
-default one provided by AWS.S3
+default one provided by `@aws-sdk/client-s3`
 
  | |
 ---------- | -------  | -------
@@ -747,10 +751,10 @@ If you don't have a listener on `error`, per Node.js's structure, the error will
 and will crash your app.
 </aside>
 
-#### aborted <`AWSError`>
+#### aborted <`SQSServiceException`>
 
 ```typescript
-squiss.on('aborted', (error: AWSError) => {
+squiss.on('aborted', (error: SQSServiceException) => {
   console.log(`failed to extend message ${error}`);
 });
 ```
@@ -878,7 +882,7 @@ squiss.on('delError', (error: IMessageDeleteErrorEventPayload) => {
 Emitted when the message failed to get deleted.
 The object handed to you in this event is the AWS failure object described in the <a href="http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#getQueueUrl-property">SQS deleteMessageBatch documentation</a>.
 
-#### autoExtendFail <`{message: Message, error: AWSError}`>
+#### autoExtendFail <`{message: Message, error: SQSServiceException}`>
 
 ```typescript
 squiss.on('autoExtendFail', (error: IMessageErrorEventPayload) => {
@@ -889,7 +893,7 @@ squiss.on('autoExtendFail', (error: IMessageErrorEventPayload) => {
 Emitted if [autoExtendTimeout](#squiss-class-constructor-options-auto-extend-options) feature is enabled, and Squiss attempts to extend the message `VisibilityTimeout` that has either been
 deleted or otherwise expired.
 
-#### autoExtendError <`{message: Message, error: AWSError}`>
+#### autoExtendError <`{message: Message, error: SQSServiceException}`>
 
 ```typescript
 squiss.on('autoExtendError', (error: IMessageErrorEventPayload) => {

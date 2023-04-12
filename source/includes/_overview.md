@@ -1,12 +1,11 @@
 # Overview
 
 [![Npm Version](https://img.shields.io/npm/v/squiss-ts.svg?style=popout)](https://www.npmjs.com/package/squiss-ts)
-[![Build Status](https://travis-ci.com/PruvoNet/squiss-ts.svg?branch=master)](https://travis-ci.com/PruvoNet/squiss-ts)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/test_coverage)](https://codeclimate.com/github/PruvoNet/squiss-ts/test_coverage)
-[![Maintainability](https://api.codeclimate.com/v1/badges/64f26f52c548c8d1e010/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
+[![node](https://img.shields.io/node/v-lts/squiss-ts)](https://travis-ci.com/PruvoNet/squiss-ts)
+[![Build Status](https://github.com/PruvoNet/squiss-ts/actions/workflows/ci.yml/badge.svg?branch=master)](https://travis-ci.com/PruvoNet/squiss-ts)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/177b18abdb55fdf90cf8/test_coverage)](https://codeclimate.com/github/PruvoNet/squiss-ts/test_coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/177b18abdb55fdf90cf8/maintainability)](https://codeclimate.com/github/PruvoNet/squiss-ts/maintainability)
 [![Known Vulnerabilities](https://snyk.io/test/github/PruvoNet/squiss-ts/badge.svg?targetFile=package.json)](https://snyk.io/test/github/PruvoNet/squiss-ts?targetFile=package.json)
-[![dependencies Status](https://david-dm.org/PruvoNet/squiss-ts/status.svg)](https://david-dm.org/PruvoNet/squiss-ts)
-[![devDependencies Status](https://david-dm.org/PruvoNet/squiss-ts/dev-status.svg)](https://david-dm.org/PruvoNet/squiss-ts?type=dev)
 
 ## Abstract
 
@@ -16,8 +15,8 @@
 npm install squiss-ts
 ```
 
-High-volume Amazon SQS Poller and single-queue client for Node.js 6 and up with full typescript support  
-The library is production ready and is being stress used in a full blown production environment
+High-volume Amazon SQS Poller and single-queue client for Node.js 16 and up with full typescript support  
+The library is production ready and is being stress used in a full-blown production environment
 
 ## Main features
 
@@ -27,8 +26,10 @@ The library is production ready and is being stress used in a full blown product
 import {Squiss, Message} from 'squiss-ts';
 
 const awsConfig = {
-  accessKeyId: '<accessKeyId>',
-  secretAccessKey: '<secretAccessKey>',
+  credentials: {
+    accessKeyId: 'accessKeyId',
+    secretAccessKey: 'secretAccessKey',
+  },
   region: '<region>',
 };
 
@@ -51,8 +52,8 @@ const messageToSend = {
     message: {
         a: 1,
         b: 2,
-    },;
-}
+    },
+};
 
 const propsToSend = {
     p1: 1,
