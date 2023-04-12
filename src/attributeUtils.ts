@@ -1,14 +1,13 @@
-'use strict';
-
-import * as SQS from 'aws-sdk/clients/sqs'
+import {MessageAttributeValue} from '@aws-sdk/client-sqs'
 import {isBoolean, isNumber, isString} from 'ts-type-guards';
+import {MessageBodyAttributeMap} from './Types';
 
 const EMPTY_OBJ = {};
 const STRING_TYPE = 'String';
 const NUMBER_TYPE = 'Number';
 const BINARY_TYPE = 'Binary';
 
-export type IMessageAttribute = number | string | SQS.Binary | undefined;
+export type IMessageAttribute = number | string | Uint8Array | undefined | boolean;
 
 export interface IMessageAttributes {
   FIFO_MessageDeduplicationId?: string;
@@ -17,16 +16,16 @@ export interface IMessageAttributes {
   [k: string]: IMessageAttribute;
 }
 
-export const parseMessageAttributes = (messageAttributes: SQS.MessageBodyAttributeMap | undefined)
+export const parseMessageAttributes = (messageAttributes: MessageBodyAttributeMap | undefined)
   : IMessageAttributes => {
-  const _messageAttributes = messageAttributes || EMPTY_OBJ as SQS.MessageBodyAttributeMap;
+  const _messageAttributes = messageAttributes || EMPTY_OBJ as MessageBodyAttributeMap;
   return Object.keys(_messageAttributes).reduce((parsedAttributes: IMessageAttributes, name: string) => {
     parsedAttributes[name] = parseAttributeValue(_messageAttributes[name]);
     return parsedAttributes;
   }, {});
 };
 
-const parseAttributeValue = (unparsedAttribute: SQS.MessageAttributeValue): IMessageAttribute => {
+const parseAttributeValue = (unparsedAttribute: MessageAttributeValue): IMessageAttribute => {
   const type = unparsedAttribute.DataType;
   const stringValue = unparsedAttribute.StringValue;
   const binaryValue = unparsedAttribute.BinaryValue;
@@ -42,18 +41,18 @@ const parseAttributeValue = (unparsedAttribute: SQS.MessageAttributeValue): IMes
 };
 
 export const createMessageAttributes = (messageAttributes: IMessageAttributes)
-  : SQS.MessageBodyAttributeMap | undefined => {
+  : MessageBodyAttributeMap | undefined => {
   const keys = Object.keys(messageAttributes);
   if (keys.length === 0) {
     return ;
   }
-  return Object.keys(messageAttributes).reduce((parsedAttributes: SQS.MessageBodyAttributeMap, name: string) => {
+  return Object.keys(messageAttributes).reduce((parsedAttributes: MessageBodyAttributeMap, name: string) => {
     parsedAttributes[name] = createAttributeValue(messageAttributes[name]);
     return parsedAttributes;
   }, {});
 };
 
-const createAttributeValue = (unparsedAttribute: IMessageAttribute): SQS.MessageAttributeValue => {
+const createAttributeValue = (unparsedAttribute: IMessageAttribute): MessageAttributeValue => {
   if (unparsedAttribute === undefined || unparsedAttribute === null) {
     unparsedAttribute = '';
   }

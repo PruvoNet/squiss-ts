@@ -1,23 +1,34 @@
-'use strict';
-
-import * as url from 'url';
 import {EventEmitter} from 'events';
 import {Message} from './Message';
 import {ITimeoutExtenderOptions, TimeoutExtender} from './TimeoutExtender';
 import {createMessageAttributes, IMessageAttributes} from './attributeUtils';
 import {isString} from 'ts-type-guards';
-import * as SQS from 'aws-sdk/clients/sqs'
-import * as S3 from 'aws-sdk/clients/s3'
+import {    ReceiveMessageCommandInput,
+    BatchResultErrorEntry,
+    SendMessageBatchRequestEntry,
+    SendMessageBatchResult,
+    SendMessageBatchResultEntry,
+    SendMessageBatchCommandInput,
+    SendMessageBatchCommandOutput,
+    SendMessageCommandInput,
+    SQSServiceException,
+    ReceiveMessageCommandOutput,
+    SQS, CreateQueueCommandInput,
+    GetQueueUrlCommandInput,
+    SendMessageCommandOutput,
+    Message as SQSMessage,DeleteMessageBatchCommandOutput
+} from '@aws-sdk/client-sqs'
+import {S3} from '@aws-sdk/client-s3'
 import {GZIP_MARKER, compressMessage} from './gzipUtils';
 import {S3_MARKER, uploadBlob} from './s3Utils';
 import {getMessageSize} from './messageSizeUtils';
-import {AWSError} from 'aws-sdk/lib/error'
-import {Request} from 'aws-sdk/lib/request'
 import {
     IMessageToSend, ISendMessageRequest,
     IDeleteQueueItem, IDeleteQueueItemById, optDefaults, SquissEmitter, ISquissOptions
 } from './Types';
 import {removeEmptyKeys} from './Utils';
+import { URL } from 'url';
+import {Endpoint, EndpointV2} from '@aws-sdk/types';
 
 const AWS_MAX_SEND_BATCH = 10;
 
@@ -43,7 +54,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _queueUrl: string;
     private _delQueue = new Map<string, IDeleteQueueItem>();
     private _delTimer: any;
-    private _activeReq: Request<SQS.Types.ReceiveMessageResult, AWSError> | undefined;
+    private _activeReq: AbortController | undefined;
 
     constructor(opts?: ISquissOptions | undefined) {
         super();
@@ -66,7 +77,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                         QueueUrl: queueUrl,
                         ReceiptHandle: receiptHandle,
                         VisibilityTimeout: timeoutInSeconds,
-                    }).promise();
+                    });
                 }
             )
             .then(() => {
@@ -78,7 +89,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (!this._opts.queueName) {
             return Promise.reject(new Error('Squiss was not instantiated with a queueName'));
         }
-        const params: SQS.Types.CreateQueueRequest = {
+        const params: CreateQueueCommandInput = {
             QueueName: this._opts.queueName,
             Attributes: {
                 ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs!.toString(),
@@ -93,7 +104,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (this._opts.queuePolicy) {
             params.Attributes!.Policy = this._opts.queuePolicy;
         }
-        return this.sqs.createQueue(params).promise().then((res) => {
+        return this.sqs.createQueue(params).then((res) => {
             this._queueUrl = res.QueueUrl!;
             return res.QueueUrl!;
         });
@@ -128,7 +139,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public deleteQueue(): Promise<void> {
         return this.getQueueUrl()
             .then((queueUrl) => {
-                return this.sqs.deleteQueue({QueueUrl: queueUrl}).promise();
+                return this.sqs.deleteQueue({QueueUrl: queueUrl});
             })
             .then(() => {
                 return Promise.resolve();
@@ -139,17 +150,38 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         if (this._queueUrl) {
             return Promise.resolve(this._queueUrl);
         }
-        const params: SQS.Types.GetQueueUrlRequest = {QueueName: this._opts.queueName!};
+        const params: GetQueueUrlCommandInput = {QueueName: this._opts.queueName!};
         if (this._opts.accountNumber) {
             params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString();
         }
-        return this.sqs.getQueueUrl(params).promise().then((data) => {
+        return this.sqs.getQueueUrl(params).then(async (data) => {
             this._queueUrl = data.QueueUrl!;
             if (this._opts.correctQueueUrl) {
-                const newUrl = url.parse(this.sqs.config.endpoint as string);
-                const parsedQueueUrl = url.parse(this._queueUrl);
+                let newUrl: URL | undefined;
+                const endpoint = this.sqs.config.endpoint;
+                /* istanbul ignore else  */
+                if (typeof endpoint === 'string') {
+                    newUrl = new URL(endpoint);
+                } else if (typeof endpoint === 'function') {
+                    const retrievedEndpoint = await endpoint();
+                    if (retrievedEndpoint && typeof retrievedEndpoint === 'object') {
+                        if ('url' in retrievedEndpoint) {
+                            newUrl = new URL((retrievedEndpoint as EndpointV2).url.toString());
+                        }
+                        if ('hostname' in retrievedEndpoint) {
+                            const { protocol, hostname, port, path } = retrievedEndpoint as Endpoint;
+                            // query params are ignored in setting endpoint.
+                            newUrl = new URL(`${protocol}//${hostname}${port ? ':' + port : ''}${path}`);
+                        }
+                    }
+                }
+                /* istanbul ignore if */
+                if (!newUrl) {
+                    throw new Error(`Failed to get configured SQQ endpoint`);
+                }
+                const parsedQueueUrl = new URL(this._queueUrl);
                 newUrl.pathname = parsedQueueUrl.pathname;
-                this._queueUrl = url.format(newUrl);
+                this._queueUrl = newUrl.toString();
             }
             return this._queueUrl;
         });
@@ -163,7 +195,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             return this.sqs.getQueueAttributes({
                 AttributeNames: ['VisibilityTimeout'],
                 QueueUrl: queueUrl,
-            }).promise();
+            });
         }).then((res) => {
             if (!res.Attributes || !res.Attributes.VisibilityTimeout) {
                 throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
@@ -182,7 +214,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             return this.sqs.getQueueAttributes({
                 AttributeNames: ['MaximumMessageSize'],
                 QueueUrl: queueUrl,
-            }).promise();
+            });
         }).then((res) => {
             if (!res.Attributes || !res.Attributes.MaximumMessageSize) {
                 throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
@@ -219,7 +251,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     public purgeQueue(): Promise<void> {
         return this.getQueueUrl()
             .then((queueUrl) => {
-                return this.sqs.purgeQueue({QueueUrl: queueUrl}).promise();
+                return this.sqs.purgeQueue({QueueUrl: queueUrl});
             })
             .then(() => {
                 this._inFlight = 0;
@@ -230,7 +262,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     public sendMessage(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
-        : Promise<SQS.Types.SendMessageResult> {
+        : Promise<SendMessageCommandOutput> {
         return Promise.all([
             this._prepareMessageRequest(message, delay, attributes),
             this.getQueueUrl(),
@@ -238,17 +270,17 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             .then((data) => {
                 const rawParams = data[0];
                 const queueUrl = data[1];
-                const params: SQS.Types.SendMessageRequest = {
+                const params: SendMessageCommandInput = {
                     QueueUrl: queueUrl,
                     ...rawParams,
                 };
-                return this.sqs.sendMessage(params).promise();
+                return this.sqs.sendMessage(params);
             });
     }
 
     public sendMessages(messages: IMessageToSend[] | IMessageToSend, delay?: number,
                         attributes?: IMessageAttributes | IMessageAttributes[])
-        : Promise<SQS.Types.SendMessageBatchResult> {
+        : Promise<SendMessageBatchResult> {
         return this.getQueueMaximumMessageSize()
             .then((queueMaximumMessageSize) => {
                 return this._prepareMessagesToSend(messages, queueMaximumMessageSize, delay, attributes);
@@ -259,12 +291,13 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 }));
             })
             .then((results) => {
-                const merged: SQS.Types.SendMessageBatchResult = {Successful: [], Failed: []};
+                const successful: SendMessageBatchResultEntry[] = [];
+                const failed: BatchResultErrorEntry[] = [];
                 results.forEach((res) => {
-                    res.Successful.forEach((elem) => merged.Successful.push(elem));
-                    res.Failed.forEach((elem) => merged.Failed.push(elem));
+                    res.Successful?.forEach((elem) => successful.push(elem));
+                    res.Failed?.forEach((elem) => failed.push(elem));
                 });
-                return merged;
+                return {Successful: successful, Failed: failed};
             });
     }
 
@@ -314,12 +347,13 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _initS3() {
         if (this._opts.S3) {
             if (typeof this._opts.S3 === 'function') {
-                return new this._opts.S3(this._opts.awsConfig);
+                return new this._opts.S3(this._opts.awsConfig || {});
             } else {
                 return this._opts.S3;
             }
         } else {
-            return new S3(this._opts.awsConfig);
+            /* istanbul ignore next */
+            return new S3(this._opts.awsConfig || {});
         }
     }
 
@@ -346,14 +380,14 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                         ReceiptHandle: item.ReceiptHandle,
                     };
                 }),
-            }).promise();
+            });
         }).then(this._handleBatchDeleteResults(batch))
             .catch((err: Error) => {
                 this.emit('error', err);
             });
     }
 
-    private _emitMessages(messages: SQS.MessageList): void {
+    private _emitMessages(messages: SQSMessage[]): void {
         messages.forEach((msg) => {
             const message = new Message({
                 squiss: this,
@@ -384,17 +418,20 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             this._paused = true;
             return;
         }
-        const params: SQS.Types.ReceiveMessageRequest = removeEmptyKeys({
+        const params: ReceiveMessageCommandInput = removeEmptyKeys({
             QueueUrl: queueUrl, MaxNumberOfMessages: maxMessagesToGet,
             WaitTimeSeconds: this._opts.receiveWaitTimeSecs,
             MessageAttributeNames: this._opts.receiveAttributes,
             AttributeNames: this._opts.receiveSqsAttributes,
             VisibilityTimeout: this._opts.visibilityTimeoutSecs,
         });
-        this._activeReq = this.sqs.receiveMessage(params);
-        this._activeReq.promise().then(this._handleGetBatchResult(queueUrl)).catch((err: AWSError) => {
+        const controller = new AbortController();
+        this._activeReq = controller;
+        this.sqs.receiveMessage(params, {
+            abortSignal: controller.signal,
+        }).then(this._handleGetBatchResult(queueUrl)).catch((err: SQSServiceException) => {
             this._activeReq = undefined;
-            if (err.code && err.code === 'RequestAbortedError') {
+            if (err.name === 'AbortError') {
                 this.emit('aborted', err);
             } else {
                 setTimeout(this._getBatch.bind(this, queueUrl), this._opts.pollRetryMs);
@@ -425,24 +462,25 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     private _sendMessageBatch(messages: ISendMessageRequest[], delay: number | undefined, startIndex: number):
-        Promise<SQS.Types.SendMessageBatchResult> {
+        Promise<SendMessageBatchCommandOutput> {
         const start = startIndex || 0;
         return this.getQueueUrl().then((queueUrl) => {
-            const params: SQS.Types.SendMessageBatchRequest = {
+            const entries: SendMessageBatchRequestEntry[] = [];
+            const params: SendMessageBatchCommandInput = {
                 QueueUrl: queueUrl,
-                Entries: [],
+                Entries: entries,
             };
             const promises: Promise<void>[] = [];
             messages.forEach((msg, idx) => {
-                const entry: SQS.Types.SendMessageBatchRequestEntry = {
+                const entry: SendMessageBatchRequestEntry = {
                     Id: (start + idx).toString(),
                     ...msg,
                 };
-                params.Entries.push(entry);
+                entries.push(entry);
             });
             return Promise.all(promises)
                 .then(() => {
-                    return this.sqs.sendMessageBatch(params).promise();
+                    return this.sqs.sendMessageBatch(params);
                 });
         });
     }
@@ -547,12 +585,12 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _initSqs() {
         if (this._opts.SQS) {
             if (typeof this._opts.SQS === 'function') {
-                return new this._opts.SQS(this._opts.awsConfig);
+                return new this._opts.SQS(this._opts.awsConfig || {});
             } else {
                 return this._opts.SQS;
             }
         } else {
-            return new SQS(this._opts.awsConfig);
+            return new SQS(this._opts.awsConfig || {});
         }
     }
 
@@ -561,20 +599,25 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             prevByValue[item.Id] = item;
             return prevByValue;
         }, {} as IDeleteQueueItemById);
-        return (data: SQS.DeleteMessageBatchResult) => {
-            if (data.Failed && data.Failed.length) {
+        return (data: DeleteMessageBatchCommandOutput) => {
+            if (data.Failed?.length) {
                 data.Failed.forEach((fail) => {
-                    this.emit('delError', {error: fail, message: itemById[fail.Id].msg});
-                    itemById[fail.Id].msg.emit('delError', fail);
-                    itemById[fail.Id].reject(fail);
+                    /* istanbul ignore next */
+                    const item = itemById[fail.Id ?? ''];
+                    this.emit('delError', {error: fail, message: item.msg});
+                    item.msg.emit('delError', fail);
+                    item.reject(fail);
                 });
             }
-            if (data.Successful && data.Successful.length) {
+            if (data.Successful?.length) {
                 data.Successful.forEach((success) => {
-                    const msg = itemById[success.Id].msg;
-                    this.emit('deleted', {msg, successId: success.Id});
-                    msg.emit('deleted', success.Id);
-                    itemById[success.Id].resolve();
+                    /* istanbul ignore next */
+                    const id = success.Id ?? '';
+                    const item = itemById[id];
+                    const msg = item.msg;
+                    this.emit('deleted', {msg, successId: id});
+                    msg.emit('deleted', id);
+                    item.resolve();
                 });
             }
         };
@@ -609,7 +652,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     }
 
     private _handleGetBatchResult(queueUrl: string) {
-        return (data: SQS.Types.ReceiveMessageResult) => {
+        return (data: ReceiveMessageCommandOutput) => {
             let gotMessages = true;
             this._activeReq = undefined;
             if (data && data.Messages) {

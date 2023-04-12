@@ -1,6 +1,5 @@
-'use strict';
-
-import {IMessageAttributes, Message, Squiss, SQS, S3} from '../../';
+import {IMessageAttributes, Message, Squiss, S3} from '../../';
+import {Message as SQSMessage} from '@aws-sdk/client-sqs';
 import {SquissStub} from '../stubs/SquissStub';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
@@ -16,7 +15,7 @@ const getS3Stub = (blobs?: Blobs) => {
   return () => stub;
 };
 
-function getSQSMsg(body?: string): SQS.Message {
+function getSQSMsg(body?: string): SQSMessage {
   return {
     MessageId: 'msgId',
     ReceiptHandle: 'handle',

@@ -1,5 +1,3 @@
-'use strict';
-
 import {getMessageSize} from '../../messageSizeUtils';
 
 describe('message size utils', () => {

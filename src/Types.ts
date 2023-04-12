@@ -1,10 +1,6 @@
-'use strict';
-
 import {Message} from './Message';
-import * as SQS from 'aws-sdk/clients/sqs'
-import * as S3 from 'aws-sdk/clients/s3'
-import {AWSError} from 'aws-sdk/lib/error'
-import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
+import {SQSClientConfig, BatchResultErrorEntry, SQS, SQSServiceException, MessageAttributeValue} from '@aws-sdk/client-sqs'
+import {S3, S3ClientConfig} from '@aws-sdk/client-s3'
 import {IS3Upload} from './s3Utils';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
 import {EventEmitter} from 'events';
@@ -16,7 +12,7 @@ export interface IMessageDeletedEventPayload {
 
 export interface IMessageErrorEventPayload {
     message: Message;
-    error: AWSError;
+    error: SQSServiceException;
 }
 
 export interface IMessageDeleteErrorEventPayload {
@@ -29,10 +25,12 @@ export interface IMessageS3EventPayload {
     data: IS3Upload;
 }
 
+export type MessageBodyAttributeMap = Record<string, MessageAttributeValue>;
+
 export interface ISendMessageRequest {
     MessageBody: string;
     DelaySeconds?: number;
-    MessageAttributes?: SQS.MessageBodyAttributeMap;
+    MessageAttributes?: MessageBodyAttributeMap;
     MessageDeduplicationId?: string;
     MessageGroupId?: string;
 }
@@ -68,7 +66,7 @@ export interface ISquissOptions {
     autoExtendTimeout?: boolean;
     SQS?: SQS | typeof SQS;
     S3?: S3 | typeof S3;
-    awsConfig?: SQS.Types.ClientConfiguration;
+    awsConfig?: SQSClientConfig & S3ClientConfig;
     queueUrl?: string;
     queueName?: string;
     visibilityTimeoutSecs?: number;
@@ -136,7 +134,7 @@ export interface ISquissEvents {
     deleted: IMessageDeletedEventPayload;
     gotMessages: number;
     error: Error;
-    aborted: AWSError;
+    aborted: SQSServiceException;
     delError: IMessageDeleteErrorEventPayload;
     autoExtendFail: IMessageErrorEventPayload;
     autoExtendError: IMessageErrorEventPayload;

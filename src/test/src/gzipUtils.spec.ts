@@ -1,5 +1,3 @@
-'use strict';
-
 import {decompressMessage, compressMessage} from '../../gzipUtils';
 
 describe('gzip utils', () => {
