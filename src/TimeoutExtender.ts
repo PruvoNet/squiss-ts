@@ -1,10 +1,8 @@
-'use strict';
-
 import {Squiss} from './index';
 import {Message} from './Message';
 import * as LinkedList from 'linked-list';
 import {Item} from 'linked-list';
-import {AWSError} from 'aws-sdk/lib/error';
+import {SQSServiceException} from '@aws-sdk/client-sqs';
 
 const MAX_MESSAGE_AGE_MS = 43200000;
 
@@ -125,8 +123,9 @@ export class TimeoutExtender {
         node.message.emit('timeoutExtended');
         this._squiss.emit('timeoutExtended', node.message);
       })
-      .catch((err: AWSError) => {
-        if (err.message.match(/Message does not exist or is not available/)) {
+      .catch((err: SQSServiceException) => {
+        if (err.name === 'ReceiptHandleIsInvalid' || err.name === 'MessageNotInflight' ||
+            err.message.match(/Message does not exist or is not available/)) {
           this._deleteNode(node);
           node.message.emit('autoExtendFail', err);
           this._squiss.emit('autoExtendFail', {message: node.message, error: err});

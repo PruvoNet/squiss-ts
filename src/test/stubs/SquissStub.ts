@@ -1,5 +1,3 @@
-'use strict';
-
 import {EventEmitter} from 'events';
 
 export class SquissStub extends EventEmitter {

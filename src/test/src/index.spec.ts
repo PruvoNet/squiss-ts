@@ -1,5 +1,3 @@
-'use strict';
-
 import * as proxyquire from 'proxyquire';
 
 const uuidStub = () => {
@@ -22,8 +20,8 @@ import {IMessageOpts } from '../../Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';
-import * as SQS from 'aws-sdk/clients/sqs'
-import * as S3 from 'aws-sdk/clients/s3'
+import {GetQueueUrlCommandInput, SendMessageBatchResult, SQS} from '@aws-sdk/client-sqs'
+import {S3} from '@aws-sdk/client-s3'
 import {EventEmitter} from 'events';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 
@@ -81,7 +79,7 @@ describe('index', () => {
       }
       errored.should.eql(true);
     });
-    it('provides a configured sqs client instance', () => {
+    it('provides a configured sqs client instance', async () => {
       inst = new SquissPatched({
         queueUrl: 'foo',
         awsConfig: {
@@ -90,9 +88,9 @@ describe('index', () => {
       } as ISquissOptions);
       inst!.should.have.property('sqs');
       inst!.sqs.should.be.an('object');
-      inst!.sqs.config.region!.should.equal('us-east-1');
+      (await inst!.sqs.config.region()).should.equal('us-east-1');
     });
-    it('provides a configured s3 client instance', () => {
+    it('provides a configured s3 client instance', async () => {
       inst = new SquissPatched({
         queueUrl: 'foo',
         awsConfig: {
@@ -101,7 +99,7 @@ describe('index', () => {
       } as ISquissOptions);
       const s3 = inst!.getS3();
       s3.should.be.an('object');
-      s3.config.region!.should.equal('us-east-1');
+      (await s3.config.region()).should.equal('us-east-1');
     });
     it('accepts an sqs function for instantiation if one is provided', () => {
       const spy = sinon.spy();
@@ -727,10 +725,7 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       (inst!.sqs as any as SQSStub).deleteMessageBatch = () => {
-        return {
-          promise: () => Promise.reject(new Error('test')),
-          abort: () => Promise.reject(new Error('test')),
-        };
+        return Promise.reject(new Error('test'));
       };
       inst!.on('error', spy);
       const msg = new EventEmitter() as any;
@@ -749,11 +744,7 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1) as any as SQS;
       (inst!.sqs as any as SQSStub).receiveMessage = () => {
-        return {
-          promise: () => Promise.reject(new Error('test')),
-          abort: () => {
-          },
-        };
+        return Promise.reject(new Error('test'));
       };
       inst!.on('error', spy);
       inst!.start();
@@ -769,11 +760,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub(2) as any as SQS;
       (sinon.stub(inst!.sqs, 'receiveMessage').callsFake(() => {
         ((inst!.sqs as any as SQSStub).receiveMessage as any).restore();
-        return {
-          promise: () => Promise.reject(new Error('test')),
-          abort: () => {
-          },
-        };
+        return Promise.reject(new Error('test'));
       }));
       inst!.on('message', msgSpy);
       inst!.on('error', errSpy);
@@ -786,11 +773,8 @@ describe('index', () => {
     it('emits error when GetQueueURL call fails', () => {
       const spy = sinon.spy();
       inst = new SquissPatched({queueName: 'foo'} as ISquissOptions);
-      (inst!.sqs as any as SQSStub).getQueueUrl = (params: SQS.GetQueueUrlRequest) => {
-        return {
-          promise: () => Promise.reject(new Error('test')),
-          abort: () => Promise.reject(new Error('test')),
-        };
+      (inst!.sqs as any as SQSStub).getQueueUrl = (params: GetQueueUrlCommandInput) => {
+        return Promise.reject(new Error('test'));
       };
       inst!.on('error', spy);
       inst!.start();
@@ -1001,7 +985,7 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       (inst!.sqs as any as SQSStub).getQueueAttributes = sinon.stub().returns({
-        promise: () => ({foo: 'bar'}),
+        foo: 'bar',
       });
       return inst!.getQueueVisibilityTimeout().should.be.rejectedWith(/foo/);
     });
@@ -1039,7 +1023,7 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       (inst!.sqs as any as SQSStub).getQueueAttributes = sinon.stub().returns({
-        promise: () => ({foo: 'bar'}),
+        foo: 'bar',
       });
       return inst!.getQueueMaximumMessageSize().should.be.rejectedWith(/foo/);
     });
@@ -1576,7 +1560,7 @@ describe('index', () => {
       inst = new SquissPatched({queueUrl: 'foo'});
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
-      return inst!.sendMessages('bar').then((res: SQS.Types.SendMessageBatchResult) => {
+      return inst!.sendMessages('bar').then((res: SendMessageBatchResult) => {
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueUrl: 'foo',
@@ -1585,7 +1569,7 @@ describe('index', () => {
           ],
         });
         res.should.have.property('Successful').with.length(1);
-        res.Successful[0].should.have.property('Id').equal('0');
+        res.Successful![0].should.have.property('Id').equal('0');
       });
     });
     it('sends a single JSON message with no extra arguments', () => {
@@ -1735,7 +1719,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
-      return inst!.sendMessages(msgs).then((res: SQS.Types.SendMessageBatchResult) => {
+      return inst!.sendMessages(msgs).then((res: SendMessageBatchResult) => {
         spy.should.be.calledTwice();
         (inst!.sqs as any as SQSStub).msgs.length.should.equal(15);
         res.should.have.property('Successful').with.length(15);
@@ -1748,7 +1732,7 @@ describe('index', () => {
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.');
       msgs.unshift(generateLargeMessage(300));
-      return inst!.sendMessages(msgs).then((res: SQS.Types.SendMessageBatchResult) => {
+      return inst!.sendMessages(msgs).then((res: SendMessageBatchResult) => {
         spy.should.be.calledThrice();
         (inst!.sqs as any as SQSStub).msgs.length.should.equal(16);
         res.should.have.property('Successful').with.length(16);
@@ -1760,7 +1744,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub() as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'sendMessageBatch');
       const msgs = 'a.FAIL.c.d.e.f.g.h.i.j.k.l.m.n.FAIL'.split('.');
-      return inst!.sendMessages(msgs).then((res: SQS.Types.SendMessageBatchResult) => {
+      return inst!.sendMessages(msgs).then((res: SendMessageBatchResult) => {
         spy.should.be.calledTwice();
         (inst!.sqs as any as SQSStub).msgs.length.should.equal(13);
         res.should.have.property('Successful').with.length(13);

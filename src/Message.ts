@@ -1,20 +1,16 @@
-'use strict';
-
-import * as SQS from 'aws-sdk/clients/sqs'
-import * as S3 from 'aws-sdk/clients/s3'
-import {AWSError} from 'aws-sdk/lib/error'
+import {BatchResultErrorEntry, Message as SQSMessage, SQSServiceException} from '@aws-sdk/client-sqs'
+import {S3} from '@aws-sdk/client-s3'
 import {BodyFormat, Squiss} from '.';
 import {IMessageAttributes, parseMessageAttributes} from './attributeUtils';
 import {EventEmitter} from 'events';
 import {GZIP_MARKER, decompressMessage} from './gzipUtils';
 import {deleteBlob, getBlob, IS3Upload, S3_MARKER} from './s3Utils';
-import {BatchResultErrorEntry} from 'aws-sdk/clients/sqs';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
 
 const EMPTY_BODY = '{}';
 
 export interface IMessageOpts {
-    msg: SQS.Message;
+    msg: SQSMessage;
     unwrapSns?: boolean;
     bodyFormat?: BodyFormat;
     squiss: Squiss;
@@ -38,8 +34,8 @@ interface IMessageEvents {
     keep: void;
     delError: BatchResultErrorEntry;
     deleted: string;
-    autoExtendFail: AWSError;
-    autoExtendError: AWSError;
+    autoExtendFail: SQSServiceException;
+    autoExtendError: SQSServiceException;
     s3Download: IS3Upload;
     s3Delete: IS3Upload;
 }
@@ -56,7 +52,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
         }
     }
 
-    public raw: SQS.Message;
+    public raw: SQSMessage;
     public body?: string | any;
     public subject?: string;
     public topicArn?: string;
@@ -152,7 +148,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
         if (!this._handled) {
             this._handled = true;
             return this._squiss.releaseMessage(this)
-                .catch((e) => {
+                .catch(() => {
                     this._handled = false;
                 });
         }

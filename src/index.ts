@@ -1,9 +1,7 @@
-'use strict';
-
 /* istanbul ignore file */
-import * as SQS from 'aws-sdk/clients/sqs'
+import {SQS} from '@aws-sdk/client-sqs'
 export {SQS}
-import * as S3 from 'aws-sdk/clients/s3'
+import {S3} from '@aws-sdk/client-s3'
 export {S3}
 export {Squiss} from './Squiss';
 export {
