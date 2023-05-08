@@ -48,7 +48,7 @@
   },
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.310.0",
+    "@aws-sdk/client-s3": "^3.312.0",
     "@aws-sdk/client-sqs": "^3.312.0",
     "@aws-sdk/types": "^3.310.0",
     "linked-list": "^2.1.0",
