@@ -1,11 +1,11 @@
 {
   "name": "squiss-ts",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "High-volume SQS poller",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": "^16 || ^18|| ^19"
+    "node": "^16 || ^18 || ^20"
   },
   "scripts": {
     "clean": "rm -rf .nyc_output coverage dist",
