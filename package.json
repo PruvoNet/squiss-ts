@@ -52,7 +52,7 @@
     "@aws-sdk/client-sqs": "^3.312.0",
     "@aws-sdk/types": "^3.310.0",
     "linked-list": "^2.1.0",
-    "semver": "7.4.0",
+    "semver": "7.5.0",
     "ts-type-guards": "^0.7.0",
     "uuid": "^9.0.0"
   },
