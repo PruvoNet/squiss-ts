@@ -544,6 +544,7 @@
     "@aws-sdk/types" "3.342.0"
     tslib "^2.5.0"
 
+
 "@aws-sdk/credential-provider-node@3.328.0":
   version "3.328.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/credential-provider-node/-/credential-provider-node-3.328.0.tgz#d0414f50d6717c5358b667aa2b1273e31dd2f56b"
@@ -784,6 +785,7 @@
     "@aws-sdk/util-utf8" "3.310.0"
     tslib "^2.5.0"
 
+
 "@aws-sdk/middleware-bucket-endpoint@3.342.0":
   version "3.342.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-bucket-endpoint/-/middleware-bucket-endpoint-3.342.0.tgz#d8a1a36781de64e50820d29e4f51fa294fa4451d"
@@ -794,6 +796,7 @@
     "@aws-sdk/util-arn-parser" "3.310.0"
     "@aws-sdk/util-config-provider" "3.310.0"
     tslib "^2.5.0"
+
 
 "@aws-sdk/middleware-content-length@3.325.0":
   version "3.325.0"
@@ -972,6 +975,7 @@
     "@aws-sdk/types" "3.310.0"
     tslib "^2.5.0"
 
+
 "@aws-sdk/middleware-sdk-sts@3.342.0":
   version "3.342.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-sts/-/middleware-sdk-sts-3.342.0.tgz#99bd8ac1f39ea8baa30e5e36d5a874e89595c74f"
@@ -1020,6 +1024,7 @@
     "@aws-sdk/types" "3.342.0"
     "@aws-sdk/util-middleware" "3.342.0"
     tslib "^2.5.0"
+
 
 "@aws-sdk/middleware-ssec@3.342.0":
   version "3.342.0"
@@ -1072,6 +1077,7 @@
     "@aws-sdk/shared-ini-file-loader" "3.310.0"
     "@aws-sdk/types" "3.310.0"
     tslib "^2.5.0"
+
 
 "@aws-sdk/node-config-provider@3.342.0":
   version "3.342.0"
@@ -1171,6 +1177,7 @@
     "@aws-sdk/types" "3.342.0"
     tslib "^2.5.0"
 
+
 "@aws-sdk/service-error-classification@3.327.0":
   version "3.327.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/service-error-classification/-/service-error-classification-3.327.0.tgz#835afb8215b1c6c2b9f005582c8f39b987879686"
@@ -1242,6 +1249,7 @@
     "@aws-sdk/middleware-stack" "3.325.0"
     "@aws-sdk/types" "3.310.0"
     tslib "^2.5.0"
+
 
 "@aws-sdk/smithy-client@3.342.0":
   version "3.342.0"
@@ -1369,6 +1377,7 @@
     "@aws-sdk/types" "3.342.0"
     bowser "^2.11.0"
     tslib "^2.5.0"
+
 
 "@aws-sdk/util-defaults-mode-node@3.325.0":
   version "3.325.0"
@@ -3076,10 +3085,10 @@ safe-buffer@^5.1.0:
   resolved "https://registry.yarnpkg.com/safe-buffer/-/safe-buffer-5.2.1.tgz#1eaf9fa9bdb1fdd4ec75f58f9cdb4e6b7827eec6"
   integrity sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==
 
-semver@7.4.0:
-  version "7.4.0"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.4.0.tgz#8481c92feffc531ab1e012a8ffc15bdd3a0f4318"
-  integrity sha512-RgOxM8Mw+7Zus0+zcLEUn8+JfoLpj/huFTItQy2hsM4khuC1HYRDp0cU482Ewn/Fcy6bCjufD8vAj7voC66KQw==
+semver@7.5.0:
+  version "7.5.0"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.5.0.tgz#ed8c5dc8efb6c629c88b23d41dc9bf40c1d96cd0"
+  integrity sha512-+XC0AD/R7Q2mPSRuy2Id0+CGTZ98+8f+KvwirxOKIEyid+XSx6HbC63p+O4IndTHuX5Z+JxQ0TghCkO5Cg/2HA==
   dependencies:
     lru-cache "^6.0.0"
 
