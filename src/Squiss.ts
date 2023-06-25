@@ -229,7 +229,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         this._inFlight--;
         if (this._paused && this._slotsAvailable()) {
             this._paused = false;
-            this._startPoller();
+            this._startPoller()
+                .catch((e: Error) => {
+                    this.emit('error', e);
+                });
         }
         msg.emit('handled');
         this.emit('handled', msg);
@@ -492,10 +495,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _startPoller(): Promise<void> {
         return this._initTimeoutExtender()
             .then(() => this.getQueueUrl())
-            .then((queueUrl) => this._getBatch(queueUrl))
-            .catch((e: Error) => {
-                this.emit('error', e);
-            });
+            .then((queueUrl): void => {
+                this._getBatch(queueUrl);
+            })
     }
 
     private _deleteXMessages(x?: number) {

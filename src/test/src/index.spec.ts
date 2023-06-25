@@ -20,10 +20,11 @@ import {IMessageOpts } from '../../Message';
 // @ts-ignore
 import * as sinon from 'sinon';
 import * as chai from 'chai';
-import {GetQueueUrlCommandInput, SendMessageBatchResult, SQS} from '@aws-sdk/client-sqs'
+import {GetQueueUrlCommandInput, ReceiveMessageRequest, SendMessageBatchResult, SQS} from '@aws-sdk/client-sqs'
 import {S3} from '@aws-sdk/client-s3'
 import {EventEmitter} from 'events';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
+import {HttpHandlerOptions} from '@aws-sdk/types';
 
 const should = chai.should();
 let inst: Squiss | null = null;
@@ -479,6 +480,33 @@ describe('index', () => {
         inst!.inFlight.should.equal(3);
       });
     });
+    it('emits error when start polling fails', () => {
+      const errorSpy = sinon.spy();
+      inst = new SquissPatched({queueUrl: 'foo', deleteWaitMs: 1, maxInFlight: 5} as ISquissOptions);
+      const sqsStub =  new SQSStub(5);
+      inst!.sqs = sqsStub as any as SQS;
+      let receiveMessageCallCount = 0;
+      const originalReceiveMessage = sqsStub.receiveMessage;
+      sqsStub.receiveMessage = (params?: ReceiveMessageRequest, opts?: HttpHandlerOptions) => {
+        receiveMessageCallCount++;
+        if (receiveMessageCallCount === 2) {
+         throw new Error('test');
+        }
+        return originalReceiveMessage.call(sqsStub, params, opts);
+      };
+      inst!.on('error', errorSpy);
+      return inst!.start()
+          .then(() => wait())
+          .then(async  () => {
+            inst!.inFlight.should.equal(5);
+            await inst!.handledMessage(new EventEmitter() as any);
+            await wait(1);
+          }).then(() => {
+            inst!.inFlight.should.equal(4);
+            errorSpy.should.be.calledOnce();
+            errorSpy.should.be.calledWith(sinon.match.instanceOf(Error));
+          });
+    });
     it('pauses polling when maxInFlight is reached; resumes after', () => {
       const msgSpy = sinon.spy();
       const maxSpy = sinon.spy();
@@ -770,18 +798,12 @@ describe('index', () => {
         msgSpy.should.be.calledTwice();
       });
     });
-    it('emits error when GetQueueURL call fails', () => {
-      const spy = sinon.spy();
+    it('throws error when GetQueueURL call fails on start', () => {
       inst = new SquissPatched({queueName: 'foo'} as ISquissOptions);
       (inst!.sqs as any as SQSStub).getQueueUrl = (params: GetQueueUrlCommandInput) => {
         return Promise.reject(new Error('test'));
       };
-      inst!.on('error', spy);
-      inst!.start();
-      return wait().then(() => {
-        spy.should.be.calledOnce();
-        spy.should.be.calledWith(sinon.match.instanceOf(Error));
-      });
+      return inst!.start().should.be.rejected('not rejected');
     });
   });
   describe('Testing', () => {
