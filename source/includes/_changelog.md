@@ -5,6 +5,31 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v5.2.1
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.0...v5.2.1)
+
+### Fixed
+
+- failed start doesn't throw (#140)
+
+## v5.2.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v5.1.0...v5.2.0)
+
+### Added
+
+- upgrade dependencies
+
+## v5.1.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v5.0.0...v5.1.0)
+
+### Added
+
+- support for node 20 (#132)
+- upgrade dependencies (#130, #131)
+
 ## v5.0.0
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v4.4.1...v5.0.0)
