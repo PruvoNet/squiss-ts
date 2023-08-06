@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v5.2.2
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.1...v5.2.2)
+
+### Fixed
+
+- Stopping a queue should delete all pending messages immediately (#146)
+
+
 ## v5.2.1
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.0...v5.2.1)
