@@ -387,22 +387,31 @@ describe('index', () => {
     });
     it('should resolve when queue already drained', () => {
       const spy = sinon.spy();
+      const deleteSpy = sinon.spy();
       inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
-      inst!.sqs = new SQSStub(0, 1000) as any as SQS;
+      inst!.sqs = new SQSStub(1, 1000) as any as SQS;
       inst!.on('aborted', spy);
+      inst!.on('deleted', deleteSpy);
+      inst!.on('message', (msg: Message) => {
+        msg.del();
+      });
       inst!.start();
       return wait().then(() => {
         spy.should.not.be.called();
+        deleteSpy.should.not.be.called();
         return inst!.stop(false, 1000);
       }).then((result: boolean) => {
+        deleteSpy.should.be.called();
         result.should.eq(true);
       });
     });
     it('should resolve when queue drained before timeout', () => {
       const spy = sinon.spy();
+      const deleteSpy = sinon.spy();
       inst = new SquissPatched({queueUrl: 'foo'} as ISquissOptions);
       inst!.sqs = new SQSStub(1, 1000) as any as SQS;
       inst!.on('aborted', spy);
+      inst!.on('deleted', deleteSpy);
       inst!.on('message', (msg: Message) => {
         setTimeout(() => {
           msg.del();
@@ -411,8 +420,10 @@ describe('index', () => {
       inst!.start();
       return wait().then(() => {
         spy.should.not.be.called();
+        deleteSpy.should.not.be.called();
         return inst!.stop(false, 10000);
       }).then((result: boolean) => {
+        deleteSpy.should.be.called();
         result.should.eq(true);
       });
     });

@@ -110,9 +110,9 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         });
     }
 
-    public deleteMessage(msg: Message): Promise<void> {
+    public async deleteMessage(msg: Message): Promise<void> {
         if (!msg.raw) {
-            return Promise.reject(new Error('Squiss.deleteMessage requires a Message object'));
+            throw new Error('Squiss.deleteMessage requires a Message object');
         }
         const promise = new Promise<void>((resolve, reject) => {
             this._delQueue.set(msg.raw.MessageId!,
@@ -126,11 +126,11 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 clearTimeout(this._delTimer);
                 this._delTimer = undefined;
             }
-            this._deleteXMessages(this._opts.deleteBatchSize);
+            await this._deleteXMessages(this._opts.deleteBatchSize);
         } else if (!this._delTimer) {
-            this._delTimer = setTimeout(() => {
+            this._delTimer = setTimeout(async () => {
                 this._delTimer = undefined;
-                this._deleteXMessages();
+                await this._deleteXMessages();
             }, this._opts.deleteWaitMs);
         }
         return promise;
@@ -312,18 +312,19 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return this._startPoller();
     }
 
-    public stop(soft?: boolean, timeout?: number): Promise<boolean> {
+    public async stop(soft?: boolean, timeout?: number): Promise<boolean> {
         if (!soft && this._activeReq) {
             this._activeReq.abort();
         }
         this._running = this._paused = false;
         if (!this._inFlight) {
-            return Promise.resolve(true);
+            await this._drainDeleteQueue();
+            return true;
         }
         let resolved = false;
         let timer: any;
-        return new Promise((resolve) => {
-            this.on('drained', () => {
+        const result = await new Promise<boolean>(async (resolve) => {
+            this.on('drained',() => {
                 if (!resolved) {
                     resolved = true;
                     if (timer) {
@@ -338,6 +339,8 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 resolve(false);
             }, timeout) : undefined;
         });
+        await this._drainDeleteQueue();
+        return result;
     }
 
     public getS3(): S3 {
@@ -345,6 +348,14 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             this._s3 = this._initS3();
         }
         return this._s3;
+    }
+
+    private async _drainDeleteQueue(): Promise<void> {
+        if (this._delTimer) {
+            clearTimeout(this._delTimer);
+            this._delTimer = undefined;
+        }
+        await this._deleteXMessages();
     }
 
     private _initS3() {
@@ -500,7 +511,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             })
     }
 
-    private _deleteXMessages(x?: number) {
+    private async _deleteXMessages(x?: number): Promise<void> {
         const delQueue = this._delQueue;
         const iterator = delQueue.entries();
         const delBatch = Array.from({length: x || delQueue.size}, function(this: typeof iterator) {
@@ -508,7 +519,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             delQueue.delete(element[0]);
             return element[1];
         }, iterator);
-        this._deleteMessages(delBatch);
+        await this._deleteMessages(delBatch);
     }
 
     private _isLargeMessage(message: ISendMessageRequest, minSize?: number): Promise<boolean> {
