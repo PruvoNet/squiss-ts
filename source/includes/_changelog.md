@@ -12,7 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Stopping a queue should delete all pending messages immediately (#146)
-
+- upgrade @aws-sdk/types from 3.357.0 to 3.369.0 (#145)
+- upgrade @aws-sdk/client-s3 from 3.359.0 to 3.362.0 (#144)
+- upgrade @aws-sdk/client-sqs from 3.359.0 to 3.360.0 (#143)
+- Bump semver from 5.7.1 to 5.7.2 (#141)
 
 ## v5.2.1
 
