@@ -125,7 +125,9 @@ export class TimeoutExtender {
       })
       .catch((err: SQSServiceException) => {
         if (err.name === 'ReceiptHandleIsInvalid' || err.name === 'MessageNotInflight' ||
-            err.message.match(/Message does not exist or is not available/)) {
+            err.message.match(/message does not exist or is not available/i) ||
+            err.message.match(/the receipt handle has expired/i) ||
+            err.message.match(/not a valid receipt handle/i)) {
           this._deleteNode(node);
           node.message.emit('autoExtendFail', err);
           this._squiss.emit('autoExtendFail', {message: node.message, error: err});

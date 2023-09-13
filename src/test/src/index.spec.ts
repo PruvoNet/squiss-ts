@@ -9,7 +9,7 @@ const stubs = {
     '@global': true,
   },
 };
-// tslint:disable-next-line
+// eslint-disable-next-line
 const {Squiss: SquissPatched, Message: MessagePatched} = proxyquire('../../', stubs);
 
 import {ISquissOptions, Squiss} from '../../';
