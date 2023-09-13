@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v5.2.3
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.2...v5.2.3)
+
+# Fixed
+
+- Invalid receipt errors are not detected by the timeout extender (#153)
+
 ## v5.2.2
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.1...v5.2.2)
