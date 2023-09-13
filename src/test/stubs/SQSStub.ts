@@ -90,7 +90,7 @@ export class SQSStub extends EventEmitter {
       if (msgs.length) {
         return resolve({Messages: msgs});
       }
-      // tslint:disable-next-line
+      // eslint-disable-next-line
       let removeListeners = () => {
       };
       const timeout = setTimeout(() => {

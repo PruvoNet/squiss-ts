@@ -177,7 +177,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 }
                 /* istanbul ignore if */
                 if (!newUrl) {
-                    throw new Error(`Failed to get configured SQQ endpoint`);
+                    throw new Error('Failed to get configured SQQ endpoint');
                 }
                 const parsedQueueUrl = new URL(this._queueUrl);
                 newUrl.pathname = parsedQueueUrl.pathname;
@@ -547,7 +547,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
             getMessagePromise = compressMessage(messageStr);
             params.MessageAttributes = params.MessageAttributes || {};
             params.MessageAttributes[GZIP_MARKER] = {
-                StringValue: `1`,
+                StringValue: '1',
                 DataType: 'Number',
             };
         }
