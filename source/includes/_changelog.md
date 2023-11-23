@@ -5,6 +5,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v5.3.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.2...v5.3.0)
+
+### Fixed
+
+- EmptyBatchRequest when stopping and no messages (#167)
+- Bumped AWS dependencies
+- Changed `receiveSqsAttributes` type to be more accurate
+
 ## v5.2.3
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.2...v5.2.3)
 
