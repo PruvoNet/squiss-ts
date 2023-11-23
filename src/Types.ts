@@ -1,5 +1,12 @@
 import {Message} from './Message';
-import {SQSClientConfig, BatchResultErrorEntry, SQS, SQSServiceException, MessageAttributeValue} from '@aws-sdk/client-sqs'
+import {
+    SQSClientConfig,
+    BatchResultErrorEntry,
+    SQS,
+    SQSServiceException,
+    MessageAttributeValue,
+    QueueAttributeName
+} from '@aws-sdk/client-sqs'
 import {S3, S3ClientConfig} from '@aws-sdk/client-s3'
 import {IS3Upload} from './s3Utils';
 import {StrictEventEmitter} from './EventEmitterTypesHelper';
@@ -46,7 +53,7 @@ export type BodyFormat = 'json' | 'plain' | undefined;
 export interface ISquissOptions {
     receiveBatchSize?: number;
     receiveAttributes?: string[];
-    receiveSqsAttributes?: string[];
+    receiveSqsAttributes?: QueueAttributeName[];
     minReceiveBatchSize?: number;
     receiveWaitTimeSecs?: number;
     deleteBatchSize?: number;

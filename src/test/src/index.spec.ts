@@ -730,6 +730,17 @@ describe('index', () => {
         spy.should.be.calledTwice();
       });
     });
+    it('should not call delete api if no messages after stop', () => {
+      inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10} as ISquissOptions);
+      inst!.sqs = new SQSStub() as any as SQS;
+      const spy = sinon.spy(inst!.sqs, 'deleteMessageBatch');
+      inst!.start();
+      return wait().then(() => {
+        return inst!.stop();
+      }).then(() => {
+        spy.should.not.be.called();
+      });
+    });
     it('requires a Message object be sent to deleteMessage', () => {
       inst = new SquissPatched({queueUrl: 'foo', deleteBatchSize: 1} as ISquissOptions);
       const promise = inst!.deleteMessage('foo' as any);

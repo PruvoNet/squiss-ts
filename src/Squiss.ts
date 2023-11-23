@@ -384,7 +384,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         this._opts.minReceiveBatchSize = Math.min(this._opts.minReceiveBatchSize!, this._opts.receiveBatchSize);
     }
 
-    private _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
+    private async _deleteMessages(batch: IDeleteQueueItem[]): Promise<void> {
+        if (batch.length === 0) {
+            return;
+        }
         return this.getQueueUrl().then((queueUrl) => {
             return this.sqs.deleteMessageBatch({
                 QueueUrl: queueUrl,
