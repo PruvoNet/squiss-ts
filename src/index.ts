@@ -1,6 +1,6 @@
 /* istanbul ignore file */
-import {SQS} from '@aws-sdk/client-sqs'
-export {SQS}
+import {SQS, QueueAttributeName} from '@aws-sdk/client-sqs'
+export {SQS, QueueAttributeName}
 import {S3} from '@aws-sdk/client-s3'
 export {S3}
 export {Squiss} from './Squiss';
