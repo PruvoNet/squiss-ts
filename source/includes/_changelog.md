@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## Development
 - nothing yet
 
+## v5.4.0
+
+[diff](https://github.com/PruvoNet/squiss-ts/compare/v5.3.0...v5.4.0)
+
+# Added
+
+- Support for node 21 (#173 )
+
 ## v5.3.0
 
 [diff](https://github.com/PruvoNet/squiss-ts/compare/v5.2.2...v5.3.0)
