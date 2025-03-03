@@ -62,6 +62,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         this._initOpts();
         this._queueUrl = this._opts.queueUrl || '';
         this.sqs = this._initSqs();
+        this._drainDeleteQueue = this._drainDeleteQueue.bind(this);
     }
 
     public changeMessageVisibility(msg: Message | string, timeoutInSeconds: number): Promise<void> {
