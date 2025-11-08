@@ -39,7 +39,7 @@ const bazMsg = new Message({
 
 describe('TimeoutExtender', () => {
   afterEach(() => {
-    if (clock && clock.restore) {
+    if (clock?.restore) {
       clock.restore();
     }
     inst = null;

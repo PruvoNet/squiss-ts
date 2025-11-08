@@ -12,10 +12,9 @@ const stubs = {
 
 const {Squiss: SquissPatched, Message: MessagePatched} = proxyquire('../../', stubs);
 
-import {ISquissOptions, Squiss} from '../../';
+import {ISquissOptions, Squiss, Message} from '../../';
 import {SQSStub} from '../stubs/SQSStub';
 import delay from 'delay';
-import {Message } from '../../';
 import {IMessageOpts } from '../../Message';
 // @ts-ignore
 import * as sinon from 'sinon';
@@ -28,7 +27,7 @@ import {HttpHandlerOptions} from '@aws-sdk/types';
 
 const should = chai.should();
 let inst: Squiss | null = null;
-const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
+const wait = (ms?: number) => delay(ms  ?? 20);
 
 const getS3Stub = (blobs?: Blobs) => {
   return new S3Stub(blobs) as any as S3;
@@ -45,7 +44,7 @@ const generateLargeMessage = (length: number) => {
 describe('index', () => {
   afterEach(() => {
     if (inst) {
-      inst!.stop();
+      inst.stop();
     }
     inst = null;
   });
@@ -510,7 +509,7 @@ describe('index', () => {
           .then(() => wait())
           .then(async  () => {
             inst!.inFlight.should.equal(5);
-            await inst!.handledMessage(new EventEmitter() as any);
+            inst!.handledMessage(new EventEmitter() as any);
             await wait(1);
           }).then(() => {
             inst!.inFlight.should.equal(4);
@@ -699,7 +698,7 @@ describe('index', () => {
       let message: Message;
       inst!.on('message', (msg: Message) => {
         message = msg;
-        msg!.on('deleted', msgSpyMessage);
+        msg.on('deleted', msgSpyMessage);
         msg.del();
       });
       inst!.on('deleted', msgSpySquiss);
@@ -848,7 +847,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'createQueue');
       return inst!.createQueue().then((queueUrl: string) => {
-        queueUrl!.should.be.a('string');
+        queueUrl.should.be.a('string');
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueName: 'foo',
@@ -866,7 +865,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'createQueue');
       return inst!.createQueue().then((queueUrl: string) => {
-        queueUrl!.should.be.a('string');
+        queueUrl.should.be.a('string');
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueName: 'foo',
@@ -893,7 +892,7 @@ describe('index', () => {
       inst!.sqs = new SQSStub(1) as any as SQS;
       const spy = sinon.spy(inst!.sqs, 'createQueue');
       return inst!.createQueue().then((queueUrl: string) => {
-        queueUrl!.should.be.a('string');
+        queueUrl.should.be.a('string');
         spy.should.be.calledOnce();
         spy.should.be.calledWith({
           QueueName: 'foo',
@@ -1205,7 +1204,7 @@ describe('index', () => {
         empty: undefined,
       }).then(() => {
         squissS3UploadEventEmitted.should.eql(true);
-        blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
+        blobs.my_bucket.my_uuid.should.be.eq(largeMessage);
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           MessageBody: '{"uploadSize":300,"bucket":"my_bucket","key":"my_uuid"}',
@@ -1300,7 +1299,7 @@ describe('index', () => {
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
       const largeMessage = generateLargeMessage(300);
       return inst!.sendMessage(largeMessage, 10).then(() => {
-        blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
+        blobs.my_bucket.my_uuid.should.be.eq(largeMessage);
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           MessageBody: '{"uploadSize":300,"bucket":"my_bucket","key":"my_uuid"}',
@@ -1319,7 +1318,7 @@ describe('index', () => {
       const spy = sinon.spy(inst!.sqs, 'sendMessage');
       const largeMessage = generateLargeMessage(300);
       return inst!.sendMessage(largeMessage, 10).then(() => {
-        blobs.my_bucket!.my_uuid.should.be.eq(largeMessage);
+        blobs.my_bucket.my_uuid.should.be.eq(largeMessage);
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           MessageBody: '{"uploadSize":300,"bucket":"my_bucket","key":"my_uuid"}',

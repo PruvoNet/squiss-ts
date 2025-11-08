@@ -33,14 +33,17 @@ export class TimeoutExtender {
   public readonly _index: MessageIndex;
   public _linkedList: LinkedList<Node>;
   public _opts: ITimeoutExtenderOptions;
-  private _squiss: Squiss;
+  private readonly _squiss: Squiss;
   private _timer: any;
   private readonly _visTimeout: number;
   private readonly _stopAfter: number;
   private readonly _apiLeadMs: number;
 
   constructor(squiss: Squiss, opts?: ITimeoutExtenderOptions) {
-    this._opts = Object.assign({}, optDefaults, opts || {});
+    this._opts = {
+        ...optDefaults,
+        ...(opts || {}),
+    };
     this._index = {};
     this._timer = undefined;
     this._squiss = squiss;

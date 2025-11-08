@@ -58,9 +58,12 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
     constructor(opts?: ISquissOptions  ) {
         super();
-        this._opts = Object.assign({}, optDefaults, opts || {});
+        this._opts = {
+            ...optDefaults,
+            ...(opts ?? {}),
+        };
         this._initOpts();
-        this._queueUrl = this._opts.queueUrl || '';
+        this._queueUrl = this._opts.queueUrl ?? '';
         this.sqs = this._initSqs();
     }
 
@@ -197,7 +200,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 QueueUrl: queueUrl,
             });
         }).then((res) => {
-            if (!res.Attributes || !res.Attributes.VisibilityTimeout) {
+            if (!res.Attributes?.VisibilityTimeout) {
                 throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
                     JSON.stringify(res));
             }
@@ -216,7 +219,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                 QueueUrl: queueUrl,
             });
         }).then((res) => {
-            if (!res.Attributes || !res.Attributes.MaximumMessageSize) {
+            if (!res.Attributes?.MaximumMessageSize) {
                 throw new Error('SQS.GetQueueAttributes call did not return expected shape. Response: ' +
                     JSON.stringify(res));
             }
@@ -546,7 +549,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _prepareMessageParams(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes) {
         const messageStr = isString(message) ? message : JSON.stringify(message);
         const params: ISendMessageRequest = {MessageBody: messageStr, DelaySeconds: delay};
-        attributes = Object.assign({}, attributes);
+        attributes = {...attributes};
         params.MessageGroupId = attributes.FIFO_MessageGroupId;
         delete attributes.FIFO_MessageGroupId;
         params.MessageDeduplicationId = attributes.FIFO_MessageDeduplicationId;
@@ -580,7 +583,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
                     .then((uploadData) => {
                         this.emit('s3Upload', uploadData);
                         params.MessageBody = JSON.stringify(uploadData);
-                        params.MessageAttributes = params.MessageAttributes || {};
+                        params.MessageAttributes = params.MessageAttributes ?? {};
                         params.MessageAttributes[S3_MARKER] = {
                             StringValue: `${uploadData.uploadSize}`,
                             DataType: 'Number',
@@ -592,10 +595,10 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
     private _prepareMessageRequest(message: IMessageToSend, delay?: number, attributes?: IMessageAttributes)
         : Promise<ISendMessageRequest> {
-        if (attributes && attributes[GZIP_MARKER]) {
+        if (attributes?.[GZIP_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${GZIP_MARKER} is not allowed`));
         }
-        if (attributes && attributes[S3_MARKER]) {
+        if (attributes?.[S3_MARKER]) {
             return Promise.reject(new Error(`Using of internal attribute ${S3_MARKER} is not allowed`));
         }
         return this._prepareMessageParams(message, delay, attributes)
@@ -678,7 +681,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         return (data: ReceiveMessageCommandOutput) => {
             let gotMessages = true;
             this._activeReq = undefined;
-            if (data && data.Messages) {
+            if (data?.Messages) {
                 this.emit('gotMessages', data.Messages.length);
                 this._emitMessages(data.Messages);
             } else {
@@ -703,6 +706,6 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
 
     private _getMaxMessagesToGet() {
         return !this._opts.maxInFlight ? this._opts.receiveBatchSize! :
-            Math.min(this._opts.maxInFlight! - this._inFlight, this._opts.receiveBatchSize!);
+            Math.min(this._opts.maxInFlight - this._inFlight, this._opts.receiveBatchSize!);
     }
 }

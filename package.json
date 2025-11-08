@@ -12,6 +12,7 @@
     "build": "yarn lint && yarn compile",
     "compile": "tsc",
     "test": "yarn lint && yarn mocha",
+    "ci": "yarn build && yarn cover",
     "cover": "yarn clean && yarn nyc yarn mocha",
     "lint": "eslint \"src/**/*.ts\"",
     "benchmark": "tsc --extendedDiagnostics --incremental false",

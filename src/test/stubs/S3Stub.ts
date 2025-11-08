@@ -23,7 +23,7 @@ export class S3Stub extends EventEmitter {
   }
 
   public getObject({Key, Bucket}: GetObjectCommandInput): Promise<GetObjectOutput> {
-    if (Bucket && Key && this.blobs[Bucket] && this.blobs[Bucket][Key]) {
+    if (Bucket && Key && this.blobs[Bucket]?.[Key]) {
       const body = new Readable();
       body.push(this.blobs[Bucket][Key]);
       body.push(null);
@@ -37,13 +37,15 @@ export class S3Stub extends EventEmitter {
     if (Bucket && !this.blobs[Bucket]) {
       this.blobs[Bucket] = {};
     }
-    // @ts-ignore
-    this.blobs[Bucket][Key] = Body;
+    if (Bucket && Key) {
+        // @ts-ignore
+        this.blobs[Bucket]![Key] = Body;
+    }
     return Promise.resolve({});
   }
 
   public deleteObject({Key, Bucket}: DeleteObjectRequest): Promise<DeleteObjectOutput> {
-    if (Bucket && Key && this.blobs[Bucket] && this.blobs[Bucket][Key]) {
+    if (Bucket && Key && this.blobs[Bucket]?.[Key]) {
       delete this.blobs[Bucket][Key];
       return Promise.resolve({});
     } else {
