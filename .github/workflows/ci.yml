@@ -25,16 +25,6 @@ jobs:
         node-version: [18.x, 20.x, 22.x, 24.x]
 
     steps:
-
-      - name: Echo env variables
-        run: |
-          echo ref: ${{ github.event.client_payload.ref || github.ref }}
-          echo sha: ${{ github.event.client_payload.sha || github.sha }}
-          echo head ref: ${{ github.event.client_payload.head_ref || github.head_ref }}
-          echo base ref: ${{ github.event.client_payload.base_ref || github.base_ref }}
-          echo action: ${{ github.action }}
-          echo event: ${{ github.event_name }}
-
       - uses: actions/checkout@v5
         name: Checkout
         with:
@@ -48,6 +38,7 @@ jobs:
       - name: Get yarn cache directory
         id: yarn-cache-dir
         run: |
+          echo "dir=$(yarn cache dir)"
           echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
       - uses: actions/cache@v4
