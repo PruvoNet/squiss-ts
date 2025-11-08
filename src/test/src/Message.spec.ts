@@ -4,7 +4,7 @@ import {SquissStub} from '../stubs/SquissStub';
 import {Blobs, S3Stub} from '../stubs/S3Stub';
 import delay from 'delay';
 
-const wait = (ms?: number) => delay(ms === undefined ? 20 : ms);
+const wait = (ms?: number) => delay(ms ?? 20 );
 
 const getSquissStub = () => {
   return new SquissStub() as any as Squiss;
@@ -201,7 +201,7 @@ describe('Message', () => {
       });
   });
   it('not parse empty gzipped body', () => {
-    const rawMsg = getSQSMsg(undefined);
+    const rawMsg = getSQSMsg();
     rawMsg.MessageAttributes!.__SQS_GZIP__ = {
       DataType: 'Number',
       StringValue: '1',
@@ -234,7 +234,7 @@ describe('Message', () => {
   it('not parse empty body', () => {
     const msg = new Message({
       squiss: getSquissStub(),
-      msg: getSQSMsg(undefined),
+      msg: getSQSMsg(),
       bodyFormat: 'json',
       s3Retriever: getS3Stub(),
       s3Retain: false,

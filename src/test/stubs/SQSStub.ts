@@ -20,8 +20,8 @@ export class SQSStub extends EventEmitter {
   constructor(msgCount?: number, timeout?: number) {
     super();
     this.msgs = [];
-    this.timeout = timeout === undefined ? 20 : timeout;
-    this.msgCount = msgCount || 0;
+    this.timeout = timeout ?? 20;
+    this.msgCount = msgCount ?? 0;
     this.config = {
       region: 'us-east-1',
       endpoint: 'http://foo.bar',
@@ -99,11 +99,10 @@ export class SQSStub extends EventEmitter {
       }, this.timeout);
       const onAbort = () => {
         removeListeners();
-        const err: any = new Error('Request aborted by user') as any;
-        err.name = 'AbortError';
-        err.retryable = false;
-        err.time = new Date();
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+        const err = new Error('Request aborted by user');
+      (err as any).name = 'AbortError';
+      (err as any).retryable = false;
+      (err as any).time = new Date();
         reject(err);
       };
       const onNewMessage = () => {
@@ -168,7 +167,7 @@ export class SQSStub extends EventEmitter {
     this.msgs.push({
       MessageId: `id_${id}`,
       ReceiptHandle: `${id}`,
-      Body: body || `{"num": ${id}}`,
+      Body: body ?? `{"num": ${id}}`,
     });
     this.emit('newMessage');
   }

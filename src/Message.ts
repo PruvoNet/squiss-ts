@@ -53,18 +53,18 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
     }
 
     public raw: SQSMessage;
-    public body?: string | any;
+    public body?: any;
     public subject?: string;
     public topicArn?: string;
     public topicName?: string;
     public attributes: IMessageAttributes;
     public sqsAttributes: { [k: string]: string };
-    private _squiss: Squiss;
+    private readonly _squiss: Squiss;
     private _handled: boolean;
-    private _opts: IMessageOpts;
+    private readonly _opts: IMessageOpts;
     private _deleteCallback?: () => Promise<void>;
-    private _s3Retriever: () => S3;
-    private _s3Retain: boolean;
+    private readonly _s3Retriever: () => S3;
+    private readonly _s3Retain: boolean;
 
     constructor(opts: IMessageOpts) {
         super();
@@ -77,7 +77,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
             this.subject = unwrapped.Subject;
             this.topicArn = unwrapped.TopicArn;
             if (this.topicArn) {
-                this.topicName = unwrapped.TopicArn.substr(unwrapped.TopicArn.lastIndexOf(':') + 1);
+                this.topicName = unwrapped.TopicArn.substring(unwrapped.TopicArn.lastIndexOf(':') + 1);
             }
         }
         this._squiss = opts.squiss;
@@ -88,7 +88,7 @@ export class Message extends (EventEmitter as new() => MessageEmitter) {
         this._s3Retain = opts.s3Retain;
     }
 
-    public parse(): Promise<string | any> {
+    public parse(): Promise<any> {
         if (this.body === undefined || this.body === null) {
             return Promise.resolve();
         }
