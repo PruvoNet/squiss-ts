@@ -29,7 +29,7 @@ export class S3Stub extends EventEmitter {
       body.push(null);
       return Promise.resolve({Body: body });
     } else {
-      return Promise.reject('Blob doesnt exist');
+      return Promise.reject(new Error('Blob doesnt exist'));
     }
   }
 
@@ -47,7 +47,7 @@ export class S3Stub extends EventEmitter {
       delete this.blobs[Bucket][Key];
       return Promise.resolve({});
     } else {
-      return Promise.reject('Blob doesnt exist');
+      return Promise.reject(new Error('Blob doesnt exist'));
     }
   }
 }

@@ -90,7 +90,7 @@ export class SQSStub extends EventEmitter {
       if (msgs.length) {
         return resolve({Messages: msgs});
       }
-      // eslint-disable-next-line
+
       let removeListeners = () => {
       };
       const timeout = setTimeout(() => {
@@ -99,10 +99,11 @@ export class SQSStub extends EventEmitter {
       }, this.timeout);
       const onAbort = () => {
         removeListeners();
-        const err: any = new Error('Request aborted by user');
+        const err: any = new Error('Request aborted by user') as any;
         err.name = 'AbortError';
         err.retryable = false;
         err.time = new Date();
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         reject(err);
       };
       const onNewMessage = () => {
