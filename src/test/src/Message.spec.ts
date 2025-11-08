@@ -377,7 +377,7 @@ describe('Message', () => {
       bodyFormat: 'json',
       squiss: {
         deleteMessage: (toDel: Message) => {
-          return Promise.reject();
+          return Promise.reject(new Error('Delete failed'));
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),
@@ -394,7 +394,7 @@ describe('Message', () => {
       bodyFormat: 'json',
       squiss: {
         releaseMessage: (toDel: Message) => {
-          return Promise.reject();
+          return Promise.reject(new Error('Release failed'));
         },
       } as any as Squiss,
       s3Retriever: getS3Stub(),

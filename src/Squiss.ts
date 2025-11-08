@@ -56,7 +56,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private _delTimer: any;
     private _activeReq: AbortController | undefined;
 
-    constructor(opts?: ISquissOptions | undefined) {
+    constructor(opts?: ISquissOptions  ) {
         super();
         this._opts = Object.assign({}, optDefaults, opts || {});
         this._initOpts();
@@ -323,7 +323,7 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
         }
         let resolved = false;
         let timer: any;
-        const result = await new Promise<boolean>(async (resolve) => {
+        const result = await new Promise<boolean>((resolve) => {
             this.on('drained',() => {
                 if (!resolved) {
                     resolved = true;
@@ -517,8 +517,15 @@ export class Squiss extends (EventEmitter as new() => SquissEmitter) {
     private async _deleteXMessages(x?: number): Promise<void> {
         const delQueue = this._delQueue;
         const iterator = delQueue.entries();
-        const delBatch = Array.from({length: x || delQueue.size}, function(this: typeof iterator) {
+        let length = x ?? delQueue.size;
+        /* istanbul ignore next */
+        length = length <= delQueue.size ? length : delQueue.size
+        const delBatch = Array.from({length}, function(this: typeof iterator) {
             const element = this.next().value;
+            /* istanbul ignore next */
+            if (!element) {
+                throw new Error('Unexpected undefined element in delete queue');
+            }
             delQueue.delete(element[0]);
             return element[1];
         }, iterator);

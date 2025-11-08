@@ -22,35 +22,26 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [18.x, 20.x, 22.x, 24.x]
 
     steps:
-
-      - name: Echo env variables
-        run: |
-          echo ref: ${{ github.event.client_payload.ref || github.ref }}
-          echo sha: ${{ github.event.client_payload.sha || github.sha }}
-          echo head ref: ${{ github.event.client_payload.head_ref || github.head_ref }}
-          echo base ref: ${{ github.event.client_payload.base_ref || github.base_ref }}
-          echo action: ${{ github.action }}
-          echo event: ${{ github.event_name }}
-
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
         name: Checkout
         with:
           ref: ${{ github.event.client_payload.ref || github.ref }}
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Get yarn cache directory
         id: yarn-cache-dir
+        shell: bash
         run: |
-          echo "::set-output name=dir::$(yarn cache dir)"
+          echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir.outputs.dir }}
@@ -71,11 +62,14 @@ jobs:
 
       - name: Run unit tests with coverage
         if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS && !github.event.pull_request.head.repo.fork
-        uses: paambaati/codeclimate-action@v2.7.5
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        run: yarn cover
+
+      - name: Upload coverage
+        if: matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS
+        uses: qltysh/qlty-action/coverage@v2
         with:
-          coverageCommand: yarn cover
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: coverage/lcov.info
 
       - name: Run unit tests
         if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS)"
@@ -93,24 +87,25 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: fetch
         run: |
           git fetch --prune --unshallow
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: ${{ env.REGISTRY }}
 
       - name: Get yarn cache directory
         id: yarn-cache-dir
+        shell: bash
         run: |
-          echo "::set-output name=dir::$(yarn cache dir)"
+          echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir.outputs.dir }}

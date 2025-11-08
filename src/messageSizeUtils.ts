@@ -16,7 +16,7 @@ const getMsgAttributesSize = (attributes?: MessageBodyAttributeMap): number => {
     let totalMsgAttributesSize = 0;
     attributes = attributes || {};
     for (const attribute in attributes) {
-        if (attributes.hasOwnProperty(attribute)) {
+        if (Object.hasOwn(attributes, attribute)) {
             totalMsgAttributesSize += getSizeInBytes(attribute);
             const val = attributes[attribute];
             totalMsgAttributesSize += getSizeInBytes(val.DataType);

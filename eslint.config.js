@@ -1,0 +1,235 @@
+const eslint = require('@eslint/js');
+const tseslint = require('typescript-eslint');
+const prettierConfig = require('eslint-config-prettier');
+const importPlugin = require('eslint-plugin-import');
+const jsdocPlugin = require('eslint-plugin-jsdoc');
+const preferArrowPlugin = require('eslint-plugin-prefer-arrow');
+
+module.exports = tseslint.config(
+  eslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  prettierConfig,
+  {
+    languageOptions: {
+      globals: {
+        // Node.js globals
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        Buffer: 'readonly',
+        global: 'readonly',
+        process: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        console: 'readonly',
+        // Browser globals
+        document: 'readonly',
+        navigator: 'readonly',
+        window: 'readonly',
+      },
+      parserOptions: {
+        project: './tsconfig.json',
+        sourceType: 'module',
+      },
+    },
+    files: ['**/*.ts'],
+    plugins: {
+      import: importPlugin,
+      jsdoc: jsdocPlugin,
+      'prefer-arrow': preferArrowPlugin,
+    },
+    rules: {
+      // TypeScript-specific rules (only non-deprecated ones from v8)
+      '@typescript-eslint/adjacent-overload-signatures': 'error',
+      '@typescript-eslint/array-type': [
+        'error',
+        {
+          default: 'array',
+        },
+      ],
+      '@typescript-eslint/await-thenable': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
+      '@typescript-eslint/consistent-type-assertions': 'error',
+      '@typescript-eslint/dot-notation': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/naming-convention': [
+        'off',
+        {
+          selector: 'variable',
+          format: ['camelCase', 'UPPER_CASE'],
+          leadingUnderscore: 'allow',
+          trailingUnderscore: 'forbid',
+        },
+      ],
+      '@typescript-eslint/no-array-constructor': 'error',
+      '@typescript-eslint/no-base-to-string': 'error',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-for-in-array': 'error',
+      '@typescript-eslint/no-implied-eval': 'error',
+      '@typescript-eslint/no-misused-new': 'error',
+      '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/no-namespace': 'error',
+      '@typescript-eslint/no-redundant-type-constituents': 'off',
+      '@typescript-eslint/no-shadow': [
+        'error',
+        {
+          hoist: 'all',
+        },
+      ],
+      '@typescript-eslint/no-this-alias': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-use-before-define': 'off',
+      '@typescript-eslint/prefer-as-const': 'error',
+      '@typescript-eslint/prefer-for-of': 'error',
+      '@typescript-eslint/prefer-function-type': 'error',
+      '@typescript-eslint/prefer-namespace-keyword': 'error',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/restrict-plus-operands': 'error',
+      '@typescript-eslint/restrict-template-expressions': 'error',
+      '@typescript-eslint/triple-slash-reference': [
+        'error',
+        {
+          path: 'always',
+          types: 'prefer-import',
+          lib: 'always',
+        },
+      ],
+      '@typescript-eslint/typedef': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/unified-signatures': 'error',
+
+      // General ESLint rules
+      'comma-dangle': ['off'],
+      complexity: 'off',
+      'constructor-super': 'off',
+      'dot-notation': 'off',
+      eqeqeq: ['error', 'smart'],
+      'guard-for-in': 'error',
+      'id-denylist': [
+        'error',
+        'any',
+        'Number',
+        'number',
+        'String',
+        'string',
+        'Boolean',
+        'boolean',
+        'Undefined',
+        'undefined',
+      ],
+      'id-match': 'error',
+      'import/order': [
+        'off',
+        {
+          alphabetize: {
+            caseInsensitive: true,
+            order: 'asc',
+          },
+          'newlines-between': 'ignore',
+          groups: [['builtin', 'external', 'internal', 'unknown', 'object', 'type'], 'parent', ['sibling', 'index']],
+          distinctGroup: false,
+          pathGroupsExcludedImportTypes: [],
+          pathGroups: [
+            {
+              pattern: './',
+              patternOptions: {
+                nocomment: true,
+                dot: true,
+              },
+              group: 'sibling',
+              position: 'before',
+            },
+            {
+              pattern: '.',
+              patternOptions: {
+                nocomment: true,
+                dot: true,
+              },
+              group: 'sibling',
+              position: 'before',
+            },
+            {
+              pattern: '..',
+              patternOptions: {
+                nocomment: true,
+                dot: true,
+              },
+              group: 'parent',
+              position: 'before',
+            },
+            {
+              pattern: '../',
+              patternOptions: {
+                nocomment: true,
+                dot: true,
+              },
+              group: 'parent',
+              position: 'before',
+            },
+          ],
+        },
+      ],
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/check-indentation': 'error',
+      'max-classes-per-file': 'off',
+      'max-len': [
+        'error',
+        {
+          ignorePattern: '^import |^export \\{(.*?)\\}|class [a-zA-Z]+ implements |//',
+          code: 120,
+        },
+      ],
+      'new-parens': 'error',
+      'no-array-constructor': 'off',
+      'no-bitwise': 'error',
+      'no-caller': 'error',
+      'no-cond-assign': 'error',
+      'no-console': 'off',
+      'no-debugger': 'error',
+      'no-empty': 'off',
+      'no-empty-function': 'off',
+      'no-eval': 'error',
+      'no-fallthrough': 'off',
+      'no-implied-eval': 'off',
+      'no-invalid-this': 'off',
+      'no-loss-of-precision': 'off',
+      'no-new-wrappers': 'error',
+      'no-shadow': 'off',
+      'no-throw-literal': 'error',
+      'no-trailing-spaces': 'error',
+      'no-undef-init': 'error',
+      'no-underscore-dangle': 'off',
+      'no-unsafe-finally': 'error',
+      'no-unused-expressions': 'off',
+      'no-unused-labels': 'error',
+      'no-unused-vars': 'off',
+      'no-use-before-define': 'off',
+      'no-var': 'error',
+      'object-shorthand': 'error',
+      'one-var': ['error', 'never'],
+      'prefer-arrow/prefer-arrow-functions': 'off',
+      'prefer-const': 'error',
+      radix: 'error',
+      'require-await': 'off',
+      'spaced-comment': [
+        'error',
+        'always',
+        {
+          markers: ['/'],
+        },
+      ],
+      'use-isnan': 'error',
+      'valid-typeof': 'off',
+    },
+  }
+);
