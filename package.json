@@ -51,7 +51,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.927.0",
     "@aws-sdk/client-sqs": "^3.927.0",
-    "@aws-sdk/types": "^3.922.0",
+    "@aws-sdk/types": "^3.930.0",
     "linked-list": "2.1.0",
     "ts-type-guards": "^0.7.0",
     "uuid": "11.1.0"
