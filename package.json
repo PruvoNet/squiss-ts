@@ -54,7 +54,7 @@
     "@aws-sdk/types": "^3.922.0",
     "linked-list": "2.1.0",
     "ts-type-guards": "^0.7.0",
-    "uuid": "11.1.0"
+    "uuid": "14.0.0"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "1.0.2",
