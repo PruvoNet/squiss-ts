@@ -5,6 +5,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Wait a week after a release: a hijacked action version is usually caught and pulled by then.
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:
