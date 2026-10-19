@@ -1,11 +1,11 @@
 {
   "name": "squiss-ts",
-  "version": "5.6.0",
+  "version": "5.7.0",
   "description": "High-volume SQS poller",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": "^18 || ^20 || ^22 || ^24"
+    "node": "^20 || ^22 || ^24"
   },
   "scripts": {
     "clean": "rm -rf .nyc_output coverage dist",
@@ -49,12 +49,12 @@
   },
   "homepage": "https://github.com/PruvoNet/squiss-ts#readme",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.927.0",
-    "@aws-sdk/client-sqs": "^3.927.0",
+    "@aws-sdk/client-s3": "^3.974.0",
+    "@aws-sdk/client-sqs": "^3.974.0",
     "@aws-sdk/types": "^3.922.0",
     "linked-list": "2.1.0",
     "ts-type-guards": "^0.7.0",
-    "uuid": "11.1.0"
+    "uuid": "11.1.1"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "1.0.2",
