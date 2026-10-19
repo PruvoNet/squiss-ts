@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  PRIMARY_NODE_VERSION: 18.x
+  PRIMARY_NODE_VERSION: 24.x
   PRIMARY_OS: ubuntu-latest
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [18.x, 20.x, 22.x, 24.x]
+        node-version: [20.x, 22.x, 24.x]
 
     steps:
       - uses: actions/checkout@v5
