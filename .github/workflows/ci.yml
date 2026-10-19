@@ -4,16 +4,17 @@ on:
   push:
     branches:
       - master
-  release:
-    types: [published]
   pull_request:
     branches:
       - '**'
+  workflow_call:
+
+permissions:
+  contents: read
 
 env:
   PRIMARY_NODE_VERSION: 18.x
   PRIMARY_OS: ubuntu-latest
-  REGISTRY: https://registry.npmjs.org/
 
 jobs:
   test:
@@ -74,52 +75,3 @@ jobs:
       - name: Run unit tests
         if: "!(matrix.node-version == env.PRIMARY_NODE_VERSION && matrix.os == env.PRIMARY_OS)"
         run: yarn test
-
-  publish_version:
-    name: Publish
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [18.x]
-    needs: [test]
-    if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: fetch
-        run: |
-          git fetch --prune --unshallow
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node-version }}
-          registry-url: ${{ env.REGISTRY }}
-
-      - name: Get yarn cache directory
-        id: yarn-cache-dir
-        shell: bash
-        run: |
-          echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v4
-        id: yarn-cache
-        with:
-          path: ${{ steps.yarn-cache-dir.outputs.dir }}
-          key: ${{ matrix.os }}-${{ matrix.node-version }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-${{ matrix.node-version }}-yarn-
-
-      - name: Install dependencies and build
-        run: |
-          yarn install --frozen-lockfile
-          yarn build
-
-      - name: Publish
-        uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_AUTH_TOKEN }}
-          registry: ${{ env.REGISTRY }}

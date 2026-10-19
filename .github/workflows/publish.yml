@@ -1,0 +1,73 @@
+name: Publish
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # Required for OIDC authentication
+  contents: read # Allows checking out the repository contents
+
+env:
+  # Trusted publishing needs npm >= 11.5.1, which ships with Node 24.
+  NODE_VERSION: 24.x
+  REGISTRY: https://registry.npmjs.org/
+
+jobs:
+  test:
+    name: Run tests before publish
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  publish_version:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: [ test ]
+    # A pre-release must never become the stable `latest` version on npm.
+    if: github.event_name != 'release' || !github.event.release.prerelease
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: ${{ env.REGISTRY }}
+
+      - name: Get yarn cache directory
+        id: yarn-cache-dir
+        shell: bash
+        run: |
+          echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir.outputs.dir }}
+          key: ubuntu-latest-${{ env.NODE_VERSION }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ubuntu-latest-${{ env.NODE_VERSION }}-yarn-
+
+      - name: Install dependencies and build
+        run: |
+          yarn install --frozen-lockfile
+          yarn build
+
+      # npm never lets a published version be reused, so a tag/manifest mismatch must fail before publishing.
+      - name: Check the release tag matches package.json
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "${TAG#v}" != "$VERSION" ]; then
+            echo "::error::Release tag $TAG does not match package.json version $VERSION"
+            exit 1
+          fi
+
+      - name: Publish
+        run: |
+          npm publish
