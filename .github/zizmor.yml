@@ -1,0 +1,4 @@
+rules:
+  # Calls to this repo's own reusable workflow use `./`; zizmor suggests a newer `$/` syntax.
+  self-repository:
+    disable: true
