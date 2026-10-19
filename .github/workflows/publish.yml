@@ -5,9 +5,7 @@ on:
     types: [ published ]
   workflow_dispatch:
 
-permissions:
-  id-token: write # Required for OIDC authentication
-  contents: read # Allows checking out the repository contents
+permissions: {}
 
 env:
   # Trusted publishing needs npm >= 11.5.1, which ships with Node 24.
@@ -18,7 +16,11 @@ jobs:
   test:
     name: Run tests before publish
     uses: ./.github/workflows/ci.yml
-    secrets: inherit
+    permissions:
+      contents: read
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      QLTY_COVERAGE_TOKEN: ${{ secrets.QLTY_COVERAGE_TOKEN }}
 
   publish_version:
     name: Publish
@@ -26,10 +28,15 @@ jobs:
     needs: [ test ]
     # A pre-release must never become the stable `latest` version on npm.
     if: github.event_name != 'release' || !github.event.release.prerelease
+    permissions:
+      id-token: write # OIDC token for npm trusted publishing
+      contents: read
     steps:
 
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v6

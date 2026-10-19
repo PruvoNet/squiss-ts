@@ -8,6 +8,11 @@ on:
     branches:
       - '**'
   workflow_call:
+    secrets:
+      SNYK_TOKEN:
+        required: false
+      QLTY_COVERAGE_TOKEN:
+        required: false
 
 permissions:
   contents: read
@@ -30,6 +35,7 @@ jobs:
         name: Checkout
         with:
           ref: ${{ github.event.client_payload.ref || github.ref }}
+          persist-credentials: false
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
