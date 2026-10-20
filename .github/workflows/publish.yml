@@ -1,16 +1,12 @@
 name: Publish
 
+# The npm trusted publisher names this file (publish.yml), so keep its name.
 on:
   release:
     types: [ published ]
   workflow_dispatch:
 
 permissions: {}
-
-env:
-  # Trusted publishing needs npm >= 11.5.1, which ships with Node 24.
-  NODE_VERSION: 24.x
-  REGISTRY: https://registry.npmjs.org/
 
 jobs:
   test:
@@ -19,50 +15,14 @@ jobs:
     permissions:
       contents: read
     secrets:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       QLTY_COVERAGE_TOKEN: ${{ secrets.QLTY_COVERAGE_TOKEN }}
 
-  publish_version:
-    name: Publish
-    runs-on: ubuntu-latest
+  publish:
     needs: [ test ]
-    # A pre-release must never become the stable `latest` version on npm.
-    if: github.event_name != 'release' || !github.event.release.prerelease
+    uses: PruvoNet/oss-workflows/.github/workflows/publish-npm.yml@638c70a621e280086c02bc7dcf4ccca4580d9041 # v1
     permissions:
       id-token: write # OIDC token for npm trusted publishing
       contents: read
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          persist-credentials: false
-
-      - name: Use Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          registry-url: ${{ env.REGISTRY }}
-          # No cache in the job that publishes: a poisoned cache entry would ship in the package.
-          package-manager-cache: false
-
-      - name: Install dependencies and build
-        run: |
-          yarn install --frozen-lockfile
-          yarn build
-
-      # npm never lets a published version be reused, so a tag/manifest mismatch must fail before publishing.
-      - name: Check the release tag matches package.json
-        if: github.event_name == 'release'
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          if [ "${TAG#v}" != "$VERSION" ]; then
-            echo "::error::Release tag $TAG does not match package.json version $VERSION"
-            exit 1
-          fi
-
-      - name: Publish
-        run: |
-          npm publish
+    with:
+      package-manager: yarn
+      build-command: yarn build
