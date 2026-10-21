@@ -5,10 +5,37 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # Wait a week after a release: a hijacked action version is usually caught and pulled by then.
+    # Wait a week after a release: a hijacked version is usually caught and pulled by then.
     cooldown:
       default-days: 7
     groups:
       github-actions:
+        patterns:
+          - '*'
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      # All security fixes in one PR per run, instead of one PR per advisory.
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - '*'
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - '*'
+      # Majors can break consumers: kept apart so they are reviewed on their own.
+      npm-major:
+        applies-to: version-updates
+        update-types:
+          - major
         patterns:
           - '*'
